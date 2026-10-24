@@ -44,7 +44,6 @@ public final class KillAura extends Module {
         if (rotate.is("unsichtbar")) Rot.sendSilent(r[0], r[1]);
         else if (rotate.is("sichtbar")) Rot.look(r[0], r[1]);
 
-        Criticals.beforeAttack();
         mc.gameMode.attack(mc.player, target);
         mc.player.swing(InteractionHand.MAIN_HAND);
     }

@@ -25,7 +25,6 @@ public final class TriggerBot extends Module {
         Entity e = ehr.getEntity();
         if (!Targets.valid(e, players.on(), monsters.on(), animals.on())) return;
         if (mc.player.getAttackStrengthScale(0.5f) < 1.0f) return;
-        Criticals.beforeAttack();
         mc.gameMode.attack(mc.player, e);
         mc.player.swing(InteractionHand.MAIN_HAND);
     }

@@ -3,6 +3,13 @@
   "minVersion": "0.8",
   "package": "dev.teizen.client.mixin",
   "compatibilityLevel": "JAVA_21",
-  "client": [],
-  "injectors": { "defaultRequire": 0 }
+  "client": [
+    "MinecraftAccessor",
+    "MinecraftMixin",
+    "MultiPlayerGameModeMixin",
+    "ClientPacketListenerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
 }
