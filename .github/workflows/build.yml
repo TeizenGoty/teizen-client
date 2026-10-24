@@ -1,0 +1,56 @@
+name: build
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: build
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build
+        run: |
+          chmod +x ./gradlew
+          set +e
+          ./gradlew build --stacktrace > build-log.txt 2>&1
+          echo "EXIT=$?" >> build-log.txt
+          tail -n 40 build-log.txt
+      - name: API dump
+        if: always()
+        run: |
+          set +e
+          MC=""
+          for j in $(find ~/.gradle .gradle -name '*.jar' -size +8M 2>/dev/null); do
+            if unzip -l "$j" 2>/dev/null | grep -q 'net/minecraft/client/Minecraft.class'; then MC="$j"; break; fi
+          done
+          echo "MC jar: $MC" > api-dump.txt
+          if [ -n "$MC" ]; then
+            unzip -Z1 "$MC" | grep '\.class$' | grep -v '\$[0-9]' | sed 's/\.class$//' | sort > all-classes.txt
+            CP="$MC:libs/litematica-fabric-26.2-0.28.8.jar:libs/malilib-fabric-26.2-0.29.6.jar"
+            for j in $(find ~/.gradle -name '*.jar' -path '*fabric*' 2>/dev/null | head -400); do CP="$CP:$j"; done
+            grep -v '^#' ci/dump-classes.txt | grep -v '^$' | while read c; do
+              javap -p -cp "$CP" "$c" >> api-dump.txt 2>&1
+            done
+          fi
+      - name: Publish CI output
+        if: always()
+        run: |
+          mkdir -p /tmp/ciout && cd /tmp/ciout
+          git init -q -b ci-out
+          cp $GITHUB_WORKSPACE/build-log.txt $GITHUB_WORKSPACE/api-dump.txt . 2>/dev/null
+          cp $GITHUB_WORKSPACE/all-classes.txt . 2>/dev/null
+          cp $GITHUB_WORKSPACE/build/libs/*.jar . 2>/dev/null
+          echo "${GITHUB_SHA}" > commit.txt
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -q -m "CI output ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ci-out

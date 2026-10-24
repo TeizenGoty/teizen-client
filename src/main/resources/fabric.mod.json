@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "teizenclient",
+  "version": "${version}",
+  "name": "Teizen Client",
+  "description": "Teizen Client – eigene Utility-Mod mit ///-Befehlen.",
+  "authors": ["Teizen"],
+  "license": "All-Rights-Reserved",
+  "icon": "assets/teizenclient/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.teizen.client.TeizenClient"]
+  },
+  "mixins": ["teizenclient.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.0",
+    "fabric-api": "*",
+    "minecraft": "~26.2"
+  },
+  "suggests": {
+    "litematica": "*"
+  }
+}
