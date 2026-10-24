@@ -160,6 +160,9 @@ public final class SelfTest {
                 shot("03-xray-find");
                 Commands.handle("///xray");
                 Commands.handle("///find clear");
+                // flache, freie Fläche, damit der Zombie nicht in Bäumen/am Hang landet
+                cmd("fill ~-5 ~-1 ~-5 ~5 ~-1 ~5 minecraft:stone");
+                cmd("fill ~-5 ~ ~-5 ~5 ~4 ~5 minecraft:air");
                 cmd("summon minecraft:zombie ~3 ~ ~");
                 Commands.handle("///killaura");
                 next();
