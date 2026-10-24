@@ -8,7 +8,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import dev.teizen.client.TeizenClient;
 import dev.teizen.client.modules.XRay;
 import dev.teizen.client.util.Keys;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.loader.api.FabricLoader;
@@ -135,14 +135,14 @@ public final class CommandSuggestions {
 
     /** Befehl ohne Argumente. */
     private static void simple(CommandDispatcher<FabricClientCommandSource> d, String name) {
-        d.register(ClientCommandManager.literal("//" + name).executes(c -> run(name, "")));
+        d.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("//" + name).executes(c -> run(name, "")));
     }
 
     /** Befehl mit beliebigen Argumenten und Vorschlägen je nach bisherigem Text. */
     private static void withArgs(CommandDispatcher<FabricClientCommandSource> d, String name, Function<List<String>, List<String>> suggest) {
-        LiteralArgumentBuilder<FabricClientCommandSource> root = ClientCommandManager.literal("//" + name)
+        LiteralArgumentBuilder<FabricClientCommandSource> root = LiteralArgumentBuilder.<FabricClientCommandSource>literal("//" + name)
                 .executes(c -> run(name, ""))
-                .then(ClientCommandManager.argument("argumente", StringArgumentType.greedyString())
+                .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("argumente", StringArgumentType.greedyString())
                         .suggests((ctx, builder) -> suggest(builder, suggest))
                         .executes(c -> run(name, StringArgumentType.getString(c, "argumente"))));
         d.register(root);
