@@ -38,6 +38,8 @@ public final class TeizenClient implements ClientModInitializer {
     public void onInitializeClient() {
         modules = new ModuleManager();
         Config.load();
+        // Tasten unter Optionen -> Steuerung (Kategorie "Teizen Client")
+        dev.teizen.client.core.KeyBinds.register();
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             handleKeys(mc);
@@ -71,6 +73,7 @@ public final class TeizenClient implements ClientModInitializer {
 
     private void handleKeys(Minecraft mc) {
         if (mc.getWindow() == null) return;
+        dev.teizen.client.core.KeyBinds.tick(mc);
         boolean noScreen = mc.gui.screen() == null;
         if (pressed(mc, menuKey) && noScreen && mc.player != null) {
             mc.gui.setScreen(new ClickGui());

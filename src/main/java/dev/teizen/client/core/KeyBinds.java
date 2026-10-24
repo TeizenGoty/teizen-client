@@ -1,0 +1,125 @@
+package dev.teizen.client.core;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import dev.teizen.client.TeizenClient;
+import dev.teizen.client.gui.ClickGui;
+import dev.teizen.client.gui.Overview;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
+
+/**
+ * Tasten in Minecraft unter Optionen → Steuerung → Tastenbelegung, Kategorie "Teizen Client":
+ * Menü, Übersicht und jede einzelne Funktion.
+ *
+ * Wird dort eine Taste geändert, übernimmt der Client sie (und umgekehrt: ///bind, Menü und Mod Menu
+ * ändern auch die Taste in den Minecraft-Einstellungen).
+ */
+public final class KeyBinds {
+    public static final int OVERVIEW_DEFAULT = GLFW.GLFW_KEY_O;
+
+    private record Link(KeyMapping mapping, IntSupplier get, IntConsumer set, Runnable onMouseClick) {}
+
+    private static final List<Link> links = new ArrayList<>();
+    private static final Map<KeyMapping, Integer> lastBound = new LinkedHashMap<>();
+    private static final Map<KeyMapping, Integer> lastValue = new LinkedHashMap<>();
+    private static KeyMapping menu, overview;
+
+    private KeyBinds() {}
+
+    public static KeyMapping overview() { return overview; }
+    public static KeyMapping menu() { return menu; }
+
+    /** In onInitializeClient aufrufen (nach Config.load, vor dem Laden der Minecraft-Optionen). */
+    public static void register() {
+        KeyMapping.Category cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("teizenclient", "main"));
+
+        menu = add(new KeyMapping("key.teizenclient.menu", InputConstants.Type.KEYSYM, TeizenClient.menuKey, cat),
+                () -> TeizenClient.menuKey, v -> TeizenClient.menuKey = v,
+                () -> { Minecraft mc = Minecraft.getInstance(); if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(new ClickGui()); });
+
+        // Übersicht: hat keinen eigenen Wert im Client – die Minecraft-Taste ist der Wert
+        overview = KeyMappingHelper.registerKeyMapping(
+                new KeyMapping("key.teizenclient.overview", InputConstants.Type.KEYSYM, OVERVIEW_DEFAULT, cat));
+
+        for (Module m : TeizenClient.modules().all()) {
+            String id = "key.teizenclient.module." + m.name.toLowerCase(Locale.ROOT);
+            add(new KeyMapping(id, InputConstants.Type.KEYSYM, m.key, cat),
+                    () -> m.key, v -> m.key = v,
+                    () -> { Minecraft mc = Minecraft.getInstance(); if (mc.player != null && mc.gui.screen() == null) { m.toggle(); Config.save(); } });
+        }
+    }
+
+    private static KeyMapping add(KeyMapping k, IntSupplier get, IntConsumer set, Runnable mouse) {
+        KeyMapping reg = KeyMappingHelper.registerKeyMapping(k);
+        links.add(new Link(reg, get, set, mouse));
+        int v = get.getAsInt();
+        lastBound.put(reg, v);
+        lastValue.put(reg, v);
+        return reg;
+    }
+
+    /** Code einer Belegung: Tastatur = GLFW-Code, Maus = -1000 - Knopf, keine = -1. */
+    private static int encode(InputConstants.Key key) {
+        if (key == null || key.getValue() < 0) return -1;
+        if (key.getType() == InputConstants.Type.MOUSE) return -1000 - key.getValue();
+        return key.getValue();
+    }
+
+    private static int bound(KeyMapping k) {
+        return encode(KeyMappingHelper.getBoundKeyOf(k));
+    }
+
+    /** Jeden Tick aufrufen: Tasten abgleichen, Übersicht öffnen, Maus-Belegungen ausführen. */
+    public static void tick(Minecraft mc) {
+        if (menu == null) return;
+        boolean reset = false, save = false;
+        for (Link l : links) {
+            KeyMapping k = l.mapping;
+            int b = bound(k);
+            int v = l.get.getAsInt();
+            if (b != lastBound.get(k)) {
+                // in Minecraft-Steuerung geändert -> übernehmen
+                int nv = b >= 0 ? b : -1; // Maus-Tasten macht die Minecraft-Taste selbst
+                l.set.accept(nv);
+                lastBound.put(k, b);
+                lastValue.put(k, nv);
+                save = true;
+            } else if (v != lastValue.get(k)) {
+                // im Client geändert (///bind, Menü, Mod Menu) -> in Minecraft eintragen
+                k.setKey(v >= 0 ? InputConstants.Type.KEYSYM.getOrCreate(v) : InputConstants.UNKNOWN);
+                lastBound.put(k, v);
+                lastValue.put(k, v);
+                reset = true;
+            }
+            // Klicks abholen; bei Maus-Belegung hier ausführen (Tastatur macht TeizenClient.handleKeys)
+            boolean mouse = b <= -1000;
+            while (k.consumeClick()) if (mouse) l.onMouseClick.run();
+        }
+        if (reset) {
+            KeyMapping.resetMapping();
+            try { mc.options.save(); } catch (Throwable ignored) {}
+        }
+        if (save) Config.save();
+
+        while (overview.consumeClick()) {
+            if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(new Overview());
+        }
+    }
+
+    /** Name der Übersichts-Taste für Anzeigen. */
+    public static String overviewName() {
+        if (overview == null) return "O";
+        return overview.getTranslatedKeyMessage().getString();
+    }
+}

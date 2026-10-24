@@ -46,6 +46,7 @@ public final class ModuleManager {
         add(new FastPlace());
         // Sonstiges
         add(new AutoEat());
+        add(new FastEat());
         add(new AutoRespawn());
         add(new ChestStealer());
     }

@@ -359,12 +359,79 @@ public final class SelfTest {
                 mc.gui.setScreen(null);
                 next();
             }
+            // ------------------------------------------------ Tasten in der Minecraft-Steuerung, Übersicht, FastEat
             case 22 -> {
                 if (!after(10)) return;
+                int teizen = 0;
+                for (net.minecraft.client.KeyMapping k : mc.options.keyMappings) if (k.getName().startsWith("key.teizenclient.")) teizen++;
+                results.add("Tasten in Minecraft-Steuerung: " + (teizen == mods.size() + 2 ? "ok" : "FEHLER") + " (" + teizen + " Stück, erwartet " + (mods.size() + 2) + ")");
+                log("Tasten-Kategorie: " + net.minecraft.client.resources.language.I18n.get("key.category.teizenclient.main")
+                        + " / " + net.minecraft.client.resources.language.I18n.get("key.teizenclient.overview"));
+                // im Client ändern -> muss in Minecraft ankommen
+                TeizenClient.modules().byName("fly").key = org.lwjgl.glfw.GLFW.GLFW_KEY_G;
+                next();
+            }
+            case 23 -> {
+                if (!after(5)) return;
+                net.minecraft.client.KeyMapping fly = net.minecraft.client.KeyMapping.get("key.teizenclient.module.fly");
+                int bound = net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.getBoundKeyOf(fly).getValue();
+                boolean a = bound == org.lwjgl.glfw.GLFW.GLFW_KEY_G;
+                // in Minecraft ändern -> muss im Client ankommen
+                fly.setKey(com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(org.lwjgl.glfw.GLFW.GLFW_KEY_H));
+                net.minecraft.client.KeyMapping.resetMapping();
+                fastEatCheck = a;
+                next();
+            }
+            case 24 -> {
+                if (!after(5)) return;
+                Module fly = TeizenClient.modules().byName("fly");
+                boolean b = fly.key == org.lwjgl.glfw.GLFW.GLFW_KEY_H;
+                results.add("Taste Client→Minecraft: " + (fastEatCheck ? "ok" : "FEHLER") + ", Minecraft→Client: " + (b ? "ok" : "FEHLER (" + fly.key + ")"));
+                fly.key = -1;
+                mc.gui.setScreen(new dev.teizen.client.gui.Overview());
+                next();
+            }
+            case 25 -> {
+                if (!after(20)) return;
+                shot("11-uebersicht");
+                results.add("Übersicht: " + (mc.gui.screen() instanceof dev.teizen.client.gui.Overview ? "ok" : "FEHLER"));
+                mc.gui.setScreen(null);
+                cmd("give @s minecraft:bread 8");
+                cmd("give @s minecraft:golden_apple 2");
+                next();
+            }
+            case 26 -> {
+                if (!after(20)) return;
+                Commands.handle("///fasteat");
+                next();
+            }
+            case 27 -> {
+                if (!after(120)) return;
+                results.add("FastEat an: Brot " + eatSeconds(net.minecraft.world.item.Items.BREAD) + "s (soll 0.2), Goldapfel "
+                        + eatSeconds(net.minecraft.world.item.Items.GOLDEN_APPLE) + "s (soll unverändert 1.6)");
+                Commands.handle("///fasteat");
+                next();
+            }
+            case 28 -> {
+                if (!after(60)) return;
+                results.add("FastEat aus: Brot " + eatSeconds(net.minecraft.world.item.Items.BREAD) + "s (soll wieder 1.6)");
                 finish();
             }
             default -> {}
         }
+    }
+
+    private static boolean fastEatCheck;
+
+    /** Ess-Dauer des ersten Stapels dieses Items im Inventar (-1 = keins). */
+    private static float eatSeconds(net.minecraft.world.item.Item item) {
+        for (int i = 0; i < 36; i++) {
+            net.minecraft.world.item.ItemStack s = mc.player.getInventory().getItem(i);
+            if (!s.is(item)) continue;
+            var c = s.get(net.minecraft.core.component.DataComponents.CONSUMABLE);
+            return c == null ? -1 : Math.round(c.consumeSeconds() * 100) / 100f;
+        }
+        return -1;
     }
 
     private static void finish() {

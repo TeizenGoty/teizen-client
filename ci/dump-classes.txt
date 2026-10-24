@@ -133,3 +133,8 @@ net.minecraft.client.gui.screens.ChatScreen
 net.minecraft.client.gui.components.CommandSuggestions
 net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
 net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
+
+# Tasten / FastEat
+net.minecraft.client.KeyMapping$Category
+net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper
+net.minecraft.world.item.component.Consumable
