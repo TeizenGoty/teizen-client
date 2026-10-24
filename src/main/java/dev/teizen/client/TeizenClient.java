@@ -64,6 +64,7 @@ public final class TeizenClient implements ClientModInitializer {
         dev.teizen.client.core.Locator.register();
         // Countdown auf dem "Verbindung getrennt"-Bildschirm
         dev.teizen.client.modules.AutoReconnect.register();
+        dev.teizen.client.modules.ChatSpammer.register();
 
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("teizenclient", "hud"), Hud::render);
 

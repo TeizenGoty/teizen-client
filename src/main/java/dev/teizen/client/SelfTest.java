@@ -105,6 +105,7 @@ public final class SelfTest {
         if (ticks % 200 == 0) log("tick " + ticks + " step " + step + " screen=" + (mc.gui.screen() == null ? "-" : mc.gui.screen().getClass().getSimpleName()));
         if (ticks > 20 * 60 * 20) { log("ZEITÜBERSCHREITUNG – beende"); finish(); return; }
         if (step == RECONNECT_STEP) { reconnectTick(); return; }
+        if (step == COMBATLOG_STEP) { combatLogTick(); return; }
         if (mc.player == null || mc.level == null) return;
         worldTicks++;
         if (worldTicks < 140) return;
@@ -444,13 +445,49 @@ public final class SelfTest {
                 results.add("AutoReconnect: getrennt=ja, wieder verbunden=ja (nach " + (ticks - reconnectStart) + " Ticks, " + ar.reconnects + " Versuch) OK");
                 shot("20-reconnect");
             }
-            if (backTicks >= 80) { finish(); return; }
+            if (backTicks >= 80) { step = 160; stepStart = ticks; return; } // weiter mit CombatLog
         }
         if (ticks - reconnectStart > 1200) {
             results.add("AutoReconnect: FEHLER (getrennt=" + sawDisconnect + ", wieder da=" + (mc.player != null) + ")");
             finish();
         }
     }
+
+    // ---------------------------------------------------------------- CombatLog (ganz am Ende, trennt die Verbindung)
+    static final int COMBATLOG_STEP = 201;
+    private static int combatStart, disconnectedAt = -1;
+    static boolean combatStillInWithTotem;
+
+    static void startCombatLogWait(boolean stillIn) {
+        combatStillInWithTotem = stillIn;
+        combatStart = ticks;
+        disconnectedAt = -1;
+        step = COMBATLOG_STEP;
+        stepStart = ticks;
+    }
+
+    private static void combatLogTick() {
+        boolean gone = mc.player == null || mc.gui.screen() instanceof net.minecraft.client.gui.screens.DisconnectedScreen;
+        if (gone && disconnectedAt < 0) {
+            disconnectedAt = ticks;
+            log("CombatLog: Verbindung getrennt nach " + (ticks - combatStart) + " Ticks");
+        }
+        if (disconnectedAt >= 0 && ticks - disconnectedAt == 20) shot("25-combatlog");
+        if (disconnectedAt >= 0 && ticks - disconnectedAt >= 140) {
+            boolean back = mc.player != null && mc.level != null;
+            results.add("CombatLog: mit Totem geblieben=" + (combatStillInWithTotem ? "ja" : "nein") + ", ohne Totem rausgegangen=ja (nach "
+                    + (disconnectedAt - combatStart) + " Ticks), AutoReconnect hat NICHT neu verbunden=" + (back ? "nein" : "ja") + " "
+                    + (combatStillInWithTotem && !back ? "OK" : "FEHLER"));
+            finish();
+            return;
+        }
+        if (disconnectedAt < 0 && ticks - combatStart > 400) {
+            results.add("CombatLog: FEHLER (nicht rausgegangen)");
+            finish();
+        }
+    }
+
+    static void jump(int s) { step = s; stepStart = ticks; }
 
     static void startReconnect() {
         reconnectStart = ticks;

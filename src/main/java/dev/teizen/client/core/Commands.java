@@ -230,14 +230,29 @@ public final class Commands {
                     Setting qs = quick == null ? null : m.setting(quick);
                     if (qs != null && qs.type == Setting.Type.TEXT && a.length >= 2 && m.setting(a[1]) == null) {
                         // ///itemesp diamond totem  -> Text-Einstellung setzen und einschalten
-                        qs.setText(String.join(",", Arrays.copyOfRange(a, 1, a.length)));
+                        // (Chat-Nachricht und Handels-Suche mit Leerzeichen, Listen mit Komma)
+                        boolean spaces = m.name.equals("ChatSpammer") || m.name.equals("VillagerRoller");
+                        String rest = body.substring(body.indexOf(' ') + 1).trim();
+                        qs.setText(spaces ? rest : String.join(",", Arrays.copyOfRange(a, 1, a.length)));
                         if (m.isEnabled()) m.setEnabled(false);
                         m.setEnabled(true);
                         Chat.ok(m.name + " an: " + quick + " = " + qs.display());
                     } else if (a.length == 2 && quick != null) {
                         // ///fly 3  ///speed 0.5  ///highjump 5  -> Wert setzen und einschalten
                         String err = m.setting(quick).parse(a[1]);
-                        if (err != null) { Chat.error(err); return; }
+                        if (err != null) {
+                            // vielleicht eine Auswahl, z.B. ///moredurability unzerstoerbar
+                            for (Setting c : m.settings.values()) {
+                                if (c.type == Setting.Type.CHOICE && c.parse(a[1]) == null) {
+                                    if (!m.isEnabled()) m.setEnabled(true);
+                                    Chat.ok(m.name + " an: " + c.name + " = " + c.display());
+                                    Config.save();
+                                    return;
+                                }
+                            }
+                            Chat.error(err);
+                            return;
+                        }
                         if (!m.isEnabled()) m.setEnabled(true);
                         Chat.ok(m.name + " an: " + quick + " = " + m.setting(quick).display());
                     } else if (a.length >= 3) run("set " + body);
@@ -265,6 +280,12 @@ public final class Commands {
             case "AutoReconnect", "FastEat" -> "sekunden";
             case "AutoEat" -> "hunger";
             case "NoFall" -> "ab";
+            case "ChatSpammer" -> "nachricht";
+            case "VillagerRoller" -> "suche";
+            case "CombatLog" -> "herzen";
+            case "MoreDurability" -> "faktor";
+            case "ProjectileDodge" -> "reichweite";
+            case "HitMarker" -> "groesse";
             default -> null;
         };
     }
@@ -321,6 +342,8 @@ public final class Commands {
         Chat.raw("§d///structurefinder <Struktur> §7– z.B. §fvillage§7, §fstronghold§7, §fancient_city §7(auf Servern mit OP)");
         Chat.raw("§d///velocity <seitlich%> [hoch%] §7· §d///god <Herzen> §7· §d///aimassist <Stärke> §7· §d///nametags <Größe>");
         Chat.raw("§d///freecam <Tempo> §7(Reichweite: §f///set freecam reichweite 50§7) · §d///itemesp <Items...>");
+        Chat.raw("§d///chatspammer <Text> §7· §d///villagerroller mending §7· §d///moredurability 10 §7| §funzerstoerbar §7| §freparieren");
+        Chat.raw("§d///combatlog <Herzen> §7· §d///projectiledodge §7· §d///inventorywalk §7· §d///seeinvisible §7· §d///elytrareset §7· §d///hitmarker");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
         Chat.raw("§d///autobuild laden <Datei> §7– Schematic aus dem schematics-Ordner genau bei dir platzieren");
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");

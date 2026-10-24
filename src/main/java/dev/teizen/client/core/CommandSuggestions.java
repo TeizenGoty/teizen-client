@@ -98,6 +98,10 @@ public final class CommandSuggestions {
             return List.of();
         });
         withArgs(d, "fav", t -> t.size() == 0 ? moduleNames() : List.of());
+        withArgs(d, "villagerroller", t -> t.size() == 0 ? List.of("mending", "unbreaking", "efficiency", "fortune", "silk_touch",
+                "protection", "sharpness", "looting", "feather_falling", "frost_walker", "depth_strider", "aqua_affinity", "respiration",
+                "power", "infinity", "thorns", "swift_sneak", "soul_speed", "diamond", "emerald") : t.size() == 1 ? List.of("1", "2", "3", "4", "5") : List.of());
+        withArgs(d, "moredurability", t -> t.size() == 0 ? List.of("10", "100", "unzerstoerbar", "reparieren", "mehr") : List.of());
         withArgs(d, "velocity", t -> switch (t.size()) {
             case 0 -> List.of("0", "50", "100");
             case 1 -> List.of("0", "50", "100");
@@ -140,7 +144,7 @@ public final class CommandSuggestions {
 
         // ///killaura usw. = Modul umschalten; danach optional Einstellung + Wert
         Set<String> taken = new LinkedHashSet<>(List.of("help", "list", "gui", "save", "panic", "toggle", "info", "set",
-                "bind", "menutaste", "reach", "mine", "xray", "autobuild", "find", "friend", "fav", "velocity", "structurefinder"));
+                "bind", "menutaste", "reach", "mine", "xray", "autobuild", "find", "friend", "fav", "velocity", "structurefinder", "villagerroller", "moredurability"));
         for (Module m : TeizenClient.modules().all()) {
             String name = m.name.toLowerCase(Locale.ROOT);
             if (!taken.add(name)) continue;

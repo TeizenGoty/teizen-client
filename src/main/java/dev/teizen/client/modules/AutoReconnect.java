@@ -41,6 +41,7 @@ public final class AutoReconnect extends Module {
     }
 
     private String statusText() {
+        if (CombatLog.loggedOut) return "§eAutoReconnect wartet: CombatLog hat dich rausgenommen";
         if (disconnectedAt < 0) return null;
         if (attempts.integer() > 0 && tries >= attempts.integer()) return "§cAutoReconnect: keine Versuche mehr übrig";
         long left = Math.max(0, delay.integer() * 1000L - (System.currentTimeMillis() - disconnectedAt));
@@ -52,11 +53,12 @@ public final class AutoReconnect extends Module {
         if (mc.player != null && mc.level != null) {
             ServerData cur = mc.getCurrentServer();
             if (cur != null && !cur.isRealm()) last = cur;
+            CombatLog.loggedOut = false;
             disconnectedAt = -1;
             tries = 0;
             return;
         }
-        if (!isEnabled() || last == null) { disconnectedAt = -1; return; }
+        if (!isEnabled() || last == null || CombatLog.loggedOut) { disconnectedAt = -1; return; }
         if (!(mc.gui.screen() instanceof DisconnectedScreen)) { disconnectedAt = -1; return; }
         if (attempts.integer() > 0 && tries >= attempts.integer()) return;
         long now = System.currentTimeMillis();

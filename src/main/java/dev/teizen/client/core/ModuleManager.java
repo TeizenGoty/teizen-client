@@ -28,6 +28,8 @@ public final class ModuleManager {
         add(new AutoArmor());
         add(new AutoShield());
         add(new God());
+        add(new HitMarker());
+        add(new CombatLog());
         // Abbau
         add(new XRay());
         add(new AutoMine());
@@ -46,8 +48,12 @@ public final class ModuleManager {
         add(new DolphinMode());
         add(new NoSlowdown());
         add(new SafeWalk());
+        add(new InventoryWalk());
+        add(new ProjectileDodge());
+        add(new ElytraReset());
         // Sicht
         add(new PlayerESP());
+        add(new SeeInvisible());
         add(new Nametags());
         add(new ArmorESP());
         add(new Tracers());
@@ -69,6 +75,9 @@ public final class ModuleManager {
         add(new ChestStealer());
         add(new AutoFish());
         add(new AutoReplant());
+        add(new VillagerRoller());
+        add(new MoreDurability());
+        add(new ChatSpammer());
     }
 
     private void add(Module m) {

@@ -14,6 +14,8 @@
   "key.teizenclient.module.autoarmor": "AutoArmor an/aus",
   "key.teizenclient.module.autoshield": "AutoShield an/aus",
   "key.teizenclient.module.god": "God an/aus",
+  "key.teizenclient.module.hitmarker": "HitMarker an/aus",
+  "key.teizenclient.module.combatlog": "CombatLog an/aus",
   "key.teizenclient.module.xray": "XRay an/aus",
   "key.teizenclient.module.automine": "AutoMine an/aus",
   "key.teizenclient.module.nuker": "Nuker an/aus",
@@ -30,7 +32,11 @@
   "key.teizenclient.module.dolphinmode": "DolphinMode an/aus",
   "key.teizenclient.module.noslowdown": "NoSlowdown an/aus",
   "key.teizenclient.module.safewalk": "SafeWalk an/aus",
+  "key.teizenclient.module.inventorywalk": "InventoryWalk an/aus",
+  "key.teizenclient.module.projectiledodge": "ProjectileDodge an/aus",
+  "key.teizenclient.module.elytrareset": "ElytraReset an/aus",
   "key.teizenclient.module.playeresp": "PlayerESP an/aus",
+  "key.teizenclient.module.seeinvisible": "SeeInvisible an/aus",
   "key.teizenclient.module.nametags": "Nametags an/aus",
   "key.teizenclient.module.armoresp": "ArmorESP an/aus",
   "key.teizenclient.module.tracers": "Tracers an/aus",
@@ -49,5 +55,8 @@
   "key.teizenclient.module.autoreconnect": "AutoReconnect an/aus",
   "key.teizenclient.module.cheststealer": "ChestStealer an/aus",
   "key.teizenclient.module.autofish": "AutoFish an/aus",
-  "key.teizenclient.module.autoreplant": "AutoReplant an/aus"
+  "key.teizenclient.module.autoreplant": "AutoReplant an/aus",
+  "key.teizenclient.module.villagerroller": "VillagerRoller an/aus",
+  "key.teizenclient.module.moredurability": "MoreDurability an/aus",
+  "key.teizenclient.module.chatspammer": "ChatSpammer an/aus"
 }

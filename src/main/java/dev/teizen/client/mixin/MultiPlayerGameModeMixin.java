@@ -16,6 +16,7 @@ public abstract class MultiPlayerGameModeMixin {
     @Inject(method = "attack", at = @At("HEAD"))
     private void teizen$crit(Player player, Entity target, CallbackInfo ci) {
         Criticals.beforeAttack();
+        dev.teizen.client.modules.HitMarker.onAttack(target);
     }
 
     /** AutoMine/Nuker: Abbau nicht abbrechen lassen, nur weil die Maustaste nicht gedrückt ist. */

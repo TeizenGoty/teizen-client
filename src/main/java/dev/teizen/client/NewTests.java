@@ -664,11 +664,11 @@ final class NewTests {
                 next();
             }
             // ---------------------------------------------- God aus
-            case 95 -> {
+            case 150 -> {
                 t("///god");
                 next();
             }
-            case 96 -> {
+            case 151 -> {
                 if (!after(80)) return;
                 boolean res = mc.player.hasEffect(MobEffects.RESISTANCE);
                 float hearts = mc.player.getMaxHealth() / 2f;
@@ -676,19 +676,371 @@ final class NewTests {
                 next();
             }
             // ---------------------------------------------- AutoReconnect (Rauswurf per /kick, danach von selbst wieder rein)
-            case 97 -> {
+            case 152 -> {
                 t("///set autoreconnect sekunden 2");
                 t("///autoreconnect");
                 next();
             }
-            case 98 -> {
+            case 153 -> {
                 if (!after(20)) return;
                 String name = mc.player.getGameProfile().name();
                 SelfTest.startReconnect();
                 cmd("kick " + name + " Teizen-Selbsttest");
             }
+
+            // ---------------------------------------------- Menü: Zahl anklicken und eintippen
+            case 95 -> {
+                ClickGui gui = new ClickGui();
+                mc.gui.setScreen(gui);
+                Module ka = TeizenClient.modules().byName("killaura");
+                gui.clickSetting(ka, ka.setting("reichweite"), 0);
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_DELETE, 0, 0));
+                for (char c : "5.5".toCharArray()) gui.charTyped(new net.minecraft.client.input.CharacterEvent(c));
+                next();
+            }
+            case 96 -> {
+                if (!after(10)) return;
+                shot("21-zahl-eingeben");
+                next();
+            }
+            case 97 -> {
+                if (!after(5)) return;
+                if (!(mc.gui.screen() instanceof ClickGui gui)) { result("Menü Zahl eingeben: FEHLER (Menü nicht offen)"); next(); return; }
+                Module ka = TeizenClient.modules().byName("killaura");
+                boolean editing = gui.isEditing();
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+                double v1 = ka.setting("reichweite").num();
+                // ungültige Zahl: bleibt offen, Esc bricht ab, Wert bleibt
+                gui.clickSetting(ka, ka.setting("reichweite"), 0);
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_DELETE, 0, 0));
+                for (char c : "99".toCharArray()) gui.charTyped(new net.minecraft.client.input.CharacterEvent(c));
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+                boolean stillOpen = gui.isEditing();
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE, 0, 0));
+                double v2 = ka.setting("reichweite").num();
+                boolean menuStillOpen = mc.gui.screen() instanceof ClickGui;
+                result("Menü Zahl eingeben: Eingabe offen=" + yes(editing) + ", 5.5 übernommen=" + f(v1) + ", 99 abgelehnt=" + yes(stillOpen)
+                        + ", nach Esc Wert=" + f(v2) + " und Menü noch offen=" + yes(menuStillOpen) + " "
+                        + ok(editing && Math.abs(v1 - 5.5) < 1e-6 && stillOpen && Math.abs(v2 - 5.5) < 1e-6 && !gui.isEditing() && menuStillOpen));
+                mc.gui.setScreen(null);
+                next();
+            }
+            // ---------------------------------------------- HitMarker
+            case 98 -> {
+                area = o.offset(24, 0, 24);
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                cmd("kill @e[type=minecraft:husk]");
+                summonHusk(area.offset(2, 0, 0), "");
+                t("///hitmarker");
+                next();
+            }
+            case 99 -> {
+                if (!after(30)) return;
+                List<LivingEntity> h = husks(6);
+                if (!h.isEmpty()) {
+                    mc.gameMode.attack(mc.player, h.get(0));
+                    mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+                }
+                next();
+            }
+            case 100 -> {
+                if (SelfTest.local() == 3) shot("22-hitmarker");
+                if (!after(15)) return;
+                var hm = mod(dev.teizen.client.modules.HitMarker.class);
+                result("HitMarker: Treffer erkannt " + hm.hits + " " + ok(hm.hits >= 1));
+                t("///hitmarker");
+                cmd("kill @e[type=minecraft:husk]");
+                next();
+            }
+            // ---------------------------------------------- ProjectileDodge (Pfeil fliegt genau auf dich zu)
+            case 101 -> {
+                if (!after(10)) return;
+                tp(area, 0.5, 0, 0.5, 180, 0);
+                next();
+            }
+            case 102 -> {
+                if (!after(10)) return;
+                n0 = mc.player.getArrowCount();
+                cmd("summon minecraft:arrow " + xyz(area, 10.5, 1.3, 0.5) + " {Motion:[-2.0d,0.1d,0.0d]}");
+                next();
+            }
+            case 103 -> {
+                if (!after(30)) return;
+                d1 = mc.player.getArrowCount() - n0;
+                tp(area, 0.5, 0, 0.5, 180, 0);
+                t("///projectiledodge");
+                next();
+            }
+            case 104 -> {
+                if (!after(20)) return;
+                n0 = mc.player.getArrowCount();
+                p0 = mc.player.position();
+                cmd("summon minecraft:arrow " + xyz(area, 10.5, 1.3, 0.5) + " {Motion:[-2.0d,0.1d,0.0d]}");
+                next();
+            }
+            case 105 -> {
+                if (!after(30)) return;
+                int hit = mc.player.getArrowCount() - n0;
+                var pd = mod(dev.teizen.client.modules.ProjectileDodge.class);
+                result("ProjectileDodge: ohne Ausweichen getroffen " + (int) d1 + "x (soll 1), mit Ausweichen getroffen " + hit + "x (soll 0), ausgewichen "
+                        + pd.dodges + "x, zur Seite " + f(horiz(p0, mc.player.position())) + " Blöcke " + ok(d1 == 1 && hit == 0 && pd.dodges >= 1));
+                t("///projectiledodge");
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                next();
+            }
+            // ---------------------------------------------- SeeInvisible
+            case 106 -> {
+                summonHusk(area.offset(3, 0, 1), "");
+                t("///set seeinvisible mobs an");
+                next();
+            }
+            case 107 -> {
+                if (!after(10)) return;
+                cmd("effect give @e[type=minecraft:husk] minecraft:invisibility 600 0 true");
+                next();
+            }
+            case 108 -> {
+                if (!after(30)) return;
+                List<LivingEntity> h = husks(8);
+                flag1 = !h.isEmpty() && h.get(0).isInvisible() && h.get(0).isInvisibleTo(mc.player);
+                t("///seeinvisible");
+                next();
+            }
+            case 109 -> {
+                if (!after(10)) return;
+                List<LivingEntity> h = husks(8);
+                boolean visible = !h.isEmpty() && !h.get(0).isInvisibleTo(mc.player);
+                shot("23-seeinvisible");
+                result("SeeInvisible: unsichtbarer Gegner vorher versteckt=" + yes(flag1) + ", jetzt sichtbar=" + yes(visible) + " " + ok(flag1 && visible));
+                t("///seeinvisible");
+                cmd("kill @e[type=minecraft:husk]");
+                next();
+            }
+            // ---------------------------------------------- InventoryWalk (Inventar offen, W gedrückt)
+            case 110 -> {
+                if (!after(10)) return;
+                tp(area, -4.5, 0, 0.5, -90, 0);
+                next();
+            }
+            case 111 -> {
+                if (!after(15)) return;
+                mc.gui.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
+                int w = net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.getBoundKeyOf(mc.options.keyUp).getValue();
+                dev.teizen.client.modules.InventoryWalk.keyDown = code -> code == w;
+                t("///inventorywalk");
+                p0 = mc.player.position();
+                next();
+            }
+            case 112 -> {
+                if (SelfTest.local() == 15) shot("24-inventorywalk");
+                if (!after(30)) return;
+                double moved = mc.player.getX() - p0.x;
+                boolean open = mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen;
+                dev.teizen.client.modules.InventoryWalk.keyDown = code -> com.mojang.blaze3d.platform.InputConstants.isKeyDown(mc.getWindow(), code);
+                mc.gui.setScreen(null);
+                mc.options.keyUp.setDown(false);
+                t("///inventorywalk");
+                result("InventoryWalk: mit offenem Inventar gelaufen " + f(moved) + " Blöcke, Inventar blieb offen=" + yes(open) + " " + ok(moved > 2 && open));
+                next();
+            }
+            // ---------------------------------------------- ElytraReset (Leertaste im Flug)
+            case 113 -> {
+                cmd("item replace entity @s armor.chest with minecraft:elytra");
+                tp(area, 0.5, 40, 0.5, -90, 0);
+                next();
+            }
+            case 114 -> {
+                if (!after(8)) return;
+                if (mc.player.tryToStartFallFlying())
+                    mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket(mc.player,
+                            net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket.Action.START_FALL_FLYING));
+                next();
+            }
+            case 115 -> {
+                if (!after(8)) return;
+                flag1 = mc.player.isFallFlying();
+                t("///elytrareset");
+                next();
+            }
+            case 116 -> {
+                if (!after(2)) return;
+                mc.options.keyJump.setDown(true);
+                next();
+            }
+            case 117 -> {
+                if (!after(3)) return;
+                mc.options.keyJump.setDown(false);
+                next();
+            }
+            case 118 -> {
+                if (!after(6)) return;
+                flag2 = !mc.player.isFallFlying();
+                d1 = mc.player.getDeltaMovement().y;
+                mc.options.keyJump.setDown(true); // nochmal Leertaste: Minecraft öffnet die Elytra wieder
+                next();
+            }
+            case 119 -> {
+                if (!after(4)) return;
+                mc.options.keyJump.setDown(false);
+                boolean again = mc.player.isFallFlying();
+                var er = mod(dev.teizen.client.modules.ElytraReset.class);
+                result("ElytraReset: Gleiten vorher=" + yes(flag1) + ", Leertaste = Elytra zu=" + yes(flag2) + " (Fallen " + f(d1) + "), nochmal Leertaste = wieder offen="
+                        + yes(again) + " " + ok(flag1 && flag2 && again && er.resets >= 1));
+                t("///elytrareset");
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                next();
+            }
+            // ---------------------------------------------- MoreDurability
+            case 120 -> {
+                if (!after(10)) return;
+                cmd("give @s minecraft:iron_sword");
+                t("///set moredurability faktor 10");
+                next();
+            }
+            case 121 -> {
+                if (!after(10)) return;
+                t("///moredurability mehr");
+                next();
+            }
+            case 122 -> {
+                if (!after(120)) return;
+                d1 = swordMax();
+                t("///moredurability unzerstoerbar");
+                next();
+            }
+            case 123 -> {
+                if (!after(140)) return;
+                flag1 = sword().has(net.minecraft.core.component.DataComponents.UNBREAKABLE);
+                t("///moredurability");
+                next();
+            }
+            case 124 -> {
+                if (!after(80)) return;
+                double back = swordMax();
+                boolean unb = sword().has(net.minecraft.core.component.DataComponents.UNBREAKABLE);
+                result("MoreDurability: Eisenschwert mehr=" + (int) d1 + " (soll 2500), unzerstörbar=" + yes(flag1) + ", aus: wieder " + (int) back
+                        + " und nicht mehr unzerstörbar=" + yes(!unb) + " " + ok(d1 == 2500 && flag1 && back == 250 && !unb));
+                next();
+            }
+            // ---------------------------------------------- ChatSpammer
+            case 125 -> {
+                dev.teizen.client.modules.ChatSpammer.echoes = 0;
+                t("///set chatspammer anzahl 3");
+                t("///set chatspammer sekunden 1");
+                t("///chatspammer Teizen Spam Test");
+                next();
+            }
+            case 126 -> {
+                if (!after(100)) return;
+                var cs = mod(dev.teizen.client.modules.ChatSpammer.class);
+                int echoes = dev.teizen.client.modules.ChatSpammer.echoes;
+                result("ChatSpammer: gesendet " + cs.sent + "/3, im Chat angekommen " + echoes + ", danach aus=" + yes(!cs.isEnabled()) + " "
+                        + ok(cs.sent == 3 && echoes >= 3 && !cs.isEnabled()));
+                next();
+            }
+            // ---------------------------------------------- VillagerRoller (Lesepult abbauen/setzen bis Angebot passt)
+            case 127 -> {
+                cmd("time set day");
+                area = o.offset(0, 0, -30);
+                tp(area, 0.5, 1, 0.5, 90, 0);
+                next();
+            }
+            case 128 -> {
+                if (!after(20)) return;
+                arena(area, 6, 5);
+                BlockPos v = area.offset(1, 0, 0);
+                // Käfig, damit der Dorfbewohner nicht wegläuft; Lesepult direkt daneben
+                // Lesepult auf einem Block in Kopfhöhe: der Dorfbewohner kann nicht auf seinen Platz laufen
+                for (int dy = 0; dy <= 1; dy++) {
+                    cmd("setblock " + blk(v.offset(0, dy, 1)) + " minecraft:stone");
+                    cmd("setblock " + blk(v.offset(0, dy, -1)) + " minecraft:stone");
+                    cmd("setblock " + blk(v.offset(-1, dy, 0)) + " minecraft:stone");
+                }
+                cmd("setblock " + blk(v.offset(0, 2, 0)) + " minecraft:stone");
+                cmd("setblock " + blk(v.offset(1, 0, 0)) + " minecraft:stone");
+                cmd("setblock " + blk(v.offset(1, 2, 0)) + " minecraft:stone");
+                cmd("setblock " + blk(v.offset(1, 1, 0)) + " minecraft:lectern[facing=east]");
+                cmd("summon minecraft:villager " + xyz(v, 0.5, 0, 0.5) + " {PersistenceRequired:1b}");
+                cmd("give @s minecraft:lectern 4");
+                cmd("give @s minecraft:iron_axe");
+                tp(area, 3.5, 0, 0.5, 90, 10);
+                next();
+            }
+            case 129 -> {
+                List<net.minecraft.world.entity.npc.villager.Villager> vs = mc.level.getEntitiesOfClass(
+                        net.minecraft.world.entity.npc.villager.Villager.class, new AABB(area).inflate(6));
+                boolean hasJob = !vs.isEmpty() && !vs.get(0).getVillagerData().profession().is(net.minecraft.world.entity.npc.villager.VillagerProfession.NONE);
+                if (SelfTest.local() % 100 == 0) log("Dorfbewohner: " + vs.size() + ", Beruf=" + (vs.isEmpty() ? "-" : vs.get(0).getVillagerData().profession()));
+                if (!hasJob && !after(1200)) return;
+                if (!hasJob) {
+                    result("VillagerRoller: FEHLER (Dorfbewohner hat keinen Beruf angenommen)");
+                    SelfTest.jump(150);
+                    return;
+                }
+                log("Dorfbewohner hat Beruf nach " + SelfTest.local() + " Ticks");
+                t("///set villagerroller versuche 2");
+                t("///villagerroller nichtsdaxyz");
+                next();
+            }
+            case 130 -> {
+                var vr = mod(dev.teizen.client.modules.VillagerRoller.class);
+                if (SelfTest.local() % 200 == 0) log("VillagerRoller " + SelfTest.local() + ": Versuche " + vr.tries + ", Würfe " + vr.rolls);
+                if (vr.isEnabled() && !after(4000)) return;
+                result("VillagerRoller neu würfeln: " + vr.tries + "x Lesepult ab/auf, " + vr.rolls + " Angebote gelesen, zuletzt: "
+                        + String.join("; ", vr.lastOffers) + " " + ok(vr.tries == 2 && vr.rolls == 3));
+                if (mc.gui.screen() != null) mc.player.closeContainer();
+                n0 = vr.lastOfferIds.isEmpty() ? -1 : 0;
+                next();
+            }
+            case 131 -> {
+                if (!after(40)) return;
+                var vr = mod(dev.teizen.client.modules.VillagerRoller.class);
+                String want = vr.lastOfferIds.isEmpty() ? "emerald" : vr.lastOfferIds.get(0);
+                log("VillagerRoller suche jetzt: " + want);
+                t("///set villagerroller versuche 0");
+                t("///villagerroller " + want);
+                next();
+            }
+            case 132 -> {
+                var vr = mod(dev.teizen.client.modules.VillagerRoller.class);
+                if (vr.isEnabled() && !after(1500)) return;
+                if (vr.found) shot("25-villagerroller");
+                result("VillagerRoller finden: gefunden=" + yes(vr.found) + " (" + String.join("; ", vr.lastOffers) + ") " + ok(vr.found));
+                next();
+            }
+            case 133 -> {
+                if (!after(20)) return;
+                if (mc.gui.screen() != null) mc.player.closeContainer();
+                SelfTest.jump(150);
+            }
+            // ---------------------------------------------- CombatLog (nach AutoReconnect, ganz am Ende)
+            case 160 -> {
+                if (!after(40)) return;
+                cmd("give @s minecraft:totem_of_undying");
+                t("///set combatlog herzen 5");
+                t("///combatlog");
+                cmd("damage @s 15 minecraft:generic");
+                next();
+            }
+            case 161 -> {
+                if (!after(30)) return;
+                boolean stillIn = mc.player != null && mc.level != null;
+                log("CombatLog: Leben " + f(mc.player.getHealth()) + ", mit Totem noch da=" + stillIn);
+                cmd("clear @s minecraft:totem_of_undying");
+                SelfTest.startCombatLogWait(stillIn);
+            }
             default -> {}
         }
+    }
+
+    private static net.minecraft.world.item.ItemStack sword() {
+        for (int i = 0; i < 36; i++) if (mc.player.getInventory().getItem(i).is(Items.IRON_SWORD)) return mc.player.getInventory().getItem(i);
+        return net.minecraft.world.item.ItemStack.EMPTY;
+    }
+
+    private static double swordMax() {
+        Integer m = sword().get(net.minecraft.core.component.DataComponents.MAX_DAMAGE);
+        return m == null ? -1 : m;
     }
 
     /** Weizen auf den 8 Feldern zählen: reif (Alter 7) oder frisch (jünger). */
