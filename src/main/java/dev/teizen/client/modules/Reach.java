@@ -15,13 +15,13 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  * In der eigenen Welt / wenn du hostest wird es auch auf der Server-Seite gesetzt, damit es wirklich zählt.
  */
 public final class Reach extends Module {
-    public final Setting fight = add(Setting.number("kampf", "Reichweite beim Schlagen (normal 3)", 6, 3, 12));
-    public final Setting build = add(Setting.number("bauen", "Reichweite beim Bauen/Abbauen (normal 4.5)", 7, 4.5, 12));
+    public final Setting fight = add(Setting.number("kampf", "Reichweite beim Schlagen in Blöcken (normal 3)", 6, 1, 12));
+    public final Setting build = add(Setting.number("bauen", "Reichweite beim Bauen/Abbauen in Blöcken (normal 4.5)", 7, 1, 12));
 
     private double oldFight = -1, oldBuild = -1;
 
     public Reach() {
-        super("Reach", Category.KAMPF, "Größere Reichweite beim Kämpfen und Bauen.");
+        super("Reach", Category.KAMPF, "Reichweite beim Kämpfen und Bauen einstellen (mehr oder weniger).");
     }
 
     @Override

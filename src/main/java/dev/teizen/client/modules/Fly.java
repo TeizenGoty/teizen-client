@@ -6,7 +6,7 @@ import net.minecraft.world.entity.player.Abilities;
 
 /** Fliegen wie im Kreativmodus. */
 public final class Fly extends Module {
-    private final Setting speed = add(Setting.number("tempo", "Fluggeschwindigkeit (normal 1)", 2, 0.5, 10));
+    private final Setting speed = add(Setting.number("tempo", "Flug-Tempo (1 = wie Kreativ, 0.5 = halb so schnell)", 2, 0.1, 10));
     private final Setting antiKick = add(Setting.bool("antikick", "Kleine Abwärtsbewegung gegen Fly-Kick", true));
     private int ticks;
     private boolean hadMayfly;

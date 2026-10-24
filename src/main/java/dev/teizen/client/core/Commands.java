@@ -177,7 +177,14 @@ public final class Commands {
                 // ///killaura = einfach umschalten
                 Module m = mm.byName(cmd);
                 if (m != null) {
-                    if (a.length >= 3) run("set " + body);
+                    String quick = quickSetting(m);
+                    if (a.length == 2 && quick != null) {
+                        // ///fly 3  ///speed 0.5  ///highjump 5  -> Wert setzen und einschalten
+                        String err = m.setting(quick).parse(a[1]);
+                        if (err != null) { Chat.error(err); return; }
+                        if (!m.isEnabled()) m.setEnabled(true);
+                        Chat.ok(m.name + " an: " + quick + " = " + m.setting(quick).display());
+                    } else if (a.length >= 3) run("set " + body);
                     else m.toggle();
                     Config.save();
                 } else {
@@ -185,6 +192,15 @@ public final class Commands {
                 }
             }
         }
+    }
+
+    /** Einstellung, die man direkt mit ///<Funktion> <Wert> setzen kann. */
+    private static String quickSetting(Module m) {
+        return switch (m.name) {
+            case "Fly", "Speed" -> "tempo";
+            case "HighJump" -> "hoehe";
+            default -> null;
+        };
     }
 
     private static Module need(ModuleManager mm, String name) {
@@ -230,7 +246,8 @@ public final class Commands {
         Chat.raw("§d///list §7– alle Funktionen   §d///info <Funktion> §7– Einstellungen");
         Chat.raw("§d///set <Funktion> <Einstellung> <Wert> §7– z.B. §f///set killaura reichweite 5");
         Chat.raw("§d///bind <Funktion> <Taste> §7– Taste festlegen, z.B. §f///bind fly f");
-        Chat.raw("§d///reach <Kampf> [Bauen] §7– z.B. §f///reach 6 7");
+        Chat.raw("§d///reach <Kampf> [Bauen] §7– z.B. §f///reach 6 7 §7oder §f///reach 2");
+        Chat.raw("§d///fly <Tempo> §7· §d///speed <Tempo> §7· §d///highjump <Blöcke> §7– z.B. §f///speed 0.5§7, §f///highjump 5");
         Chat.raw("§d///mine <Erze...> §7– Auto-Miner, z.B. §f///mine diamond iron §7| §f///mine stop");
         Chat.raw("§d///xray §7– an/aus, §f///xray add <Erz> §7/ §f///xray remove <Erz>");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
