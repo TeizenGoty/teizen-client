@@ -54,6 +54,8 @@ public final class TeizenClient implements ClientModInitializer {
         // ///-Befehle abfangen (Minecraft sieht "///xray" als Befehl "//xray")
         ClientSendMessageEvents.ALLOW_COMMAND.register(command -> !Commands.handle("/" + command));
         ClientSendMessageEvents.ALLOW_CHAT.register(message -> !Commands.handle(message));
+        // Vorschläge beim Tippen von "///" (wie bei normalen Befehlen)
+        dev.teizen.client.core.CommandSuggestions.register();
 
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("teizenclient", "hud"), Hud::render);
 

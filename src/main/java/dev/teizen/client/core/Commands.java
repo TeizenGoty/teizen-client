@@ -21,8 +21,19 @@ public final class Commands {
     private Commands() {}
 
     /** @return true wenn die Nachricht ein Teizen-Befehl war (und nicht gesendet werden darf). */
+    /** Wie oft ein Befehl wirklich ausgeführt wurde (für den Selbsttest). */
+    public static int executed;
+    private static String lastMessage;
+    private static long lastTime;
+
     public static boolean handle(String message) {
         if (!message.startsWith(PREFIX)) return false;
+        // Derselbe Befehl kann über zwei Wege ankommen (Chat-Abfangen + Befehls-Vorschläge) – nur einmal ausführen.
+        long now = System.currentTimeMillis();
+        if (message.equals(lastMessage) && now - lastTime < 150) return true;
+        lastMessage = message;
+        lastTime = now;
+        executed++;
         String body = message.substring(PREFIX.length()).trim();
         try {
             run(body);

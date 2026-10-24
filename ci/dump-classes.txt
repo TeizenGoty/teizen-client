@@ -127,3 +127,9 @@ net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry
 net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements
+
+# Befehls-Vorschläge
+net.minecraft.client.gui.screens.ChatScreen
+net.minecraft.client.gui.components.CommandSuggestions
+net.fabricmc.fabric.api.client.command.v2.ClientCommandManager
+net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback

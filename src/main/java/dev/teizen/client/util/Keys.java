@@ -55,6 +55,13 @@ public final class Keys {
         return c == null ? INVALID : c;
     }
 
+    /** Alle bekannten Tastennamen (für Vorschläge im Chat). */
+    public static java.util.List<String> names() {
+        java.util.List<String> out = new java.util.ArrayList<>(BY_NAME.keySet());
+        out.sort((x, y) -> x.length() != y.length() ? Integer.compare(x.length(), y.length()) : x.compareTo(y));
+        return out;
+    }
+
     public static String name(int code) {
         if (code < 0) return "-";
         return BY_CODE.getOrDefault(code, "#" + code);

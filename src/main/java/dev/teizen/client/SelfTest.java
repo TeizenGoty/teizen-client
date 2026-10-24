@@ -311,6 +311,56 @@ public final class SelfTest {
                 TeizenClient.menuKey = org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT;
                 dev.teizen.client.core.Config.save();
                 mc.gui.setScreen(null);
+                next();
+            }
+            case 20 -> {
+                // Befehls-Vorschläge wie im normalen Spiel
+                if (!after(10)) return;
+                List<String> all = dev.teizen.client.core.CommandSuggestions.debugSuggest("///");
+                log("Vorschläge für '///': " + all);
+                List<String> set = dev.teizen.client.core.CommandSuggestions.debugSuggest("///set killaura ");
+                log("Vorschläge für '///set killaura ': " + set);
+                List<String> mine = dev.teizen.client.core.CommandSuggestions.debugSuggest("///mine di");
+                log("Vorschläge für '///mine di': " + mine);
+                List<String> fly = dev.teizen.client.core.CommandSuggestions.debugSuggest("///fl");
+                log("Vorschläge für '///fl': " + fly);
+                boolean ok = all.contains("//help") && all.contains("//killaura") && set.contains("reichweite")
+                        && mine.contains("diamond") && fly.contains("//fly");
+                results.add("Befehls-Vorschläge: " + (ok ? "ok (" + all.size() + " Befehle)" : "FEHLER"));
+                // Ausführen über den echten Chat-Weg: genau einmal?
+                int before = Commands.executed;
+                mc.player.connection.sendCommand("//fly");
+                mc.player.connection.sendCommand("//toggle fly");
+                boolean flyOff = !TeizenClient.modules().byName("fly").isEnabled();
+                mc.player.connection.sendCommand("//set fly tempo 3");
+                double tempo = TeizenClient.modules().byName("fly").setting("tempo").num();
+                int runs = Commands.executed - before;
+                results.add("Befehl über Chat: " + (runs == 3 && tempo == 3 ? "ok" : "FEHLER") + " (ausgeführt " + runs + "x, Fly an/aus=" + (flyOff ? "ok" : "falsch") + ", tempo=" + tempo + ")");
+                TeizenClient.modules().byName("fly").setting("tempo").setNumber(2);
+                try {
+                    // Chatfenster mit "///" öffnen (Konstruktor per Reflection, Parameter je nach Version)
+                    for (var ctor : net.minecraft.client.gui.screens.ChatScreen.class.getConstructors()) {
+                        Class<?>[] ps = ctor.getParameterTypes();
+                        if (ps.length == 0 || ps[0] != String.class) continue;
+                        Object[] args = new Object[ps.length];
+                        args[0] = "///";
+                        for (int i = 1; i < ps.length; i++) args[i] = ps[i] == boolean.class ? Boolean.FALSE : null;
+                        mc.gui.setScreen((net.minecraft.client.gui.screens.Screen) ctor.newInstance(args));
+                        break;
+                    }
+                } catch (Throwable t) {
+                    log("Chatfenster öffnen fehlgeschlagen: " + t);
+                }
+                next();
+            }
+            case 21 -> {
+                if (!after(20)) return;
+                shot("10-vorschlaege");
+                mc.gui.setScreen(null);
+                next();
+            }
+            case 22 -> {
+                if (!after(10)) return;
                 finish();
             }
             default -> {}
