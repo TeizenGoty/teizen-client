@@ -137,6 +137,12 @@ public final class AutoMine extends Module {
                 Breaker.tick(obs, false, true);
                 return;
             }
+            // Block davor wäre gefährlich (Lava/Wasser/tiefer Fall) -> Erz direkt durch die Wand abbauen (Server erlaubt das)
+            releaseKeys();
+            status = "baut ab (durch Wand)";
+            lookAt(Vec3.atCenterOf(target));
+            Breaker.tick(target, false, true);
+            return;
         }
 
         if (path == null || index >= path.size()) {
@@ -168,7 +174,13 @@ public final class AutoMine extends Module {
     private boolean safeToDig(BlockPos b) {
         if (!Breaker.canBreak(b) || !MinePath.canClear(mc.level, b)) return false;
         if (b.equals(mc.player.blockPosition().below())) {
-            return MinePath.solidFloor(mc.level, b.below());
+            // höchstens 3 Blöcke tief fallen, und unten keine Lava/kein Wasser
+            for (int d = 1; d <= 4; d++) {
+                BlockPos q = b.below(d);
+                if (!mc.level.getFluidState(q).isEmpty()) return false;
+                if (MinePath.solidFloor(mc.level, q)) return true;
+            }
+            return false;
         }
         return true;
     }
