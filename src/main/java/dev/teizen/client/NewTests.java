@@ -87,7 +87,7 @@ final class NewTests {
 
     private static List<LivingEntity> husks(double r) {
         return mc.level.getEntitiesOfClass(LivingEntity.class, new AABB(area).inflate(r),
-                e -> e.getType() == EntityType.HUSK && e.isAlive() && !e.isDeadOrDying());
+                e -> e instanceof net.minecraft.world.entity.monster.zombie.Husk && e.isAlive() && !e.isDeadOrDying());
     }
 
     private static void summonHusk(BlockPos p, String extra) {
