@@ -1,18 +1,12 @@
 # Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
-net.minecraft.world.entity.npc.villager.Villager
-net.minecraft.world.entity.npc.villager.AbstractVillager
-net.minecraft.world.entity.npc.villager.VillagerData
-net.minecraft.world.entity.npc.villager.VillagerProfession
-net.minecraft.world.inventory.MerchantMenu
-net.minecraft.world.item.trading.MerchantOffer
-net.minecraft.world.item.trading.MerchantOffers
-net.minecraft.world.item.trading.ItemCost
-net.minecraft.client.gui.screens.inventory.MerchantScreen
-net.minecraft.client.gui.screens.inventory.InventoryScreen
-net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket$Action
-net.minecraft.world.level.block.LecternBlock
-net.minecraft.world.entity.ai.village.poi.PoiTypes
-net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents$Chat
-net.minecraft.world.item.enchantment.ItemEnchantments
-net.minecraft.client.multiplayer.ClientPacketListener
-c net.minecraft.server.network.ServerGamePacketListenerImpl
+net.minecraft.world.inventory.EnchantmentMenu
+net.minecraft.client.gui.screens.inventory.EnchantmentScreen
+net.minecraft.world.item.enchantment.EnchantmentInstance
+net.minecraft.world.item.enchantment.Enchantment
+net.minecraft.tags.EnchantmentTags
+net.minecraft.util.RandomSource
+net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+net.minecraft.world.level.block.WebBlock
+c net.minecraft.world.level.block.WebBlock
+c net.minecraft.world.entity.LivingEntity
+c net.minecraft.world.inventory.EnchantmentMenu
