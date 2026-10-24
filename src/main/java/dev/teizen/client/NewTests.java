@@ -181,6 +181,7 @@ final class NewTests {
                 if (!after(40)) return;
                 n0 = husks(10).size();
                 mod(AutoCrystal.class).anchors = 0;
+                mod(AutoCrystal.class).anchorsPlaced = 0;
                 t("///autocrystal");
                 next();
             }
@@ -188,8 +189,10 @@ final class NewTests {
                 if (!after(240) && !husks(10).isEmpty()) return;
                 AutoCrystal ac = mod(AutoCrystal.class);
                 boolean dead = husks(10).isEmpty();
-                result("AutoCrystal (Respawn-Anker): Husk tot=" + yes(dead) + " (vorher " + n0 + ", Anker gezündet " + ac.anchors + ", "
-                        + SelfTest.local() + " Ticks) " + ok(dead && n0 == 1));
+                int left = 0;
+                for (int i = 0; i < 36; i++) if (mc.player.getInventory().getItem(i).is(Items.RESPAWN_ANCHOR)) left += mc.player.getInventory().getItem(i).getCount();
+                result("AutoCrystal (Respawn-Anker): Husk tot=" + yes(dead) + " (vorher " + n0 + ", Anker gesetzt " + ac.anchorsPlaced + ", gezündet "
+                        + ac.anchors + ", übrig " + left + "/4, " + SelfTest.local() + " Ticks) " + ok(dead && n0 == 1 && ac.anchors >= 1 && left < 4));
                 t("///autocrystal");
                 next();
             }
@@ -619,12 +622,14 @@ final class NewTests {
             // ---------------------------------------------- StructureFinder (per /locate auf dem Server)
             case 90 -> {
                 if (!after(10)) return;
+                n0 = 0;
                 t("///structurefinder village");
                 next();
             }
             case 91 -> {
                 StructureFinder sf = mod(StructureFinder.class);
-                if (!after(600) && sf.found.isEmpty()) return;
+                if (!sf.found.isEmpty() && n0 >= 0) { n0 = -1; a0 = SelfTest.local(); }
+                if (!after(600) && (sf.found.isEmpty() || SelfTest.local() < a0 + 20)) return;
                 if (!sf.found.isEmpty()) shot("17-structurefinder");
                 result("StructureFinder: Dorf " + (sf.found.isEmpty() ? "nicht gefunden FEHLER" : "gefunden bei " + sf.found.get(0).pos().getX()
                         + " " + sf.found.get(0).pos().getZ() + " OK"));

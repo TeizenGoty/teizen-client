@@ -20,12 +20,15 @@ import java.util.Set;
 /**
  * Menü: Linksklick = an/aus, Rechtsklick = Einstellungen auf-/zuklappen,
  * Mittelklick = Taste festlegen, Shift+Klick = Favorit (steht dann ganz vorne).
+ * Klick auf eine Spalten-Überschrift klappt die Spalte zu/auf, Mausrad scrollt.
  * Bei Zahlen: Links = mehr, Rechts = weniger.
  */
 public final class ClickGui extends Screen {
     private static final int COL_W = 112, ROW_H = 13, HEAD_H = 16;
     private static final int HEAD = 0xFF5B1FB8, FAV_HEAD = 0xFFB8861F, ON = 0xFF7A2CF0, OFF = 0xC0201236, SET = 0xD00E0718;
     private static final Set<String> expanded = new HashSet<>();
+    /** Zugeklappte Spalten (Klick auf die Überschrift). */
+    private static final Set<String> collapsed = new HashSet<>();
 
     private record Panel(String title, List<Module> mods, int color) {}
 
@@ -51,6 +54,7 @@ public final class ClickGui extends Screen {
 
     private static int panelHeight(Panel p) {
         int h = HEAD_H + 2;
+        if (collapsed.contains(p.title())) return h;
         for (Module m : p.mods()) {
             h += ROW_H;
             if (expanded.contains(key(p, m))) h += ROW_H * m.settings.size();
@@ -93,9 +97,10 @@ public final class ClickGui extends Screen {
             Panel p = panels.get(c);
             int x = pos[c][0], y = pos[c][1];
             g.fill(x, y, x + COL_W, y + HEAD_H, p.color());
-            g.centeredText(font, "§l" + p.title(), x + COL_W / 2, y + 4, 0xFFFFFFFF);
+            boolean closed = collapsed.contains(p.title());
+            g.centeredText(font, "§l" + p.title() + (closed ? " §7(" + p.mods().size() + ") ▸" : ""), x + COL_W / 2, y + 4, 0xFFFFFFFF);
             y += HEAD_H;
-            for (Module m : p.mods()) {
+            for (Module m : closed ? List.<Module>of() : p.mods()) {
                 boolean hover = mouseX >= x && mouseX < x + COL_W && mouseY >= y && mouseY < y + ROW_H;
                 g.fill(x, y, x + COL_W, y + ROW_H, m.isEnabled() ? ON : (hover ? 0xD0301A50 : OFF));
                 String name = (m.favorite ? "§6★ §r" : "") + m.name;
@@ -118,7 +123,10 @@ public final class ClickGui extends Screen {
             }
             g.fill(x, y, x + COL_W, y + 2, p.color());
         }
-        g.centeredText(font, "§8Befehle im Chat: ///help  ·  Favorit auch mit ///fav <Funktion>", width / 2, height - 12, 0xFFFFFFFF);
+        g.fill(0, height - 14, width, height, 0xA0000000);
+        String foot = "§7Überschrift anklicken = zuklappen · Mausrad = scrollen · Befehle: ///help · Favorit: ///fav <Funktion>";
+        if (font.width(foot) > width - 4) foot = "§7Überschrift = zuklappen · Mausrad = scrollen · ///help";
+        g.centeredText(font, foot, width / 2, height - 11, 0xFFFFFFFF);
     }
 
     @Override
@@ -132,7 +140,12 @@ public final class ClickGui extends Screen {
             Panel p = panels.get(c);
             int x = pos[c][0];
             if (mx < x || mx >= x + COL_W) continue;
+            if (my >= pos[c][1] && my < pos[c][1] + HEAD_H && button == 0) {
+                if (!collapsed.remove(p.title())) collapsed.add(p.title());
+                return true;
+            }
             int y = pos[c][1] + HEAD_H;
+            if (collapsed.contains(p.title())) continue;
             for (Module m : p.mods()) {
                 if (my >= y && my < y + ROW_H) {
                     if (shift && button == 0) m.favorite = !m.favorite;

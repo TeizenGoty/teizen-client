@@ -44,7 +44,7 @@ public final class AutoCrystal extends Module {
 
     public LivingEntity target;
     /** Zähler (Anzeige + Selbsttest). */
-    public int placed, broken, anchors;
+    public int placed, broken, anchors, anchorsPlaced;
 
     private int placeWait, breakWait;
     private BlockPos anchorPos;
@@ -71,7 +71,12 @@ public final class AutoCrystal extends Module {
     public void onTick() {
         if (!inGame() || mc.gui.screen() != null) { target = null; return; }
         target = Targets.nearest(targetRange.num(), players.on(), monsters.on(), false, true);
-        if (target == null) { anchorPos = null; return; }
+        if (target == null) {
+            // Anker, der schon steht, trotzdem fertig zünden (sonst bleibt ein geladener Anker liegen)
+            if (anchorPos != null && anchorStage >= 2 && --anchorTimeout >= 0) anchorTick();
+            else anchorPos = null;
+            return;
+        }
         if (breakWait > 0) breakWait--;
         if (placeWait > 0) placeWait--;
 
@@ -187,6 +192,7 @@ public final class AutoCrystal extends Module {
             anchorPos = best;
             anchorStage = 1;
             anchorTimeout = 30;
+            anchorsPlaced++;
             return true;
         }
         return false;
@@ -196,7 +202,6 @@ public final class AutoCrystal extends Module {
         if (--anchorTimeout < 0) { anchorPos = null; return; }
         BlockState st = mc.level.getBlockState(anchorPos);
         if (!st.is(Blocks.RESPAWN_ANCHOR)) {
-            if (anchorStage >= 3) anchors++;
             anchorPos = null;
             placeWait = placeDelay.integer();
             return;
@@ -220,6 +225,7 @@ public final class AutoCrystal extends Module {
         Inv.select(slot);
         mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
         mc.player.swing(InteractionHand.MAIN_HAND);
+        if (anchorStage < 3) anchors++;
         anchorStage = 3;
     }
 
