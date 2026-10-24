@@ -59,7 +59,12 @@ public final class MinePath {
         return c;
     }
 
-    private static boolean solidFloor(ClientLevel l, BlockPos p) {
+    /** Darf dieser Block für den Weg abgebaut werden? (kein Grundgestein, keine Flüssigkeit daneben) */
+    public static boolean canClear(ClientLevel l, BlockPos p) {
+        return clearCost(l, p) >= 0;
+    }
+
+    public static boolean solidFloor(ClientLevel l, BlockPos p) {
         BlockState s = l.getBlockState(p);
         if (!s.getFluidState().isEmpty()) return false;
         if (s.getBlock() instanceof net.minecraft.world.level.block.MagmaBlock) return false;
@@ -115,8 +120,9 @@ public final class MinePath {
         return null;
     }
 
+    /** Geschätzte Kosten: durch Stein graben kostet ~5 pro Block, darum stark gewichtet (sonst sucht A* ewig). */
     private static double h(BlockPos a, BlockPos b) {
-        return Math.abs(a.getX() - b.getX()) + Math.abs(a.getY() - b.getY()) * 1.5 + Math.abs(a.getZ() - b.getZ());
+        return (Math.abs(a.getX() - b.getX()) + Math.abs(a.getY() - b.getY()) * 1.5 + Math.abs(a.getZ() - b.getZ())) * 3.5;
     }
 
     private static List<Step> neighbours(ClientLevel l, BlockPos n) {

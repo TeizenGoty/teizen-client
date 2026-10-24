@@ -45,6 +45,7 @@ public final class AutoMine extends Module {
     private BlockPos lastFeet;
     private final Map<BlockPos, Integer> failed = new HashMap<>();
     private int idleMsg;
+    private int lastFailMsg = -1000;
     private String status = "sucht";
 
     public AutoMine() {
@@ -119,21 +120,34 @@ public final class AutoMine extends Module {
             }
         }
 
-        // Erz in Reichweite? -> abbauen
-        if (Breaker.inReach(target) && canSee(target)) {
-            releaseKeys();
-            status = "baut ab";
-            lookAt(Vec3.atCenterOf(target));
-            Breaker.tick(target, false, true);
-            return;
+        // Erz in Reichweite? -> abbauen (oder die Blöcke davor wegmachen)
+        if (Breaker.inReach(target)) {
+            if (canSee(target)) {
+                releaseKeys();
+                status = "baut ab";
+                lookAt(Vec3.atCenterOf(target));
+                Breaker.tick(target, false, true);
+                return;
+            }
+            BlockPos obs = obstruction(target);
+            if (obs != null && safeToDig(obs)) {
+                releaseKeys();
+                status = "gräbt zum Erz";
+                lookAt(Vec3.atCenterOf(obs));
+                Breaker.tick(obs, false, true);
+                return;
+            }
         }
 
         if (path == null || index >= path.size()) {
             path = MinePath.find(mc.player.blockPosition(), target, mc.player.blockInteractionRange(), nodes.integer());
             index = 0;
-            if (path == null) {
-                failed.merge(target, 1, Integer::sum);
-                Chat.info("AutoMine: kein sicherer Weg zu " + target.toShortString() + " – nächstes Erz.");
+            if (path == null || path.isEmpty()) {
+                failed.merge(target, 2, Integer::sum);
+                if (mc.player.tickCount - lastFailMsg > 100) {
+                    lastFailMsg = mc.player.tickCount;
+                    Chat.info("AutoMine: kein sicherer Weg zu " + target.toShortString() + " – nächstes Erz.");
+                }
                 reset();
                 return;
             }
@@ -141,7 +155,25 @@ public final class AutoMine extends Module {
         follow();
     }
 
-    /** Ist ein Block erreichbar ohne dass etwas dazwischen steht? (vereinfacht: Nachbarfläche frei) */
+    /** Erster Block, der zwischen Augen und Erz im Weg ist (oder null). */
+    private BlockPos obstruction(BlockPos p) {
+        var hit = mc.level.clip(new net.minecraft.world.level.ClipContext(mc.player.getEyePosition(), Vec3.atCenterOf(p),
+                net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player));
+        if (hit.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) return null;
+        BlockPos b = hit.getBlockPos();
+        return b.equals(p) ? null : b;
+    }
+
+    /** Sicher abbaubar? Keine Flüssigkeit daneben, und wenn es der Block unter den Füßen ist: kein tiefer Fall. */
+    private boolean safeToDig(BlockPos b) {
+        if (!Breaker.canBreak(b) || !MinePath.canClear(mc.level, b)) return false;
+        if (b.equals(mc.player.blockPosition().below())) {
+            return MinePath.solidFloor(mc.level, b.below());
+        }
+        return true;
+    }
+
+    /** Ist ein Block erreichbar ohne dass etwas dazwischen steht? */
     private boolean canSee(BlockPos p) {
         var from = mc.player.getEyePosition();
         var to = Vec3.atCenterOf(p);
