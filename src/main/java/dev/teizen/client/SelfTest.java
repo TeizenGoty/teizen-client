@@ -169,7 +169,7 @@ public final class SelfTest {
             }
             case 6 -> {
                 if (!after(100)) return;
-                List<Zombie> z = mc.level.getEntitiesOfClass(Zombie.class, mc.player.getBoundingBox().inflate(8));
+                List<Zombie> z = mc.level.getEntitiesOfClass(Zombie.class, mc.player.getBoundingBox().inflate(8), e -> e.isAlive() && !e.isDeadOrDying());
                 results.add("KillAura: Zombies übrig in 8 Blöcken = " + z.size());
                 shot("04-killaura");
                 Commands.handle("///killaura");
