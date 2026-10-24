@@ -52,6 +52,14 @@ public final class Overview extends Screen {
 
     private static final int TOP = 40;
 
+    /** Kompakt (eine Zeile pro Cheat), wenn sonst nicht alle auf den Bildschirm passen. */
+    private int cellH() {
+        int rows = (TeizenClient.modules().all().size() + cols() - 1) / cols();
+        return TOP + rows * (CELL_H + GAP) <= height - 18 ? CELL_H : 12;
+    }
+
+    private int gap() { return cellH() == CELL_H ? GAP : 2; }
+
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
         var font = getFont();
@@ -63,24 +71,27 @@ public final class Overview extends Screen {
         g.centeredText(font, "§5§lTEIZEN CLIENT §7– Übersicht", width / 2, 8, 0xFFFFFFFF);
         g.centeredText(font, "§a" + on + "§7 von §f" + mods.size() + "§7 an   §8|   §7Links: an/aus · Rechts: Einstellungen", width / 2, 22, 0xFFFFFFFF);
 
-        int cols = cols(), x0 = startX();
+        int cols = cols(), x0 = startX(), ch = cellH(), gap = gap();
+        boolean compact = ch != CELL_H;
         for (int i = 0; i < mods.size(); i++) {
             Module m = mods.get(i);
             int x = x0 + (i % cols) * (CELL_W + GAP);
-            int y = TOP + (i / cols) * (CELL_H + GAP) - scroll;
-            if (y + CELL_H < TOP - 4 || y > height - 18) continue;
-            boolean hover = mouseX >= x && mouseX < x + CELL_W && mouseY >= y && mouseY < y + CELL_H;
-            g.fill(x, y, x + CELL_W, y + CELL_H, m.isEnabled() ? ON : (hover ? HOVER : OFF));
-            g.fill(x, y, x + 3, y + CELL_H, catColor(m.category));
-            g.text(font, m.name, x + 7, y + 3, m.isEnabled() ? 0xFFFFFFFF : 0xFFC8B8E8, false);
+            int y = TOP + (i / cols) * (ch + gap) - scroll;
+            if (y < TOP - 4 || y + ch > height - 16) continue;
+            boolean hover = mouseX >= x && mouseX < x + CELL_W && mouseY >= y && mouseY < y + ch;
+            g.fill(x, y, x + CELL_W, y + ch, m.isEnabled() ? ON : (hover ? HOVER : OFF));
+            g.fill(x, y, x + 3, y + ch, catColor(m.category));
+            g.text(font, m.name, x + 7, y + 2, m.isEnabled() ? 0xFFFFFFFF : 0xFFC8B8E8, false);
             String state = m.isEnabled() ? "§aAN" : "§8aus";
-            g.text(font, state, x + CELL_W - 4 - font.width(state), y + 3, 0xFFFFFFFF, false);
+            if (compact && m.key >= 0) state = "§7" + Keys.name(m.key) + " " + state;
+            g.text(font, state, x + CELL_W - 4 - font.width(state), y + 2, 0xFFFFFFFF, false);
+            if (hover) g.setTooltipForNextFrame(font, Component.literal(m.description), mouseX, mouseY);
+            if (compact) continue;
             String sub = "§7" + m.category.title + (m.key >= 0 ? " §8· §fTaste " + Keys.name(m.key) : "");
             String info = m.isEnabled() ? m.info() : "";
             if (info != null && !info.isEmpty()) sub += " §8· §b" + info;
             if (font.width(sub) > CELL_W - 10) sub = font.plainSubstrByWidth(sub, CELL_W - 14) + "…";
             g.text(font, sub, x + 7, y + 13, 0xFFFFFFFF, false);
-            if (hover) g.setTooltipForNextFrame(font, Component.literal(m.description), mouseX, mouseY);
         }
         g.centeredText(font, "§8Schließen: Esc oder " + KeyBinds.overviewName() + "  ·  Tasten ändern: Optionen → Steuerung → Teizen Client",
                 width / 2, height - 12, 0xFFFFFFFF);
@@ -88,11 +99,11 @@ public final class Overview extends Screen {
 
     private Module at(double mx, double my) {
         List<Module> mods = TeizenClient.modules().all();
-        int cols = cols(), x0 = startX();
+        int cols = cols(), x0 = startX(), ch = cellH(), gap = gap();
         for (int i = 0; i < mods.size(); i++) {
             int x = x0 + (i % cols) * (CELL_W + GAP);
-            int y = TOP + (i / cols) * (CELL_H + GAP) - scroll;
-            if (mx >= x && mx < x + CELL_W && my >= y && my < y + CELL_H) return mods.get(i);
+            int y = TOP + (i / cols) * (ch + gap) - scroll;
+            if (mx >= x && mx < x + CELL_W && my >= y && my < y + ch) return mods.get(i);
         }
         return null;
     }
@@ -115,7 +126,7 @@ public final class Overview extends Screen {
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         int rows = (TeizenClient.modules().all().size() + cols() - 1) / cols();
-        int max = Math.max(0, TOP + rows * (CELL_H + GAP) - (height - 20));
+        int max = Math.max(0, TOP + rows * (cellH() + gap()) - (height - 18));
         scroll = Math.max(0, Math.min(max, scroll - (int) (sy * 12)));
         return true;
     }
