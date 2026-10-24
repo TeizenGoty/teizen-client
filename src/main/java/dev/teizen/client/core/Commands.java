@@ -69,6 +69,14 @@ public final class Commands {
                 Chat.info("§f" + m.name + "§7: " + m.description + (m.key >= 0 ? " §8[Taste " + Keys.name(m.key) + "]" : ""));
                 for (Setting s : m.settings.values()) Chat.raw("  §d" + s.name + " §7= §f" + s.display() + " §8– " + s.description);
             }
+            case "menutaste", "menukey", "menütaste" -> {
+                if (a.length < 2) { Chat.info("Menü-Taste: §f" + dev.teizen.client.gui.SettingsScreen.keyName(TeizenClient.menuKey) + "§7 – ändern mit §f///menutaste <Taste>§7 (z.B. m, f6, rshift)"); return; }
+                int k = Keys.parse(a[1]);
+                if (k == Keys.INVALID || k < 0) { Chat.error("Unbekannte Taste: " + a[1] + " (z.B. m, f6, rshift, rctrl, tab)"); return; }
+                TeizenClient.menuKey = k;
+                Chat.ok("Das Menü geht jetzt mit §f" + dev.teizen.client.gui.SettingsScreen.keyName(k) + "§a auf.");
+                Config.save();
+            }
             case "bind" -> {
                 if (a.length < 3) { Chat.error("///bind <Funktion> <Taste>   z.B. ///bind killaura r   (///bind killaura none zum Löschen)"); return; }
                 Module m = need(mm, a[1]);
@@ -205,7 +213,8 @@ public final class Commands {
 
     private static void help() {
         Chat.raw("§5§l===== Teizen Client – Befehle =====");
-        Chat.raw("§d///gui §7– Menü öffnen (oder Taste §fRechte Shift§7)");
+        Chat.raw("§d///gui §7– Menü öffnen (oder Taste §f" + dev.teizen.client.gui.SettingsScreen.keyName(TeizenClient.menuKey) + "§7)");
+        Chat.raw("§d///menutaste <Taste> §7– Taste fürs Menü ändern, z.B. §f///menutaste m §7(auch in Mod Menu)");
         Chat.raw("§d///<Funktion> §7– Funktion an/aus, z.B. §f///killaura");
         Chat.raw("§d///list §7– alle Funktionen   §d///info <Funktion> §7– Einstellungen");
         Chat.raw("§d///set <Funktion> <Einstellung> <Wert> §7– z.B. §f///set killaura reichweite 5");

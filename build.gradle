@@ -7,6 +7,14 @@ group = project.maven_group
 
 base { archivesName = project.archives_base_name }
 
+repositories {
+    // Mod Menu (nur zum Kompilieren + Test; die Spieler installieren es selbst)
+    exclusiveContent {
+        forRepository { maven { name = 'Modrinth'; url = 'https://api.modrinth.com/maven' } }
+        filter { includeGroup 'maven.modrinth' }
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -16,6 +24,10 @@ dependencies {
     compileOnly files('libs/litematica-fabric-26.2-0.28.8.jar', 'libs/malilib-fabric-26.2-0.29.6.jar')
     // nur für den automatischen Test im Entwicklungs-Client (nicht in der fertigen Mod)
     runtimeOnly files('libs/litematica-fabric-26.2-0.28.8.jar', 'libs/malilib-fabric-26.2-0.29.6.jar')
+
+    // Mod Menu: Einstellungs-Knopf (Menü-Taste festlegen). Optional, nicht in der jar enthalten.
+    compileOnly "maven.modrinth:modmenu:${project.modmenu_version}"
+    runtimeOnly "maven.modrinth:modmenu:${project.modmenu_version}"
 }
 
 processResources {

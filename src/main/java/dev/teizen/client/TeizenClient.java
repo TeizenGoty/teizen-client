@@ -45,7 +45,7 @@ public final class TeizenClient implements ClientModInitializer {
             if (mc.player == null || mc.level == null) { greeted = false; return; }
             if (!greeted) {
                 greeted = true;
-                Chat.info("geladen! §fRechte Shift§7 = Menü, §f///help§7 = Befehle");
+                Chat.info("geladen! §f" + dev.teizen.client.gui.SettingsScreen.keyName(menuKey) + "§7 = Menü, §f///help§7 = Befehle");
             }
             modules.tick();
             Finder.tick();

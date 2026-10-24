@@ -9,7 +9,8 @@
   "icon": "assets/teizenclient/icon.png",
   "environment": "client",
   "entrypoints": {
-    "client": ["dev.teizen.client.TeizenClient"]
+    "client": ["dev.teizen.client.TeizenClient"],
+    "modmenu": ["dev.teizen.client.compat.ModMenuCompat"]
   },
   "mixins": ["teizenclient.mixins.json"],
   "depends": {
@@ -18,6 +19,7 @@
     "minecraft": "~26.2"
   },
   "suggests": {
-    "litematica": "*"
+    "litematica": "*",
+    "modmenu": "*"
   }
 }

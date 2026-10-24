@@ -270,7 +270,47 @@ public final class SelfTest {
                 next();
             }
             case 16 -> {
+                // Einstellungen über Mod Menu: Menü-Taste ändern
+                if (!after(10)) return;
+                boolean modMenu = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("modmenu");
+                net.minecraft.client.gui.screens.Screen s = null;
+                try {
+                    Class<?> mm = Class.forName("com.terraformersmc.modmenu.ModMenu");
+                    s = (net.minecraft.client.gui.screens.Screen) mm.getMethod("getConfigScreen", String.class, net.minecraft.client.gui.screens.Screen.class)
+                            .invoke(null, "teizenclient", null);
+                } catch (Throwable t) {
+                    log("Mod Menu Zugriff fehlgeschlagen: " + t);
+                }
+                results.add("Mod Menu geladen=" + modMenu + ", Einstellungen-Knopf=" + (s instanceof dev.teizen.client.gui.SettingsScreen ? "ok" : "FEHLT"));
+                if (s == null) s = new dev.teizen.client.gui.SettingsScreen(null);
+                mc.gui.setScreen(s);
+                next();
+            }
+            case 17 -> {
                 if (!after(20)) return;
+                if (mc.gui.screen() instanceof dev.teizen.client.gui.SettingsScreen st) {
+                    st.startListening();
+                    st.applyKey(org.lwjgl.glfw.GLFW.GLFW_KEY_M);
+                    boolean ok = TeizenClient.menuKey == org.lwjgl.glfw.GLFW.GLFW_KEY_M;
+                    boolean saved = false;
+                    try { saved = java.nio.file.Files.readString(mc.gameDirectory.toPath().resolve("config/teizenclient.json")).contains("\"menuTaste\": " + org.lwjgl.glfw.GLFW.GLFW_KEY_M); } catch (Throwable ignored) {}
+                    results.add("Menü-Taste ändern: " + (ok ? "ok (jetzt " + dev.teizen.client.gui.SettingsScreen.keyName(TeizenClient.menuKey) + ")" : "FEHLER") + ", gespeichert=" + saved);
+                } else {
+                    results.add("Menü-Taste ändern: FEHLER (Einstellungen nicht offen: " + mc.gui.screen() + ")");
+                }
+                next();
+            }
+            case 18 -> {
+                if (!after(10)) return;
+                shot("09-einstellungen");
+                next();
+            }
+            case 19 -> {
+                if (!after(20)) return;
+                // zurück auf Standard
+                TeizenClient.menuKey = org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT;
+                dev.teizen.client.core.Config.save();
+                mc.gui.setScreen(null);
                 finish();
             }
             default -> {}
