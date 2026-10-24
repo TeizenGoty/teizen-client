@@ -14,6 +14,8 @@ dependencies {
 
     // Litematica + malilib nur zum Kompilieren (AutoBuild). Zur Laufzeit optional.
     compileOnly files('libs/litematica-fabric-26.2-0.28.8.jar', 'libs/malilib-fabric-26.2-0.29.6.jar')
+    // nur für den automatischen Test im Entwicklungs-Client (nicht in der fertigen Mod)
+    runtimeOnly files('libs/litematica-fabric-26.2-0.28.8.jar', 'libs/malilib-fabric-26.2-0.29.6.jar')
 }
 
 processResources {

@@ -89,7 +89,7 @@ public final class Finder {
     // ---------------------------------------------------------------- Kisten
 
     public static void findStorage(int radius) {
-        clear();
+        markers.removeIf(m -> m.color() != scanColor);
         int pcx = mc.player.blockPosition().getX() >> 4, pcz = mc.player.blockPosition().getZ() >> 4;
         List<BlockPos> found = new ArrayList<>();
         for (int dx = -radius; dx <= radius; dx++) {

@@ -35,11 +35,34 @@ public final class ClickGui extends Screen {
     @Override
     public boolean isPauseScreen() { return false; }
 
-    private int colX(int i) {
-        int cols = Module.Category.values().length;
+    private static int panelHeight(Module.Category c) {
+        int h = HEAD_H + 2;
+        for (Module m : TeizenClient.modules().inCategory(c)) {
+            h += ROW_H;
+            if (expanded.contains(m.name)) h += ROW_H * m.settings.size();
+        }
+        return h;
+    }
+
+    /** Position jeder Kategorie – bricht in mehrere Reihen um, wenn das Fenster schmal ist. */
+    private int[][] layout() {
+        Module.Category[] cats = Module.Category.values();
+        int cols = Math.max(1, Math.min(cats.length, (width - 8) / (COL_W + 6)));
         int total = cols * (COL_W + 6) - 6;
-        int start = Math.max(4, (width - total) / 2);
-        return start + i * (COL_W + 6);
+        int startX = Math.max(4, (width - total) / 2);
+        int[][] pos = new int[cats.length][2];
+        int rowTop = 32 - scroll;
+        for (int row = 0; row * cols < cats.length; row++) {
+            int rowH = 0;
+            for (int col = 0; col < cols && row * cols + col < cats.length; col++) {
+                int i = row * cols + col;
+                pos[i][0] = startX + col * (COL_W + 6);
+                pos[i][1] = rowTop;
+                rowH = Math.max(rowH, panelHeight(cats[i]));
+            }
+            rowTop += rowH + 8;
+        }
+        return pos;
     }
 
     @Override
@@ -51,8 +74,9 @@ public final class ClickGui extends Screen {
         if (binding != null) g.centeredText(font, "§eDrück eine Taste für " + binding.name + " (Entf = keine)", width / 2, 18, 0xFFFFFFFF);
 
         Module.Category[] cats = Module.Category.values();
+        int[][] pos = layout();
         for (int c = 0; c < cats.length; c++) {
-            int x = colX(c), y = 32 - scroll;
+            int x = pos[c][0], y = pos[c][1];
             g.fill(x, y, x + COL_W, y + HEAD_H, HEAD);
             g.centeredText(font, "§l" + cats[c].title, x + COL_W / 2, y + 4, 0xFFFFFFFF);
             y += HEAD_H;
@@ -86,10 +110,11 @@ public final class ClickGui extends Screen {
         double mx = e.x(), my = e.y();
         int button = e.button();
         Module.Category[] cats = Module.Category.values();
+        int[][] pos = layout();
         for (int c = 0; c < cats.length; c++) {
-            int x = colX(c);
+            int x = pos[c][0];
             if (mx < x || mx >= x + COL_W) continue;
-            int y = 32 - scroll + HEAD_H;
+            int y = pos[c][1] + HEAD_H;
             for (Module m : TeizenClient.modules().inCategory(cats[c])) {
                 if (my >= y && my < y + ROW_H) {
                     if (button == 0) m.toggle();

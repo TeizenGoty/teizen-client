@@ -91,7 +91,7 @@ public final class Projector {
         int visible = 0;
         for (int i = 0; i < 8; i++) {
             double[] s = project((i & 1) == 0 ? b.minX : b.maxX, (i & 2) == 0 ? b.minY : b.maxY, (i & 4) == 0 ? b.minZ : b.maxZ);
-            if (s == null) continue;
+            if (s == null) return null; // Box teilweise hinter der Kamera -> nicht zeichnen (sonst riesige Fehl-Rahmen)
             visible++;
             minX = Math.min(minX, s[0]); minY = Math.min(minY, s[1]);
             maxX = Math.max(maxX, s[0]); maxY = Math.max(maxY, s[1]);

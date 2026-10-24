@@ -23,7 +23,7 @@ import java.util.Set;
  */
 public final class XRay extends Module {
     public final Setting ores = add(Setting.text("erze", "Welche Erze (Komma-getrennt)",
-            "diamond,emerald,gold,iron,redstone,lapis,ancient_debris,copper,coal,quartz"));
+            "diamond,emerald,gold,iron,redstone,lapis,ancient_debris"));
     private final Setting radius = add(Setting.number("radius", "Suchradius in Chunks", 4, 1, 12));
     private final Setting maxShown = add(Setting.number("anzahl", "Maximal angezeigte Erze", 300, 20, 2000));
     private final Setting tracers = add(Setting.bool("linien", "Linien zu den nächsten Erzen", false));

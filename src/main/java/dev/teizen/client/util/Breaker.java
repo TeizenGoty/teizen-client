@@ -11,6 +11,7 @@ import net.minecraft.world.phys.Vec3;
 public final class Breaker {
     private static final Minecraft mc = Minecraft.getInstance();
     private static BlockPos current;
+    private static int lastTick = -100;
 
     private Breaker() {}
 
@@ -56,11 +57,21 @@ public final class Breaker {
             mc.gameMode.continueDestroyBlock(pos, dir);
         }
         mc.player.swing(InteractionHand.MAIN_HAND);
+        lastTick = mc.player.tickCount;
         return mc.level.getBlockState(pos).isAir();
     }
 
+    /**
+     * Wird gerade automatisch abgebaut? Dann darf das Spiel den Abbau nicht abbrechen
+     * (Minecraft bricht sonst jeden Tick ab, weil die linke Maustaste nicht gedrückt ist).
+     */
+    public static boolean holding() {
+        return current != null && mc.player != null && Math.abs(mc.player.tickCount - lastTick) <= 2;
+    }
+
     public static void stop() {
-        if (current != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock();
+        BlockPos c = current;
         current = null;
+        if (c != null && mc.gameMode != null) mc.gameMode.stopDestroyBlock();
     }
 }

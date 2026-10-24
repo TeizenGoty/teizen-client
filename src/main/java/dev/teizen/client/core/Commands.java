@@ -121,6 +121,15 @@ public final class Commands {
             }
             case "autobuild", "build", "printer" -> {
                 AutoBuild b = mm.get(AutoBuild.class);
+                if (a.length >= 2 && (a[1].equalsIgnoreCase("laden") || a[1].equalsIgnoreCase("load"))) {
+                    if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica")) { Chat.error("Dafür brauchst du die Mod Litematica."); return; }
+                    if (a.length < 3) { Chat.error("///autobuild laden <Dateiname>  (Datei aus dem schematics-Ordner)"); return; }
+                    String file = String.join(" ", java.util.Arrays.copyOfRange(a, 2, a.length));
+                    String err = dev.teizen.client.compat.LitematicaCompat.loadAndPlace(file, mc.player.blockPosition());
+                    if (err != null) Chat.error(err);
+                    else Chat.ok("Schematic §f" + file + "§a bei dir platziert. Starte mit §f///autobuild");
+                    return;
+                }
                 if (a.length >= 3) {
                     String key = a[1].equals("speed") ? "tempo" : a[1].equals("range") ? "reichweite" : a[1];
                     Setting s = b.setting(key);
@@ -205,6 +214,7 @@ public final class Commands {
         Chat.raw("§d///mine <Erze...> §7– Auto-Miner, z.B. §f///mine diamond iron §7| §f///mine stop");
         Chat.raw("§d///xray §7– an/aus, §f///xray add <Erz> §7/ §f///xray remove <Erz>");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
+        Chat.raw("§d///autobuild laden <Datei> §7– Schematic aus dem schematics-Ordner genau bei dir platzieren");
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");
         Chat.raw("§d///find chest [Chunks] §7| §d///find biome <Name> §7| §d///find structure <Name> §7| §d///find clear");
         Chat.raw("§d///friend add <Name> §7– wird nicht angegriffen");

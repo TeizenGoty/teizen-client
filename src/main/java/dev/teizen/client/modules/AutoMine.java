@@ -232,4 +232,27 @@ public final class AutoMine extends Module {
 
     @Override
     public String info() { return status; }
+
+    /** Zustand für Fehlersuche (Selbsttest-Log). */
+    public String debugState() {
+        if (!inGame()) return "nicht im Spiel";
+        StringBuilder sb = new StringBuilder();
+        sb.append("status=").append(status).append(" pos=").append(mc.player.blockPosition().toShortString())
+          .append(" ground=").append(mc.player.onGround());
+        sb.append(" ziel=").append(target == null ? "-" : target.toShortString() + "/" + Ids.path(mc.level.getBlockState(target).getBlock()));
+        sb.append(" scan=").append(scanner.results().size());
+        if (path != null) {
+            sb.append(" weg=").append(index).append('/').append(path.size());
+            if (index < path.size()) {
+                MinePath.Step st = path.get(index);
+                sb.append(" schritt=").append(st.kind()).append('@').append(st.pos().toShortString()).append(" frei=[");
+                for (BlockPos c : st.clear()) sb.append(Ids.path(mc.level.getBlockState(c).getBlock())).append(MinePath.passable(mc.level, c) ? "+" : "!").append(' ');
+                sb.append(']');
+            }
+        }
+        sb.append(" abbau=").append(mc.gameMode.isDestroying());
+        try { sb.append(" fortschritt=").append(((dev.teizen.client.mixin.MultiPlayerGameModeAccessor) mc.gameMode).teizen$getDestroyProgress()); } catch (Throwable ignored) {}
+        sb.append(" stuck=").append(stuck);
+        return sb.toString();
+    }
 }

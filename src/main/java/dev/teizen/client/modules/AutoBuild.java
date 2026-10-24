@@ -60,6 +60,7 @@ public final class AutoBuild extends Module {
     private final Setting delay = add(Setting.number("pause", "Ticks Pause zwischen Durchgängen", 0, 0, 10));
     private final Setting slot = add(Setting.number("slot", "Hotbar-Slot (1-9) für Blöcke aus dem Inventar", 9, 1, 9));
     private final Setting showMissing = add(Setting.bool("fehlend", "Fehlende Items im Chat melden", true));
+    private final Setting airPlace = add(Setting.bool("luft", "Auch ohne Stütze bauen (in die Luft klicken)", true));
 
     private final Map<BlockPos, Integer> cooldown = new HashMap<>();
     private final List<BlockPos> lastPlaced = new ArrayList<>();
@@ -164,9 +165,29 @@ public final class AutoBuild extends Module {
         return mc.player.getMainHandItem().is(item);
     }
 
+    /** Kann man an diesen Block etwas dranbauen? (Kisten, Öfen, Türen usw. nicht – die würden sich öffnen) */
     private boolean solid(BlockPos p) {
         BlockState s = mc.level.getBlockState(p);
-        return !s.canBeReplaced() && !s.isAir();
+        if (s.canBeReplaced() || s.isAir()) return false;
+        Block b = s.getBlock();
+        if (b instanceof DoorBlock || b instanceof TrapDoorBlock || b instanceof FenceGateBlock || b instanceof ButtonBlock
+                || b instanceof LeverBlock || b instanceof BedBlock || b instanceof net.minecraft.world.level.block.NoteBlock
+                || b instanceof net.minecraft.world.level.block.RepeaterBlock || b instanceof net.minecraft.world.level.block.ComparatorBlock
+                || b instanceof net.minecraft.world.level.block.CakeBlock || b instanceof net.minecraft.world.level.block.BellBlock
+                || b instanceof net.minecraft.world.level.block.FlowerPotBlock || b instanceof net.minecraft.world.level.block.DaylightDetectorBlock)
+            return false;
+        try {
+            if (s.getMenuProvider(mc.level, p) != null) return false;
+        } catch (Throwable ignored) {}
+        return !s.hasBlockEntity() || b instanceof net.minecraft.world.level.block.SpawnerBlock;
+    }
+
+    /** Direkt in den leeren Block klicken (geht auch ohne Nachbarblock). */
+    private boolean airClick(BlockPos pos, Direction face, double hitY, float yaw, float pitch) {
+        if (!airPlace.on()) return false;
+        Vec3 hit = Vec3.atCenterOf(pos).add(face.getStepX() * 0.5, face.getStepY() * 0.5, face.getStepZ() * 0.5);
+        if (face.getAxis() != Direction.Axis.Y) hit = new Vec3(hit.x, pos.getY() + hitY, hit.z);
+        return click(pos, face, hit, yaw, pitch);
     }
 
     private boolean tryPlace(BlockPos pos, BlockState want) {
@@ -217,12 +238,14 @@ public final class AutoBuild extends Module {
             if (solid(pos.relative(facing))) return clickNeighbor(pos, facing, 0.5, mc.player.getYRot(), 0);
         }
 
-        // 2) Achse (Stämme, Säulen, Ketten, Heuballen)
+        // 2) Achse (Stämme, Säulen, Ketten, Heuballen): die Achse kommt von der angeklickten Seite
         if (want.hasProperty(BlockStateProperties.AXIS)) {
             Direction.Axis axis = want.getValue(BlockStateProperties.AXIS);
             for (Direction d : new Direction[]{Direction.get(Direction.AxisDirection.NEGATIVE, axis), Direction.get(Direction.AxisDirection.POSITIVE, axis)}) {
                 if (solid(pos.relative(d))) return clickNeighbor(pos, d, 0.5, mc.player.getYRot(), 0);
             }
+            // kein passender Nachbar -> direkt mit der richtigen Seite in die Luft klicken
+            return airClick(pos, Direction.get(Direction.AxisDirection.POSITIVE, axis), 0.5, mc.player.getYRot(), 0);
         }
 
         // 3) Oben/unten (Stufen, Treppen, Falltüren)
@@ -238,8 +261,9 @@ public final class AutoBuild extends Module {
             hitY = top ? 0.8 : 0.2;
             preferSupport = top ? Direction.UP : Direction.DOWN;
         }
-        if (block instanceof TrapDoorBlock && facing != null && solid(pos.relative(facing.getOpposite()))) {
-            return clickNeighbor(pos, facing.getOpposite(), hitY, mc.player.getYRot(), 0);
+        if (block instanceof TrapDoorBlock && facing != null) {
+            if (solid(pos.relative(facing.getOpposite()))) return clickNeighbor(pos, facing.getOpposite(), hitY, mc.player.getYRot(), 0);
+            return airClick(pos, facing, hitY, mc.player.getYRot(), 0);
         }
 
         // 4) Blickrichtung für ausgerichtete Blöcke
@@ -259,11 +283,13 @@ public final class AutoBuild extends Module {
         Direction sup = null;
         if (preferSupport != null && solid(pos.relative(preferSupport))) sup = preferSupport;
         if (sup == null) sup = supportAny(pos);
-        if (sup == null) return false;
-        if (sup.getAxis() == Direction.Axis.Y && preferSupport != null && sup != preferSupport) {
-            // Klick von oben/unten würde falsche Hälfte ergeben -> lieber Seitenfläche
-            Direction side = supportSide(pos);
-            if (side != null) sup = side;
+        if (sup != null && sup.getAxis() == Direction.Axis.Y && preferSupport != null && sup != preferSupport) {
+            // Klick von oben/unten würde die falsche Hälfte ergeben -> Seitenfläche oder direkt in die Luft
+            sup = supportSide(pos);
+        }
+        if (sup == null) {
+            Direction face = preferSupport == Direction.UP ? Direction.NORTH : Direction.UP;
+            return airClick(pos, face, hitY, yaw, pitch);
         }
         return clickNeighbor(pos, sup, hitY, yaw, pitch);
     }
