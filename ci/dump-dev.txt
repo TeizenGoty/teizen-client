@@ -1,19 +1,18 @@
 # Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
-net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents$Game
-net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents$AllowGame
-net.fabricmc.fabric.api.client.screen.v1.ScreenEvents$AfterExtract
-net.fabricmc.fabric.api.client.screen.v1.ScreenEvents$AfterInit
-net.fabricmc.fabric.api.client.screen.v1.Screens
-net.minecraft.world.level.material.MapColor
-net.minecraft.world.item.DyeColor
-net.minecraft.world.level.levelgen.Heightmap
-net.minecraft.tags.FluidTags
+net.minecraft.world.entity.npc.villager.Villager
+net.minecraft.world.entity.npc.villager.AbstractVillager
+net.minecraft.world.entity.npc.villager.VillagerData
+net.minecraft.world.entity.npc.villager.VillagerProfession
+net.minecraft.world.inventory.MerchantMenu
+net.minecraft.world.item.trading.MerchantOffer
+net.minecraft.world.item.trading.MerchantOffers
+net.minecraft.world.item.trading.ItemCost
+net.minecraft.client.gui.screens.inventory.MerchantScreen
+net.minecraft.client.gui.screens.inventory.InventoryScreen
+net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket$Action
+net.minecraft.world.level.block.LecternBlock
+net.minecraft.world.entity.ai.village.poi.PoiTypes
+net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents$Chat
 net.minecraft.world.item.enchantment.ItemEnchantments
-net.minecraft.world.item.component.ItemContainerContents
-net.minecraft.world.entity.monster.Shulker
-net.minecraft.world.level.block.FarmlandBlock
-net.minecraft.world.level.block.EndPortalFrameBlock
-net.minecraft.network.chat.ComponentUtils
-org.joml.Matrix3x2fStack
-c net.minecraft.client.MouseHandler
-c net.minecraft.client.player.LocalPlayer
+net.minecraft.client.multiplayer.ClientPacketListener
+c net.minecraft.server.network.ServerGamePacketListenerImpl
