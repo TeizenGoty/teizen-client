@@ -44,6 +44,7 @@ public final class ClickGui extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
+        var font = getFont();
         g.fill(0, 0, width, height, 0x60000000);
         String title = "§5§lTEIZEN CLIENT §7– Links: an/aus · Rechts: Einstellungen · Mitte: Taste";
         g.centeredText(font, title, width / 2, 6, 0xFFFFFFFF);

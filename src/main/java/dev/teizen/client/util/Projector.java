@@ -5,7 +5,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
 import org.joml.Vector3fc;
+import org.joml.Vector4f;
 
 /**
  * Rechnet Welt-Positionen in Bildschirm-Positionen um (für ESP, Tracer, Markierungen).
@@ -18,12 +20,14 @@ public final class Projector {
     private static double fx, fy, fz, ux, uy, uz, lx, ly, lz;
     private static double tanHalf, halfW, halfH, aspect;
     private static boolean ready;
+    private static final Matrix4f viewProj = new Matrix4f();
+    private static boolean useMatrix;
 
     private Projector() {}
 
     /** Einmal pro Frame vor dem Zeichnen aufrufen. */
     public static boolean begin(GuiGraphicsExtractor g) {
-        Camera cam = mc.gameRenderer.getMainCamera();
+        Camera cam = mc.gameRenderer.mainCamera();
         if (cam == null || !cam.isInitialized()) { ready = false; return false; }
         Vec3 p = cam.position();
         cx = p.x; cy = p.y; cz = p.z;
@@ -31,7 +35,18 @@ public final class Projector {
         fx = f.x(); fy = f.y(); fz = f.z();
         ux = u.x(); uy = u.y(); uz = u.z();
         lx = l.x(); ly = l.y(); lz = l.z();
-        double fov = Fov.current();
+        double fov = cam.getFov() > 1 ? cam.getFov() : Fov.current();
+        try {
+            cam.getViewRotationProjectionMatrix(viewProj);
+            useMatrix = viewProj.isFinite();
+            if (useMatrix) {
+                // Prüfen: ein Punkt genau vor der Kamera muss in der Bildmitte landen
+                Vector4f t = new Vector4f(f.x() * 10f, f.y() * 10f, f.z() * 10f, 1f).mul(viewProj);
+                useMatrix = t.w > 0.01f && Math.abs(t.x / t.w) < 0.05f && Math.abs(t.y / t.w) < 0.05f;
+            }
+        } catch (Throwable t) {
+            useMatrix = false;
+        }
         tanHalf = Math.tan(Math.toRadians(fov) / 2.0);
         halfW = g.guiWidth() / 2.0;
         halfH = g.guiHeight() / 2.0;
@@ -46,6 +61,13 @@ public final class Projector {
         double dx = x - cx, dy = y - cy, dz = z - cz;
         double depth = dx * fx + dy * fy + dz * fz;
         if (depth < 0.05) return null;
+        if (useMatrix) {
+            Vector4f v = new Vector4f((float) dx, (float) dy, (float) dz, 1f).mul(viewProj);
+            if (v.w > 0.01f) {
+                double nx = v.x / v.w, ny = v.y / v.w;
+                return new double[]{(nx + 1) * halfW, (1 - ny) * halfH};
+            }
+        }
         double right = -(dx * lx + dy * ly + dz * lz);
         double up = dx * ux + dy * uy + dz * uz;
         double sx = halfW + (right / (depth * tanHalf * aspect)) * halfW;
