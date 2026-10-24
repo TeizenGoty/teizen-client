@@ -1,0 +1,58 @@
+name: compile
+# Schneller Lauf nur zum Kompilieren (Branch dev): Fehler + API-Dump in den Branch ci-dev-out.
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: compile
+  cancel-in-progress: true
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile
+        run: |
+          chmod +x ./gradlew
+          set +e
+          ./gradlew compileJava --stacktrace > build-log.txt 2>&1
+          echo "EXIT=$?" >> build-log.txt
+          tail -n 60 build-log.txt
+      - name: API dump
+        if: always()
+        run: |
+          set +e
+          MC=""
+          for j in $(find ~/.gradle .gradle -name '*.jar' -size +8M 2>/dev/null); do
+            if unzip -l "$j" 2>/dev/null | grep -q 'net/minecraft/client/Minecraft.class'; then MC="$j"; break; fi
+          done
+          echo "MC jar: $MC" > api-dump.txt
+          if [ -n "$MC" ]; then
+            CP="$MC:libs/litematica-fabric-26.2-0.28.8.jar:libs/malilib-fabric-26.2-0.29.6.jar"
+            for j in $(find ~/.gradle -name '*.jar' \( -path '*fabric*' -o -path '*joml*' \) 2>/dev/null | head -500); do CP="$CP:$j"; done
+            # Zeilen mit "c " davor: mit Bytecode (javap -c)
+            grep -v '^#' ci/dump-dev.txt 2>/dev/null | grep -v '^$' | while read a b; do
+              if [ "$a" = "c" ]; then javap -c -p -cp "$CP" "$b" >> api-dump.txt 2>&1
+              else javap -p -cp "$CP" "$a" >> api-dump.txt 2>&1; fi
+            done
+          fi
+      - name: Publish
+        if: always()
+        run: |
+          set +e
+          mkdir -p /tmp/ciout && cd /tmp/ciout
+          git init -q -b ci-dev-out
+          cp $GITHUB_WORKSPACE/build-log.txt $GITHUB_WORKSPACE/api-dump.txt . 2>/dev/null
+          echo "${GITHUB_SHA}" > commit.txt
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -q -m "CI dev output ${GITHUB_SHA}"
+          set -e
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ci-dev-out

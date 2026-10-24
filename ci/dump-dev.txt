@@ -1,0 +1,19 @@
+# Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
+net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents$Game
+net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents$AllowGame
+net.fabricmc.fabric.api.client.screen.v1.ScreenEvents$AfterExtract
+net.fabricmc.fabric.api.client.screen.v1.ScreenEvents$AfterInit
+net.fabricmc.fabric.api.client.screen.v1.Screens
+net.minecraft.world.level.material.MapColor
+net.minecraft.world.item.DyeColor
+net.minecraft.world.level.levelgen.Heightmap
+net.minecraft.tags.FluidTags
+net.minecraft.world.item.enchantment.ItemEnchantments
+net.minecraft.world.item.component.ItemContainerContents
+net.minecraft.world.entity.monster.Shulker
+net.minecraft.world.level.block.FarmlandBlock
+net.minecraft.world.level.block.EndPortalFrameBlock
+net.minecraft.network.chat.ComponentUtils
+org.joml.Matrix3x2fStack
+c net.minecraft.client.MouseHandler
+c net.minecraft.client.player.LocalPlayer
