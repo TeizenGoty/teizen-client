@@ -41,6 +41,7 @@ public final class TeizenClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             handleKeys(mc);
+            SelfTest.tick();
             if (mc.player == null || mc.level == null) { greeted = false; return; }
             if (!greeted) {
                 greeted = true;

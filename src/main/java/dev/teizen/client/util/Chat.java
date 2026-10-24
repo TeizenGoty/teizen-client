@@ -11,6 +11,7 @@ public final class Chat {
 
     public static void raw(String msg) {
         Minecraft mc = Minecraft.getInstance();
+        if (dev.teizen.client.SelfTest.ACTIVE) dev.teizen.client.TeizenClient.LOG.info("CHAT: " + msg.replaceAll("§.", ""));
         if (mc.gui == null || mc.gui.hud == null) return;
         mc.execute(() -> mc.gui.hud.getChat().addClientSystemMessage(Component.literal(msg)));
     }

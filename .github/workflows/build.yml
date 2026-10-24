@@ -25,6 +25,48 @@ jobs:
           ./gradlew build --stacktrace > build-log.txt 2>&1
           echo "EXIT=$?" >> build-log.txt
           tail -n 40 build-log.txt
+      - name: Smoke test (echter Server + Client)
+        if: success()
+        timeout-minutes: 20
+        env:
+          TEIZEN_SELFTEST: "1"
+        run: |
+          set +e
+          sudo apt-get update -qq >/dev/null 2>&1
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-vulkan-drivers libglx-mesa0 >/dev/null 2>&1
+          mkdir -p run-server && cd run-server
+          python3 - <<'PY'
+          import json, urllib.request
+          m = json.load(urllib.request.urlopen("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"))
+          v = [x for x in m["versions"] if x["id"] == "26.2"][0]
+          d = json.load(urllib.request.urlopen(v["url"]))
+          urllib.request.urlretrieve(d["downloads"]["server"]["url"], "server.jar")
+          print("server.jar ok")
+          PY
+          echo "eula=true" > eula.txt
+          printf "online-mode=false\ndifficulty=easy\nspawn-protection=0\nview-distance=5\nsimulation-distance=5\nlevel-seed=teizen\nmotd=teizen-test\n" > server.properties
+          mkfifo srv-in
+          (java -Xmx2G -jar server.jar nogui < srv-in > ../server-log.txt 2>&1 &)
+          exec 3>srv-in
+          cd ..
+          for i in $(seq 1 150); do grep -q 'Done (' server-log.txt && break; sleep 2; done
+          echo "Server bereit: $(grep -c 'Done (' server-log.txt)"
+          # Spieler sofort zum OP machen, sobald er joint
+          ( for i in $(seq 1 400); do
+              N=$(grep -oE '[A-Za-z0-9_]+ joined the game' server-log.txt | head -1 | cut -d' ' -f1)
+              if [ -n "$N" ]; then echo "op $N" >&3; echo "OP: $N"; break; fi
+              sleep 1
+            done ) &
+          mkdir -p run
+          printf "onboardAccessibility:false\nskipMultiplayerWarning:true\njoinedFirstServer:true\ntutorialStep:none\nguiScale:2\nrenderDistance:5\nsimulationDistance:5\nsoundCategory_master:0.0\n" > run/options.txt
+          export LIBGL_ALWAYS_SOFTWARE=1
+          timeout 900 xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClient --no-daemon > client-log.txt 2>&1
+          echo "Client beendet mit $?"
+          echo "stop" >&3
+          sleep 5
+          mkdir -p selftest-shots
+          cp run/selftest-shots/*.png selftest-shots/ 2>/dev/null
+          ls selftest-shots
       - name: API dump
         if: always()
         run: |
@@ -51,6 +93,10 @@ jobs:
           cp $GITHUB_WORKSPACE/build-log.txt $GITHUB_WORKSPACE/api-dump.txt . 2>/dev/null
           cp $GITHUB_WORKSPACE/all-classes.txt . 2>/dev/null
           cp $GITHUB_WORKSPACE/build/libs/*.jar . 2>/dev/null
+          cp $GITHUB_WORKSPACE/client-log.txt $GITHUB_WORKSPACE/server-log.txt . 2>/dev/null
+          mkdir -p shots && cp $GITHUB_WORKSPACE/selftest-shots/*.png shots/ 2>/dev/null
+          cp $GITHUB_WORKSPACE/run/logs/latest.log client-latest.log 2>/dev/null
+          cp -r $GITHUB_WORKSPACE/run/crash-reports . 2>/dev/null
           echo "${GITHUB_SHA}" > commit.txt
           git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
           git add -A && git commit -q -m "CI output ${GITHUB_SHA}"
