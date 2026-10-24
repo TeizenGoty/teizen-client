@@ -2,6 +2,7 @@ package dev.teizen.client.mixin;
 
 import dev.teizen.client.TeizenClient;
 import dev.teizen.client.modules.AntiKnockback;
+import dev.teizen.client.modules.Velocity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundExplodePacket;
@@ -13,34 +14,39 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** AntiKnockback: Bewegung vor und nach dem Paket vergleichen und den Rückstoß herausrechnen. */
+/** AntiKnockback / Velocity: Bewegung vor und nach dem Paket vergleichen und den Rückstoß herausrechnen. */
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPacketListenerMixin {
     @Unique
     private Vec3 teizen$before;
 
+    /** {seitlich, hoch} – wie viel vom Rückstoß bleibt, oder null wenn nichts geändert wird. */
     @Unique
-    private static AntiKnockback teizen$akb() {
+    private static double[] teizen$factors() {
         if (TeizenClient.modules() == null) return null;
+        Velocity v = TeizenClient.modules().get(Velocity.class);
+        if (v != null && v.isEnabled()) return new double[]{v.horizontal.num() / 100.0, v.vertical.num() / 100.0};
         AntiKnockback a = TeizenClient.modules().get(AntiKnockback.class);
-        return a != null && a.isEnabled() ? a : null;
+        if (a != null && a.isEnabled()) return new double[]{a.strength.num(), a.strength.num()};
+        return null;
     }
 
     @Unique
     private void teizen$store() {
         var p = Minecraft.getInstance().player;
-        teizen$before = (p != null && teizen$akb() != null) ? p.getDeltaMovement() : null;
+        teizen$before = (p != null && teizen$factors() != null) ? p.getDeltaMovement() : null;
     }
 
     @Unique
     private void teizen$restore() {
         var p = Minecraft.getInstance().player;
-        AntiKnockback a = teizen$akb();
-        if (p == null || a == null || teizen$before == null) return;
+        double[] f = teizen$factors();
+        if (p == null || f == null || teizen$before == null) return;
         Vec3 after = p.getDeltaMovement();
         if (!after.equals(teizen$before)) {
-            double s = a.strength.num();
-            p.setDeltaMovement(teizen$before.add(after.subtract(teizen$before).scale(s)));
+            Vec3 d = after.subtract(teizen$before);
+            p.setDeltaMovement(teizen$before.add(d.x * f[0], d.y * f[1], d.z * f[0]));
+            dev.teizen.client.SelfTest.knockbacks++;
         }
         teizen$before = null;
     }

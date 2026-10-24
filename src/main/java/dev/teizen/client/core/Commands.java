@@ -125,7 +125,22 @@ public final class Commands {
             }
             case "xray" -> {
                 XRay x = mm.get(XRay.class);
-                if (a.length >= 3 && (a[1].equals("add") || a[1].equals("dazu"))) {
+                String sub = a.length >= 2 ? a[1].toLowerCase(Locale.ROOT) : "";
+                if (a.length >= 3 && (sub.equals("nur") || sub.equals("only"))) {
+                    // ///xray nur diamond [gold ...]  -> nur diese Erze
+                    x.ores.setText(String.join(",", Arrays.copyOfRange(a, 2, a.length)).replace(",,", ","));
+                    if (!x.isEnabled()) x.setEnabled(true);
+                    Chat.ok("X-Ray zeigt jetzt nur: §f" + x.ores.str());
+                } else if (sub.equals("alle") || sub.equals("all") || sub.equals("reset")) {
+                    x.ores.setText(XRay.DEFAULT_ORES);
+                    Chat.ok("X-Ray zeigt wieder alle Erze: §f" + x.ores.str());
+                } else if (sub.equals("lava") || sub.equals("wasser") || sub.equals("water") || sub.equals("hoehlen") || sub.equals("höhlen") || sub.equals("caves")) {
+                    Setting s = sub.equals("lava") ? x.lava : sub.startsWith("w") ? x.water : x.caves;
+                    if (a.length >= 3) { String err = s.parse(a[2]); if (err != null) { Chat.error(err); return; } }
+                    else s.setBool(!s.on());
+                    if (s.on() && !x.isEnabled()) x.setEnabled(true);
+                    Chat.ok("X-Ray " + s.name + ": " + (s.on() ? "§aan" : "§caus"));
+                } else if (a.length >= 3 && (a[1].equals("add") || a[1].equals("dazu"))) {
                     x.ores.setText(x.ores.str() + "," + a[2]);
                     Chat.ok("X-Ray zeigt jetzt auch " + a[2]);
                 } else if (a.length >= 3 && (a[1].equals("remove") || a[1].equals("weg"))) {
@@ -159,6 +174,40 @@ public final class Commands {
                 } else b.toggle();
             }
             case "find", "finde", "suche" -> find(a);
+            case "fav", "favorit", "favoriten" -> {
+                if (a.length < 2) {
+                    var favs = mm.favorites();
+                    StringBuilder sb = new StringBuilder();
+                    for (Module f : favs) sb.append(f.isEnabled() ? "§a" : "§c").append(f.name).append("§7, ");
+                    Chat.info("Favoriten: " + (favs.isEmpty() ? "§fkeine §8(///fav <Funktion> zum Markieren)" : sb.substring(0, sb.length() - 2)));
+                    return;
+                }
+                Module m = need(mm, a[1]);
+                if (m == null) return;
+                m.favorite = !m.favorite;
+                Chat.ok(m.name + (m.favorite ? " ist jetzt §6★ Favorit§a (steht im Menü und in der Übersicht oben)" : " ist kein Favorit mehr"));
+                Config.save();
+            }
+            case "velocity" -> {
+                Module v = mm.byName("velocity");
+                if (a.length == 1) { v.toggle(); Config.save(); return; }
+                String err = v.setting("horizontal").parse(a[1]);
+                if (err == null && a.length >= 3) err = v.setting("vertikal").parse(a[2]);
+                else if (err == null) v.setting("vertikal").parse(a[1]);
+                if (err != null) { Chat.error(err); return; }
+                if (!v.isEnabled()) v.setEnabled(true);
+                Chat.ok("Velocity an: zur Seite " + v.setting("horizontal").display() + "%, nach oben " + v.setting("vertikal").display() + "%");
+                Config.save();
+            }
+            case "structurefinder", "strukturfinder", "struktur" -> {
+                Module sf = mm.byName("structurefinder");
+                if (a.length == 1) { sf.toggle(); Config.save(); return; }
+                if (a[1].equalsIgnoreCase("aus") || a[1].equalsIgnoreCase("stop")) { sf.setEnabled(false); Chat.info("StructureFinder §caus"); return; }
+                sf.setting("strukturen").setText(String.join(",", Arrays.copyOfRange(a, 1, a.length)));
+                if (sf.isEnabled()) sf.setEnabled(false);
+                sf.setEnabled(true);
+                Config.save();
+            }
             case "friend", "freund" -> {
                 if (a.length < 3) {
                     Chat.info("Freunde: §f" + (Friends.NAMES.isEmpty() ? "keine" : String.join(", ", Friends.NAMES)) + " §8(///friend add|remove <Name>)");
@@ -178,7 +227,14 @@ public final class Commands {
                 Module m = mm.byName(cmd);
                 if (m != null) {
                     String quick = quickSetting(m);
-                    if (a.length == 2 && quick != null) {
+                    Setting qs = quick == null ? null : m.setting(quick);
+                    if (qs != null && qs.type == Setting.Type.TEXT && a.length >= 2 && m.setting(a[1]) == null) {
+                        // ///itemesp diamond totem  -> Text-Einstellung setzen und einschalten
+                        qs.setText(String.join(",", Arrays.copyOfRange(a, 1, a.length)));
+                        if (m.isEnabled()) m.setEnabled(false);
+                        m.setEnabled(true);
+                        Chat.ok(m.name + " an: " + quick + " = " + qs.display());
+                    } else if (a.length == 2 && quick != null) {
                         // ///fly 3  ///speed 0.5  ///highjump 5  -> Wert setzen und einschalten
                         String err = m.setting(quick).parse(a[1]);
                         if (err != null) { Chat.error(err); return; }
@@ -197,8 +253,18 @@ public final class Commands {
     /** Einstellung, die man direkt mit ///<Funktion> <Wert> setzen kann. */
     private static String quickSetting(Module m) {
         return switch (m.name) {
-            case "Fly", "Speed" -> "tempo";
-            case "HighJump" -> "hoehe";
+            case "Fly", "Speed", "NoClip", "Freecam", "DolphinMode" -> "tempo";
+            case "HighJump", "Step" -> "hoehe";
+            case "KillAura", "AimAssist", "AutoCrystal", "AutoReplant" -> m.name.equals("AimAssist") ? "staerke" : "reichweite";
+            case "God" -> "herzen";
+            case "Nametags", "ArmorESP" -> "groesse";
+            case "ItemESP" -> "filter";
+            case "Tracers" -> "distanz";
+            case "Nuker", "StorageESP", "ShulkerESP", "PortalFinder" -> "radius";
+            case "AntiKnockback" -> "staerke";
+            case "AutoReconnect", "FastEat" -> "sekunden";
+            case "AutoEat" -> "hunger";
+            case "NoFall" -> "ab";
             default -> null;
         };
     }
@@ -249,7 +315,12 @@ public final class Commands {
         Chat.raw("§d///reach <Kampf> [Bauen] §7– z.B. §f///reach 6 7 §7oder §f///reach 2");
         Chat.raw("§d///fly <Tempo> §7· §d///speed <Tempo> §7· §d///highjump <Blöcke> §7– z.B. §f///speed 0.5§7, §f///highjump 5");
         Chat.raw("§d///mine <Erze...> §7– Auto-Miner, z.B. §f///mine diamond iron §7| §f///mine stop");
-        Chat.raw("§d///xray §7– an/aus, §f///xray add <Erz> §7/ §f///xray remove <Erz>");
+        Chat.raw("§d///xray §7– an/aus, §f///xray nur diamond §7(nur Dias), §f///xray alle§7, §f///xray add/remove <Erz>");
+        Chat.raw("§d///xray lava §7· §d///xray wasser §7· §d///xray hoehlen §7– zusätzlich anzeigen (an/aus)");
+        Chat.raw("§d///fav <Funktion> §7– Favorit an/aus (steht oben) · §d///fav §7– alle Favoriten");
+        Chat.raw("§d///structurefinder <Struktur> §7– z.B. §fvillage§7, §fstronghold§7, §fancient_city §7(auf Servern mit OP)");
+        Chat.raw("§d///velocity <seitlich%> [hoch%] §7· §d///god <Herzen> §7· §d///aimassist <Stärke> §7· §d///nametags <Größe>");
+        Chat.raw("§d///freecam <Tempo> §7(Reichweite: §f///set freecam reichweite 50§7) · §d///itemesp <Items...>");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
         Chat.raw("§d///autobuild laden <Datei> §7– Schematic aus dem schematics-Ordner genau bei dir platzieren");
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");

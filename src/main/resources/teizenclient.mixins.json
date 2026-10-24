@@ -8,7 +8,12 @@
     "MinecraftMixin",
     "MultiPlayerGameModeMixin",
     "ClientPacketListenerMixin",
-    "MultiPlayerGameModeAccessor"
+    "MultiPlayerGameModeAccessor",
+    "EntityMixin",
+    "LivingEntityMixin",
+    "PlayerMixin",
+    "LocalPlayerMixin",
+    "FishingHookAccessor"
   ],
   "injectors": {
     "defaultRequire": 0

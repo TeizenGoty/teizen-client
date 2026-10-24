@@ -25,6 +25,8 @@ import java.util.List;
  */
 public final class SelfTest {
     public static final boolean ACTIVE = "1".equals(System.getenv("TEIZEN_SELFTEST"));
+    /** Wie oft Velocity/AntiKnockback einen Rückstoß verändert haben (aus dem Mixin). */
+    public static int knockbacks;
     private static final Minecraft mc = Minecraft.getInstance();
 
     private static int ticks;
@@ -101,7 +103,8 @@ public final class SelfTest {
         if (!ACTIVE) return;
         ticks++;
         if (ticks % 200 == 0) log("tick " + ticks + " step " + step + " screen=" + (mc.gui.screen() == null ? "-" : mc.gui.screen().getClass().getSimpleName()));
-        if (ticks > 20 * 60 * 12) { log("ZEITÜBERSCHREITUNG – beende"); finish(); return; }
+        if (ticks > 20 * 60 * 20) { log("ZEITÜBERSCHREITUNG – beende"); finish(); return; }
+        if (step == RECONNECT_STEP) { reconnectTick(); return; }
         if (mc.player == null || mc.level == null) return;
         worldTicks++;
         if (worldTicks < 140) return;
@@ -418,11 +421,53 @@ public final class SelfTest {
             case 28 -> {
                 if (!after(60)) return;
                 results.add("FastEat aus: Brot " + eatSeconds(net.minecraft.world.item.Items.BREAD) + "s (soll wieder 1.6)");
-                finish();
+                next();
             }
-            default -> {}
+            default -> NewTests.tick(step);
         }
     }
+
+    // ================================================================== Runde 3: neue Funktionen
+    static final int RECONNECT_STEP = 200;
+    private static boolean sawDisconnect;
+    private static int reconnectStart, backTicks;
+
+    /** Läuft auch ohne Welt (nach dem Rauswurf). */
+    private static void reconnectTick() {
+        if (mc.player == null || mc.level == null || mc.gui.screen() instanceof net.minecraft.client.gui.screens.DisconnectedScreen) {
+            if (!sawDisconnect) log("Verbindung getrennt (Bildschirm: " + (mc.gui.screen() == null ? "-" : mc.gui.screen().getClass().getSimpleName()) + ")");
+            sawDisconnect = true;
+            backTicks = 0;
+        } else if (sawDisconnect) {
+            if (++backTicks == 60) {
+                var ar = TeizenClient.modules().get(dev.teizen.client.modules.AutoReconnect.class);
+                results.add("AutoReconnect: getrennt=ja, wieder verbunden=ja (nach " + (ticks - reconnectStart) + " Ticks, " + ar.reconnects + " Versuch) OK");
+                shot("20-reconnect");
+            }
+            if (backTicks >= 80) { finish(); return; }
+        }
+        if (ticks - reconnectStart > 1200) {
+            results.add("AutoReconnect: FEHLER (getrennt=" + sawDisconnect + ", wieder da=" + (mc.player != null) + ")");
+            finish();
+        }
+    }
+
+    static void startReconnect() {
+        reconnectStart = ticks;
+        sawDisconnect = false;
+        step = RECONNECT_STEP;
+        stepStart = ticks;
+    }
+
+    static void log2(String s) { log(s); }
+    static void cmd2(String c) { cmd(c); }
+    static void shot2(String n) { shot(n); }
+    static boolean after2(int t) { return after(t); }
+    static void next2() { next(); }
+    static int local() { return ticks - stepStart; }
+    static void result(String r) { results.add(r); }
+    static BlockPos origin() { return origin; }
+    static void finish2() { finish(); }
 
     private static boolean fastEatCheck;
 

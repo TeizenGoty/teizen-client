@@ -85,10 +85,29 @@ public final class CommandSuggestions {
             for (String o : ORES) if (!t.contains(o)) out.add(o);
             return out;
         });
-        withArgs(d, "xray", t -> switch (t.size()) {
-            case 0 -> List.of("add", "remove");
-            case 1 -> t.get(0).equalsIgnoreCase("remove") ? xrayOres() : t.get(0).equalsIgnoreCase("add") ? ORES : List.of();
+        withArgs(d, "xray", t -> {
+            if (t.isEmpty()) return List.of("nur", "alle", "lava", "wasser", "hoehlen", "add", "remove");
+            String first = t.get(0).toLowerCase(Locale.ROOT);
+            if (first.equals("nur")) {
+                List<String> out = new ArrayList<>();
+                for (String o : ORES) if (!t.contains(o)) out.add(o);
+                return out;
+            }
+            if (t.size() == 1 && (first.equals("lava") || first.equals("wasser") || first.equals("hoehlen"))) return List.of("an", "aus");
+            if (t.size() == 1) return first.equals("remove") ? xrayOres() : first.equals("add") ? ORES : List.of();
+            return List.of();
+        });
+        withArgs(d, "fav", t -> t.size() == 0 ? moduleNames() : List.of());
+        withArgs(d, "velocity", t -> switch (t.size()) {
+            case 0 -> List.of("0", "50", "100");
+            case 1 -> List.of("0", "50", "100");
             default -> List.of();
+        });
+        withArgs(d, "structurefinder", t -> {
+            List<String> out = new ArrayList<>();
+            if (t.isEmpty()) out.add("aus");
+            for (String s : Locator.names()) if (!t.contains(s)) out.add(s);
+            return out;
         });
         withArgs(d, "autobuild", t -> switch (t.size()) {
             case 0 -> List.of("laden", "speed", "range");
@@ -106,7 +125,7 @@ public final class CommandSuggestions {
                 case "block" -> FIND_BLOCKS;
                 case "chest" -> List.of("8", "16", "32");
                 case "biome" -> biomes();
-                case "structure" -> STRUCTURES;
+                case "structure" -> Locator.names();
                 default -> List.of();
             };
             case 2 -> t.get(0).equalsIgnoreCase("block") ? List.of("8", "16", "32") : List.of();
@@ -121,7 +140,7 @@ public final class CommandSuggestions {
 
         // ///killaura usw. = Modul umschalten; danach optional Einstellung + Wert
         Set<String> taken = new LinkedHashSet<>(List.of("help", "list", "gui", "save", "panic", "toggle", "info", "set",
-                "bind", "menutaste", "reach", "mine", "xray", "autobuild", "find", "friend"));
+                "bind", "menutaste", "reach", "mine", "xray", "autobuild", "find", "friend", "fav", "velocity", "structurefinder"));
         for (Module m : TeizenClient.modules().all()) {
             String name = m.name.toLowerCase(Locale.ROOT);
             if (!taken.add(name)) continue;

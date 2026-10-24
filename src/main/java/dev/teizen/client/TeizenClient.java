@@ -44,13 +44,15 @@ public final class TeizenClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
             handleKeys(mc);
             SelfTest.tick();
-            if (mc.player == null || mc.level == null) { greeted = false; return; }
+            modules.get(dev.teizen.client.modules.AutoReconnect.class).globalTick(mc);
+            if (mc.player == null || mc.level == null) { greeted = false; dev.teizen.client.core.Locator.tick(); return; }
             if (!greeted) {
                 greeted = true;
                 Chat.info("geladen! §f" + dev.teizen.client.gui.SettingsScreen.keyName(menuKey) + "§7 = Menü, §f///help§7 = Befehle");
             }
             modules.tick();
             Finder.tick();
+            dev.teizen.client.core.Locator.tick();
         });
 
         // ///-Befehle abfangen (Minecraft sieht "///xray" als Befehl "//xray")
@@ -58,6 +60,10 @@ public final class TeizenClient implements ClientModInitializer {
         ClientSendMessageEvents.ALLOW_CHAT.register(message -> !Commands.handle(message));
         // Vorschläge beim Tippen von "///" (wie bei normalen Befehlen)
         dev.teizen.client.core.CommandSuggestions.register();
+        // /locate-Antworten aus dem Chat lesen (StructureFinder, PortalFinder, ///find structure)
+        dev.teizen.client.core.Locator.register();
+        // Countdown auf dem "Verbindung getrennt"-Bildschirm
+        dev.teizen.client.modules.AutoReconnect.register();
 
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("teizenclient", "hud"), Hud::render);
 

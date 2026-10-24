@@ -14,8 +14,8 @@ import net.minecraft.network.chat.Component;
 import java.util.List;
 
 /**
- * Übersicht: alle Cheats auf einen Blick, mit an/aus und Taste.
- * Linksklick = an/aus, Rechtsklick = Einstellungen (großes Menü).
+ * Übersicht: alle Cheats auf einen Blick, mit an/aus und Taste. Favoriten stehen ganz oben.
+ * Linksklick = an/aus, Rechtsklick = Einstellungen (großes Menü), Mittelklick oder Shift+Klick = Favorit.
  */
 public final class Overview extends Screen {
     private static final int CELL_W = 124, CELL_H = 24, GAP = 4;
@@ -63,13 +63,13 @@ public final class Overview extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
         var font = getFont();
-        List<Module> mods = TeizenClient.modules().all();
+        List<Module> mods = TeizenClient.modules().favoritesFirst();
         int on = 0;
         for (Module m : mods) if (m.isEnabled()) on++;
 
         g.fill(0, 0, width, height, 0x80000000);
         g.centeredText(font, "§5§lTEIZEN CLIENT §7– Übersicht", width / 2, 8, 0xFFFFFFFF);
-        g.centeredText(font, "§a" + on + "§7 von §f" + mods.size() + "§7 an   §8|   §7Links: an/aus · Rechts: Einstellungen", width / 2, 22, 0xFFFFFFFF);
+        g.centeredText(font, "§a" + on + "§7 von §f" + mods.size() + "§7 an   §8|   §7Links: an/aus · Rechts: Einstellungen · Mitte/Shift: §6★ Favorit", width / 2, 22, 0xFFFFFFFF);
 
         int cols = cols(), x0 = startX(), ch = cellH(), gap = gap();
         boolean compact = ch != CELL_H;
@@ -81,7 +81,8 @@ public final class Overview extends Screen {
             boolean hover = mouseX >= x && mouseX < x + CELL_W && mouseY >= y && mouseY < y + ch;
             g.fill(x, y, x + CELL_W, y + ch, m.isEnabled() ? ON : (hover ? HOVER : OFF));
             g.fill(x, y, x + 3, y + ch, catColor(m.category));
-            g.text(font, m.name, x + 7, y + 2, m.isEnabled() ? 0xFFFFFFFF : 0xFFC8B8E8, false);
+            if (m.favorite) g.fill(x, y, x + CELL_W, y + 1, 0xFFE8B030);
+            g.text(font, (m.favorite ? "§6★ §r" : "") + m.name, x + 7, y + 2, m.isEnabled() ? 0xFFFFFFFF : 0xFFC8B8E8, false);
             String state = m.isEnabled() ? "§aAN" : "§8aus";
             if (compact && m.key >= 0) state = "§7" + Keys.name(m.key) + " " + state;
             g.text(font, state, x + CELL_W - 4 - font.width(state), y + 2, 0xFFFFFFFF, false);
@@ -98,7 +99,7 @@ public final class Overview extends Screen {
     }
 
     private Module at(double mx, double my) {
-        List<Module> mods = TeizenClient.modules().all();
+        List<Module> mods = TeizenClient.modules().favoritesFirst();
         int cols = cols(), x0 = startX(), ch = cellH(), gap = gap();
         for (int i = 0; i < mods.size(); i++) {
             int x = x0 + (i % cols) * (CELL_W + GAP);
@@ -112,7 +113,11 @@ public final class Overview extends Screen {
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         Module m = at(e.x(), e.y());
         if (m != null) {
-            if (e.button() == 0) {
+            boolean shift = (e.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0;
+            if (e.button() == 2 || (e.button() == 0 && shift)) {
+                m.favorite = !m.favorite;
+                Config.save();
+            } else if (e.button() == 0) {
                 m.toggle();
                 Config.save();
             } else if (e.button() == 1) {

@@ -25,6 +25,8 @@ public abstract class Module {
     private boolean enabled;
     /** GLFW-Tastencode, -1 = keine Taste. */
     public int key = -1;
+    /** Favorit: steht im Menü und in der Übersicht ganz oben. */
+    public boolean favorite;
 
     protected Module(String name, Category category, String description) {
         this.name = name;

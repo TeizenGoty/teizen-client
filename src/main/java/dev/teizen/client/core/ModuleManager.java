@@ -18,10 +18,16 @@ public final class ModuleManager {
         // Kampf
         add(new KillAura());
         add(new TriggerBot());
+        add(new AimAssist());
+        add(new AutoCrystal());
         add(new Reach());
         add(new Criticals());
         add(new AntiKnockback());
+        add(new Velocity());
         add(new AutoTotem());
+        add(new AutoArmor());
+        add(new AutoShield());
+        add(new God());
         // Abbau
         add(new XRay());
         add(new AutoMine());
@@ -35,10 +41,21 @@ public final class ModuleManager {
         add(new AutoSprint());
         add(new Jesus());
         add(new HighJump());
+        add(new NoClip());
+        add(new Freecam());
+        add(new DolphinMode());
+        add(new NoSlowdown());
+        add(new SafeWalk());
         // Sicht
         add(new PlayerESP());
+        add(new Nametags());
+        add(new ArmorESP());
         add(new Tracers());
+        add(new ItemESP());
         add(new StorageESP());
+        add(new ShulkerESP());
+        add(new PortalFinder());
+        add(new StructureFinder());
         add(new Fullbright());
         // Bauen
         add(new AutoBuild());
@@ -48,7 +65,10 @@ public final class ModuleManager {
         add(new AutoEat());
         add(new FastEat());
         add(new AutoRespawn());
+        add(new AutoReconnect());
         add(new ChestStealer());
+        add(new AutoFish());
+        add(new AutoReplant());
     }
 
     private void add(Module m) {
@@ -69,6 +89,20 @@ public final class ModuleManager {
     }
 
     public List<Module> all() { return Collections.unmodifiableList(all); }
+
+    /** Favoriten in der normalen Reihenfolge. */
+    public List<Module> favorites() {
+        List<Module> out = new ArrayList<>();
+        for (Module m : all) if (m.favorite) out.add(m);
+        return out;
+    }
+
+    /** Alle Funktionen, Favoriten zuerst (für die Übersicht). */
+    public List<Module> favoritesFirst() {
+        List<Module> out = favorites();
+        for (Module m : all) if (!m.favorite) out.add(m);
+        return out;
+    }
 
     public List<Module> inCategory(Module.Category c) {
         List<Module> out = new ArrayList<>();

@@ -169,35 +169,8 @@ public final class Finder {
     // ---------------------------------------------------------------- Strukturen
 
     public static void findStructure(String name) {
-        IntegratedServer server = mc.getSingleplayerServer();
-        if (server == null) {
-            Chat.error("Strukturen finden geht nur in deiner eigenen Welt (oder wenn du per LAN hostest).");
-            return;
-        }
-        String q = name.toLowerCase(Locale.ROOT);
-        BlockPos origin = mc.player.blockPosition();
-        var dim = mc.level.dimension();
-        Chat.info("Suche Struktur §f" + name + "§7...");
-        server.execute(() -> {
-            ServerLevel sl = server.getLevel(dim);
-            if (sl == null) return;
-            Registry<Structure> reg = sl.registryAccess().lookupOrThrow(Registries.STRUCTURE);
-            List<Holder<Structure>> holders = new ArrayList<>();
-            for (Identifier id : reg.keySet()) {
-                if (id.getPath().contains(q)) reg.get(id).ifPresent(holders::add);
-            }
-            if (holders.isEmpty()) {
-                mc.execute(() -> Chat.error("Unbekannte Struktur: " + name + " (z.B. village, stronghold, ancient_city, fortress, bastion, monument, mansion, trial_chambers)"));
-                return;
-            }
-            Pair<BlockPos, Holder<Structure>> res = sl.getChunkSource().getGenerator()
-                    .findNearestMapStructure(sl, HolderSet.direct(holders), origin, 100, false);
-            mc.execute(() -> {
-                if (res == null) { Chat.info("Keine Struktur §f" + name + "§7 gefunden (in diesem Dimension?)."); return; }
-                String label = res.getSecond().unwrapKey().map(k -> k.identifier().getPath()).orElse(name);
-                report(res.getFirst(), label, 0xFFFFAA00);
-            });
-        });
+        Chat.info("Suche §f" + Locator.label(name) + "§7" + (mc.getSingleplayerServer() == null ? " (per /locate, braucht OP)" : "") + "...");
+        Locator.locate(name, (pos, label) -> report(pos, label, 0xFFFFAA00));
     }
 
     private static void report(BlockPos p, String label, int color) {

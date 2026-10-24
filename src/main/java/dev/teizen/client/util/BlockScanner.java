@@ -21,9 +21,19 @@ import java.util.function.Predicate;
 public final class BlockScanner {
     private static final Minecraft mc = Minecraft.getInstance();
 
+    /** Zusätzliche Prüfung mit Position (z.B. "unter der Oberfläche"). */
+    public interface PosFilter {
+        boolean test(LevelChunk chunk, int x, int y, int z, BlockState state);
+    }
+
     private Predicate<BlockState> filter;
     private int radiusChunks;
     private final int sectionsPerTick;
+    private PosFilter posFilter;
+    /** Nur jeden n-ten Block prüfen (1 = alle). */
+    private int step = 1;
+    /** Höchstens so viele Treffer sammeln. */
+    private int maxResults = Integer.MAX_VALUE;
 
     private final List<long[]> queue = new ArrayList<>(); // {chunkX, chunkZ}
     private int queueIndex;
@@ -39,6 +49,12 @@ public final class BlockScanner {
     }
 
     public void setFilter(Predicate<BlockState> f) { this.filter = f; restart(); }
+
+    public BlockScanner posFilter(PosFilter f) { this.posFilter = f; return this; }
+
+    public BlockScanner step(int s) { this.step = Math.max(1, s); return this; }
+
+    public BlockScanner maxResults(int m) { this.maxResults = m; return this; }
 
     public void setRadius(int r) {
         if (r != radiusChunks) { radiusChunks = r; restart(); }
@@ -94,13 +110,15 @@ public final class BlockScanner {
                 budget--;
                 if (!s.maybeHas(filter)) continue;
                 int baseY = chunk.getSectionYFromSectionIndex(i) << 4;
-                for (int y = 0; y < 16; y++) {
-                    for (int z = 0; z < 16; z++) {
-                        for (int x = 0; x < 16; x++) {
+                if (building.size() >= maxResults) continue;
+                for (int y = 0; y < 16; y += step) {
+                    for (int z = 0; z < 16; z += step) {
+                        for (int x = 0; x < 16; x += step) {
                             BlockState st = s.getBlockState(x, y, z);
-                            if (filter.test(st)) {
-                                building.add(new BlockPos((cx << 4) + x, baseY + y, (cz << 4) + z));
-                            }
+                            if (!filter.test(st)) continue;
+                            int wx = (cx << 4) + x, wy = baseY + y, wz = (cz << 4) + z;
+                            if (posFilter != null && !posFilter.test(chunk, wx, wy, wz, st)) continue;
+                            building.add(new BlockPos(wx, wy, wz));
                         }
                     }
                 }

@@ -31,6 +31,7 @@ public final class Config {
                 JsonObject o = new JsonObject();
                 o.addProperty("an", m.isEnabled());
                 o.addProperty("taste", m.key);
+                o.addProperty("favorit", m.favorite);
                 JsonObject set = new JsonObject();
                 for (Map.Entry<String, Setting> e : m.settings.entrySet()) {
                     Setting s = e.getValue();
@@ -68,6 +69,7 @@ public final class Config {
                 if (!mods.has(m.name)) continue;
                 JsonObject o = mods.getAsJsonObject(m.name);
                 if (o.has("taste")) m.key = o.get("taste").getAsInt();
+                if (o.has("favorit")) m.favorite = o.get("favorit").getAsBoolean();
                 if (o.has("einstellungen")) {
                     JsonObject set = o.getAsJsonObject("einstellungen");
                     for (Map.Entry<String, Setting> e : m.settings.entrySet()) {

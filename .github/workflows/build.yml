@@ -27,7 +27,7 @@ jobs:
           tail -n 40 build-log.txt
       - name: Smoke test (echter Server + Client)
         if: success()
-        timeout-minutes: 25
+        timeout-minutes: 40
         env:
           TEIZEN_SELFTEST: "1"
         run: |
@@ -61,7 +61,7 @@ jobs:
           cp ci/teizentest.litematic run/schematics/
           printf "onboardAccessibility:false\nskipMultiplayerWarning:true\njoinedFirstServer:true\ntutorialStep:none\nguiScale:2\nrenderDistance:5\nsimulationDistance:5\nsoundCategory_master:0.0\n" > run/options.txt
           export LIBGL_ALWAYS_SOFTWARE=1
-          timeout 1080 xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClient --no-daemon > client-log.txt 2>&1
+          timeout 1800 xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClient --no-daemon > client-log.txt 2>&1
           echo "Client beendet mit $?"
           echo "stop" >&3
           sleep 5
