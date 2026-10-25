@@ -658,18 +658,21 @@ final class Round9Tests {
                 next();
             }
             case 383 -> {
+                // n0 = Versuch 0..7: gerade = sichtbar drehen, ungerade = unsichtbar (jeden Tick); Vorlauf 2/4/6/10 Ticks
                 var e = mc.level.getEntity(i0);
                 if (e == null) { SelfTest.jump(382); return; }
                 int lt = SelfTest.local();
                 float[] r = dev.teizen.client.util.Rot.to(e.getBoundingBox().getCenter());
-                int stabAt = n0 == 0 ? 1 : n0 == 1 ? 3 : 2;
+                int[] leads = {2, 4, 6, 10};
+                int stabAt = leads[n0 / 2];
+                boolean visible = n0 % 2 == 0;
                 if (lt < stabAt) {
-                    if (n0 == 2) { if (lt == 0) dev.teizen.client.util.Rot.look(r[0], r[1]); }
+                    if (visible) { if (lt == 0) dev.teizen.client.util.Rot.look(r[0], r[1]); }
                     else dev.teizen.client.util.Rot.sendSilent(r[0], r[1]);
                     return;
                 }
                 if (lt == stabAt) {
-                    if (n0 != 2) dev.teizen.client.util.Rot.sendSilent(r[0], r[1]);
+                    if (!visible) dev.teizen.client.util.Rot.sendSilent(r[0], r[1]);
                     Inv.select(3);
                     ((dev.teizen.client.mixin.MultiPlayerGameModeAccessor) mc.gameMode).teizen$sendCarriedItem();
                     var pw = mc.player.getMainHandItem().get(net.minecraft.core.component.DataComponents.PIERCING_WEAPON);
@@ -680,11 +683,11 @@ final class Round9Tests {
                 }
                 if (lt < stabAt + 15) return;
                 double hp = e instanceof LivingEntity le && le.isAlive() ? le.getHealth() : 0;
-                log("Stich-Versuch " + (n0 == 0 ? "1x unsichtbar + 1 Tick" : n0 == 1 ? "3x unsichtbar" : "sichtbar gedreht") + ": Leben " + f(hp0) + " -> " + f(hp));
+                log("Stich-Versuch " + (visible ? "sichtbar" : "unsichtbar") + " " + stabAt + " Ticks Vorlauf: Leben " + f(hp0) + " -> " + f(hp));
                 n0++;
                 cmd("kill @e[type=minecraft:husk]");
                 husk(area.offset(4, 0, 1));
-                if (n0 < 3) SelfTest.jump(382); else SelfTest.jump(152);
+                if (n0 < 8) SelfTest.jump(382); else SelfTest.jump(152);
             }
             default -> {}
         }
