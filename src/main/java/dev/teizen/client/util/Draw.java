@@ -48,8 +48,33 @@ public final class Draw {
         return r;
     }
 
-    /** Tracer-Linie von der Bildschirmmitte zu einem Welt-Punkt (oder Pfeil am Rand, wenn dahinter). */
+    /**
+     * Wie sichtbar etwas in dieser Entfernung ist: bis 24 Blöcke voll, dann immer blasser (mindestens 0.3).
+     */
+    public static double fade(double x, double y, double z) {
+        double dx = x - Projector.camX(), dy = y - Projector.camY(), dz = z - Projector.camZ();
+        double d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return d <= 24 ? 1.0 : Math.max(0.3, 1.0 - (d - 24) / 200.0);
+    }
+
+    /** Durchgehende 1-Pixel-Linie (für die Linie zum nächsten Ziel). */
+    public static void solidLine(GuiGraphicsExtractor g, double x1, double y1, double x2, double y2, int argb) {
+        double dx = x2 - x1, dy = y2 - y1;
+        double len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 1) return;
+        int steps = (int) Math.min(len, 1500);
+        double sx = dx / steps, sy = dy / steps;
+        double x = x1, y = y1;
+        for (int i = 0; i <= steps; i++) {
+            int ix = (int) x, iy = (int) y;
+            g.fill(ix, iy, ix + 1, iy + 1, argb);
+            x += sx; y += sy;
+        }
+    }
+
+    /** Tracer-Linie von der Bildschirmmitte zu einem Welt-Punkt (oder Pfeil am Rand, wenn dahinter). Weiter weg = blasser. */
     public static void tracer(GuiGraphicsExtractor g, double x, double y, double z, int argb) {
+        argb = alpha(argb, fade(x, y, z));
         double cx = Projector.screenCenterX(), cy = Projector.screenCenterY();
         double[] s = Projector.project(x, y, z);
         if (s != null) {
@@ -83,8 +108,8 @@ public final class Draw {
     }
 
     /**
-     * Tracer zum NÄCHSTEN Ziel: dicke Linie, blinkender Punkt am Ende und ein Schild "nächste: 12m".
-     * So sieht man sofort, welches Ziel am nächsten ist.
+     * Tracer zum NÄCHSTEN Ziel: normale durchgehende Linie (nicht blass) mit kleinem Punkt am Ende.
+     * Beschriftung nur, wenn label nicht null ist (Strukturen).
      */
     public static void tracerNearest(GuiGraphicsExtractor g, double x, double y, double z, int argb, String label) {
         double cx = Projector.screenCenterX(), cy = Projector.screenCenterY();
@@ -98,14 +123,13 @@ public final class Draw {
             double r = Math.min(cx, cy) * 0.85;
             ex = cx + d[0] * r; ey = cy + d[1] * r;
         }
-        thickLine(g, cx, cy, ex, ey, c);
-        boolean blink = (System.currentTimeMillis() / 300) % 2 == 0;
+        solidLine(g, cx, cy, ex, ey, c);
         int ix = (int) ex, iy = (int) ey;
-        g.fill(ix - 4, iy - 4, ix + 4, iy + 4, 0xC0000000);
-        g.fill(ix - 3, iy - 3, ix + 3, iy + 3, blink ? 0xFFFFFFFF : c);
+        g.fill(ix - 2, iy - 2, ix + 2, iy + 2, 0x90000000);
+        g.fill(ix - 1, iy - 1, ix + 1, iy + 1, c);
         if (label != null && !label.isEmpty()) {
             var font = net.minecraft.client.Minecraft.getInstance().font;
-            String t = "§l▶ §r" + label;
+            String t = label;
             int w = font.width(t);
             int tx = Math.max(2, Math.min(g.guiWidth() - w - 2, ix + 7));
             int ty = Math.max(2, Math.min(g.guiHeight() - 12, iy - 4));

@@ -202,8 +202,7 @@ public final class XRay extends Module {
             }
             BlockPos n = list.get(0);
             Block b = mc.level.getBlockState(n).getBlock();
-            Draw.tracerNearest(g, n.getX() + 0.5, n.getY() + 0.5, n.getZ() + 0.5, Ids.oreColor(b),
-                    Ids.oreLabel(b) + " " + Math.round(Math.sqrt(Vec3.atCenterOf(n).distanceToSqr(eye))) + "m");
+            Draw.tracerNearest(g, n.getX() + 0.5, n.getY() + 0.5, n.getZ() + 0.5, Ids.oreColor(b), null);
         }
         if (arrows.on()) {
             // je Erz-Sorte ein Pfeil zum nächsten Erz dieser Sorte
@@ -215,8 +214,7 @@ public final class XRay extends Module {
             for (var e : best.entrySet()) {
                 BlockPos p = e.getValue();
                 int c = Ids.oreColor(mc.level.getBlockState(p).getBlock());
-                Arrows.draw(g, p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, c,
-                        e.getKey() + " " + Math.round(Math.sqrt(Vec3.atCenterOf(p).distanceToSqr(eye))) + "m" + Arrows.height(p.getY() + 0.5), 48);
+                Arrows.draw(g, p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, c, null, 44);
             }
             arrowCount = best.size();
         }

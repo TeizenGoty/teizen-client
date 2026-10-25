@@ -202,6 +202,6 @@ public final class Finder {
             }
         }
         if (nearest != null) Draw.tracerNearest(g, nearest.pos().getX() + 0.5, nearest.pos().getY() + 0.5, nearest.pos().getZ() + 0.5,
-                nearest.color(), nearest.label() + " " + Math.round(nd) + "m");
+                nearest.color(), null);
     }
 }

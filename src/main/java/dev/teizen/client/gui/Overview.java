@@ -48,6 +48,10 @@ public final class Overview extends Screen {
     private int btnOnX, btnKeyX, btnFavX, btnCloseX, btnW;
     private int panicX, panicY, panicW;
     private int opX, opY = 20, opW;
+    /** Rechts: Knöpfe "Alle", "Kampf", "Abbau" ... – zeigt nur diese Kategorie. null = alle. */
+    public static Module.Category filter;
+    private static final int SIDE_W = 84, SIDE_BTN_H = 18;
+    private int sideX;
 
     public Overview() {
         super(Component.literal("Teizen Übersicht"));
@@ -78,7 +82,15 @@ public final class Overview extends Screen {
         }
         List<Module> fav = new ArrayList<>();
         for (Module m : TeizenClient.modules().favorites()) if (ModuleManager.shown(m)) fav.add(m);
-        if (!fav.isEmpty()) out.add(new Section("★ Favoriten", fav, 0xFFE8B030));
+        if (!fav.isEmpty() && filter == null) out.add(new Section("★ Favoriten", fav, 0xFFE8B030));
+        if (filter != null) {
+            // nur eine Kategorie (Knopf rechts): alle ihre Cheats, Favoriten zuerst
+            List<Module> l = new ArrayList<>();
+            for (Module m : TeizenClient.modules().inCategory(filter)) if (m.favorite && ModuleManager.shown(m)) l.add(m);
+            for (Module m : TeizenClient.modules().inCategory(filter)) if (!m.favorite && ModuleManager.shown(m)) l.add(m);
+            out.add(new Section(filter.title, l, catColor(filter)));
+            return out;
+        }
         for (Module.Category c : Module.Category.values()) {
             List<Module> l = new ArrayList<>();
             for (Module m : TeizenClient.modules().inCategory(c)) if (!m.favorite && ModuleManager.shown(m)) l.add(m);
@@ -159,9 +171,11 @@ public final class Overview extends Screen {
         headers.clear();
         panelRows.clear();
         panelY = -1;
-        int cols = Math.max(1, Math.min(7, (width - 20 + GAP) / (CELL_W + GAP)));
+        sideX = width - SIDE_W - 9;
+        int avail = sideX - 8;
+        int cols = Math.max(1, Math.min(7, (avail - 8 + GAP) / (CELL_W + GAP)));
         gridW = cols * (CELL_W + GAP) - GAP;
-        gridX = (width - gridW) / 2;
+        gridX = Math.max(4, (avail - gridW) / 2);
         int y = 0;
         for (Section s : sections()) {
             headers.add(new Header(s.title() + " §7(" + s.mods().size() + ")", y, s.color()));
@@ -288,6 +302,29 @@ public final class Overview extends Screen {
         }
         if (search.active() && cells.isEmpty()) g.centeredText(font, "§7Kein Cheat gefunden für \"" + search.query + "\"", width / 2, TOP + 20, 0xFFFFFFFF);
 
+        // Kategorie-Knöpfe rechts
+        g.fill(sideX - 3, TOP - 2, sideX + SIDE_W + 2, clipBottom, 0x90100820);
+        g.text(font, "§7Kategorien", sideX + 2, TOP + 1, 0xFFFFFFFF, false);
+        for (int i = 0; i <= Module.Category.values().length; i++) {
+            Module.Category c = i == 0 ? null : Module.Category.values()[i - 1];
+            int by = sideButtonY(i);
+            boolean active = filter == c;
+            boolean hover = in(mouseX, mouseY, sideX, by, SIDE_W, SIDE_BTN_H - 2);
+            int col = c == null ? 0xFFB0A0D0 : catColor(c);
+            g.fill(sideX, by, sideX + SIDE_W, by + SIDE_BTN_H - 2, active ? 0xFF6A24D8 : (hover ? 0xE0362060 : 0xD0281646));
+            g.fill(sideX, by, sideX + 3, by + SIDE_BTN_H - 2, col);
+            int n = 0, an = 0;
+            for (Module m : TeizenClient.modules().all()) {
+                if (!ModuleManager.shown(m) || (c != null && m.category != c)) continue;
+                n++;
+                if (m.isEnabled()) an++;
+            }
+            String label = (c == null ? "Alle" : c.title);
+            g.text(font, (active ? "§f§l" : "§f") + label, sideX + 7, by + 4, 0xFFFFFFFF, false);
+            String cnt = (an > 0 ? "§a" + an + "§7/" : "§7") + n;
+            g.text(font, cnt, sideX + SIDE_W - 4 - font.width(cnt), by + 4, 0xFFFFFFFF, false);
+        }
+
         // Bildlaufleiste
         if (maxS > 0) {
             int trackH = clipBottom - TOP;
@@ -340,6 +377,23 @@ public final class Overview extends Screen {
         g.text(font, l, x + (w - font.width(l)) / 2, y + 3, 0xFFFFFFFF, false);
     }
 
+    private int sideButtonY(int i) { return TOP + 12 + i * SIDE_BTN_H; }
+
+    /** Nur eine Kategorie zeigen (null = alle). */
+    public void setFilter(Module.Category c) {
+        filter = c;
+        scroll = 0;
+        if (expanded != null && c != null && expanded.category != c) expanded = null;
+        if (search.active()) search.query = "";
+    }
+
+    /** Mitte eines Kategorie-Knopfs rechts (null = "Alle"), für den Selbsttest. */
+    public double[] categoryButtonCenter(Module.Category c) {
+        layout();
+        int i = c == null ? 0 : c.ordinal() + 1;
+        return new double[]{sideX + SIDE_W / 2.0, sideButtonY(i) + (SIDE_BTN_H - 2) / 2.0};
+    }
+
     /** Mitte der Zelle eines Cheats (oder null, wenn nicht da). */
     public double[] cellCenter(Module target) {
         layout();
@@ -377,6 +431,13 @@ public final class Overview extends Screen {
         if (search.click(mx, my)) return true;
         if (my < TOP - 3 || my >= height - 16) return true;
         layout();
+        // Kategorie-Knöpfe rechts
+        for (int i = 0; i <= Module.Category.values().length; i++) {
+            if (!in(mx, my, sideX, sideButtonY(i), SIDE_W, SIDE_BTN_H - 2)) continue;
+            setFilter(i == 0 ? null : Module.Category.values()[i - 1]);
+            return true;
+        }
+        if (mx >= sideX - 3) return true;
         int off = TOP - scroll;
         int button = e.button();
         // aufgeklappter Bereich

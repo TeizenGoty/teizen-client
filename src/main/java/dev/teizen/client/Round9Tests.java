@@ -626,6 +626,55 @@ final class Round9Tests {
                 boolean back = !mc.player.getSkin().body().id().getPath().endsWith("/" + text);
                 result("SkinChanger: Skin \"" + text + "\" bei dir=" + yes(flag1) + ", aus -> wieder dein Skin=" + yes(back) + " " + ok(flag1 && back));
                 cmd("clear @s");
+                next();
+            }
+            // ---------------------------------------------- Übersicht: Kategorie-Knöpfe rechts + kleinere Liste oben rechts
+            case 361 -> {
+                if (!after(5)) return;
+                flag2 = Math.abs(dev.teizen.client.gui.Hud.scale - 0.6f) < 0.01f; // Standard ist jetzt kleiner
+                t("///hud 0.5");
+                flag1 = Math.abs(dev.teizen.client.gui.Hud.scale - 0.5f) < 0.01f;
+                t("///hud 0.6");
+                t("///killaura");
+                t("///spider");
+                mc.gui.setScreen(new dev.teizen.client.gui.Overview());
+                next();
+            }
+            case 362 -> {
+                if (!after(10)) return;
+                if (!(mc.gui.screen() instanceof dev.teizen.client.gui.Overview ov)) { result("Kategorie-Knöpfe: Übersicht nicht offen FEHLER"); SelfTest.jump(152); return; }
+                double[] c = ov.categoryButtonCenter(Module.Category.KAMPF);
+                ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                List<Module> vis = ov.shownModules();
+                long kampf = TeizenClient.modules().inCategory(Module.Category.KAMPF).stream().filter(dev.teizen.client.core.ModuleManager::shown).count();
+                flag1 = flag1 && flag2;
+                n0 = vis.size();
+                text = vis.stream().allMatch(m -> m.category == Module.Category.KAMPF) && vis.size() == kampf ? "ja" : "nein";
+                next();
+            }
+            case 363 -> {
+                if (!after(10)) return;
+                shot("50-kategorie-kampf");
+                var ov = (dev.teizen.client.gui.Overview) mc.gui.screen();
+                double[] c = ov.categoryButtonCenter(Module.Category.BEWEGUNG);
+                ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                boolean move = !ov.shownModules().isEmpty() && ov.shownModules().stream().allMatch(m -> m.category == Module.Category.BEWEGUNG);
+                text = text + "/" + (move ? "ja" : "nein");
+                next();
+            }
+            case 364 -> {
+                if (!after(10)) return;
+                shot("51-kategorie-bewegung");
+                var ov = (dev.teizen.client.gui.Overview) mc.gui.screen();
+                double[] c = ov.categoryButtonCenter(null);
+                ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                boolean all = ov.shownModules().size() == TeizenClient.modules().all().size();
+                mc.gui.setScreen(null);
+                t("///killaura");
+                t("///spider");
+                result("Übersicht-Knöpfe rechts: Kampf -> nur Kampf (" + n0 + ")=" + text.split("/")[0] + ", Bewegung -> nur Bewegung=" + text.split("/")[1]
+                        + ", Alle -> alle=" + yes(all) + "; Liste oben rechts kleiner (0.6, ///hud ändert)=" + yes(flag1) + " "
+                        + ok(text.equals("ja/ja") && all && flag1));
                 SelfTest.jump(152);
             }
             default -> {}

@@ -43,7 +43,7 @@ public final class Tracers extends Module {
             if (p != nearest) continue;
             Vec3 pos = p.getPosition(partial);
             int color = Friends.is(p.getGameProfile().name()) ? 0xFF55FF55 : 0xFFFF3030;
-            Draw.tracerNearest(g, pos.x, pos.y + p.getBbHeight() * 0.6, pos.z, color, p.getGameProfile().name() + " " + Math.round(nd) + "m");
+            Draw.tracerNearest(g, pos.x, pos.y + p.getBbHeight() * 0.6, pos.z, color, null);
         }
     }
 }

@@ -186,7 +186,7 @@ public final class ChunkFinder extends Module {
         }
         if (arrows.on() && nearest != null) {
             double x = nearest.cx() * 16 + 8, z = nearest.cz() * 16 + 8;
-            Arrows.draw(g, x, mc.player.getEyeY(), z, 0xFFFF9020, "Spuren " + Math.round(Math.sqrt(best)) + "m", 80);
+            Arrows.draw(g, x, mc.player.getEyeY(), z, 0xFFFF9020, null, 64);
         }
     }
 

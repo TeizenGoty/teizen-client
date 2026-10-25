@@ -153,7 +153,7 @@ public final class PortalFinder extends Module {
             for (int i = 0; i < Math.min(5, near.size()); i++) {
                 Portal p = near.get(i);
                 var c = p.box().getCenter();
-                Arrows.draw(g, c.x, c.y, c.z, p.color(), Math.round(eye.distanceTo(c)) + "m" + Arrows.height(c.y), 62);
+                Arrows.draw(g, c.x, c.y, c.z, p.color(), null, 56);
             }
         }
         Portal nearestP = null;
@@ -163,7 +163,7 @@ public final class PortalFinder extends Module {
             double[] r = Draw.worldBox(g, p.box(), p.color(), true);
             var c = p.box().getCenter();
             if (tracers.on()) {
-                if (p == nearestP) Draw.tracerNearest(g, c.x, c.y, c.z, p.color(), p.label() + " " + Math.round(eye.distanceTo(c)) + "m");
+                if (p == nearestP) Draw.tracerNearest(g, c.x, c.y, c.z, p.color(), null);
                 else Draw.tracer(g, c.x, c.y, c.z, p.color());
             }
             if (r != null) {

@@ -23,10 +23,10 @@ public final class PlayerFinder extends Module {
     private final Setting arrows = add(Setting.bool("pfeile", "Pfeile, die zu den Spielern zeigen", true));
     private final Setting style = add(Setting.choice("stil", "kreis = Pfeile um das Fadenkreuz, rand = am Bildschirmrand (nur wenn der Spieler nicht im Bild ist), beides",
             "kreis", "kreis", "rand", "beides"));
-    private final Setting arrowSize = add(Setting.number("pfeilgroesse", "Größe der Pfeile (Pixel)", 10, 5, 24));
+    private final Setting arrowSize = add(Setting.number("pfeilgroesse", "Größe der Pfeile (Pixel)", 6, 3, 24));
     private final Setting list = add(Setting.bool("liste", "Liste links oben: Name, Entfernung, Richtung", true));
     private final Setting boxes = add(Setting.bool("rahmen", "Rahmen und Name am Spieler (auch durch Wände)", true));
-    private final Setting tracers = add(Setting.bool("linien", "Linien zu den Spielern (der nächste dick)", false));
+    private final Setting tracers = add(Setting.bool("linien", "Linien zu den Spielern (die nächste ist kräftiger)", false));
     private final Setting far = add(Setting.bool("weit", "Auch weit entfernte Spieler (eigene Welt direkt, Server: OP)", true));
     private final Setting ring = add(Setting.number("kreis", "Größe des Pfeil-Kreises (Pixel)", 60, 20, 200));
 
@@ -113,11 +113,11 @@ public final class PlayerFinder extends Module {
                 if (arrows.on()) {
                     String lbl = t.name() + " " + dist + "m" + Arrows.height(y);
                     int sz = arrowSize.integer();
-                    if (style.is("kreis") || style.is("beides")) Arrows.draw(g, x, cy, z, c, lbl, ring.num(), sz);
-                    if (style.is("rand") || style.is("beides")) Arrows.drawEdge(g, x, cy, z, c, style.is("beides") ? null : lbl, sz);
+                    if (style.is("kreis") || style.is("beides")) Arrows.draw(g, x, cy, z, c, null, ring.num(), sz);
+                    if (style.is("rand") || style.is("beides")) Arrows.drawEdge(g, x, cy, z, c, null, sz);
                 }
                 if (tracers.on()) {
-                    if (first) Draw.tracerNearest(g, x, cy, z, c, t.name() + " " + dist + "m");
+                    if (first) Draw.tracerNearest(g, x, cy, z, c, null);
                     else Draw.tracer(g, x, cy, z, c);
                 }
                 if (boxes.on()) {

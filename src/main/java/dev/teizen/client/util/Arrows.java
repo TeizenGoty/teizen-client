@@ -34,7 +34,12 @@ public final class Arrows {
      * @param label  Text neben dem Pfeil (oder null)
      */
     public static void draw(GuiGraphicsExtractor g, double x, double y, double z, int color, String label, double radius) {
-        draw(g, x, y, z, color, label, radius, 7);
+        draw(g, x, y, z, color, label, radius, 5);
+    }
+
+    /** Größe nach Entfernung: nah = volle Größe, weit weg kleiner (mindestens 60 %). */
+    private static int sized(int size, double f) {
+        return Math.max(3, (int) Math.round(size * (0.6 + 0.4 * f)));
     }
 
     /** Wie viele Pfeile seit dem letzten Zurücksetzen gezeichnet wurden (Selbsttest). */
@@ -43,6 +48,9 @@ public final class Arrows {
     /** Pfeil mit wählbarer Größe (Pixel). */
     public static void draw(GuiGraphicsExtractor g, double x, double y, double z, int color, String label, double radius, int size) {
         drawn++;
+        double f = Draw.fade(x, y, z);
+        size = sized(size, f);
+        color = Draw.alpha(color | 0xFF000000, f);
         double a = angle(x, z);
         double cx = Projector.screenCenterX(), cy = Projector.screenCenterY();
         double sin = Math.sin(a), cos = Math.cos(a);
@@ -51,9 +59,9 @@ public final class Arrows {
         pose.pushMatrix();
         pose.translate(px, py);
         pose.rotate((float) a);
-        triangle(g, size + 2, 0xC0000000);
+        triangle(g, size + 1, Draw.alpha(0xA0000000, f));
         pose.translate(0f, -1f);
-        triangle(g, size, color | 0xFF000000);
+        triangle(g, size, color);
         pose.popMatrix();
         if (label != null && !label.isEmpty()) {
             double lr = radius + 9 + size;
@@ -62,7 +70,7 @@ public final class Arrows {
             // Text nicht aus dem Bild schieben
             lx = Math.max(2 + w / 2, Math.min(g.guiWidth() - 2 - w / 2, lx));
             ly = Math.max(2, Math.min(g.guiHeight() - 10, ly));
-            g.text(mc.font, label, lx - w / 2, ly, color | 0xFF000000, true);
+            g.text(mc.font, label, lx - w / 2, ly, color, true);
         }
     }
 
@@ -74,6 +82,9 @@ public final class Arrows {
         double cx = Projector.screenCenterX(), cy = Projector.screenCenterY();
         double[] s = Projector.project(x, y, z);
         if (s != null && s[0] > 10 && s[0] < g.guiWidth() - 10 && s[1] > 10 && s[1] < g.guiHeight() - 10) return false;
+        double f = Draw.fade(x, y, z);
+        size = sized(size, f);
+        color = Draw.alpha(color | 0xFF000000, f);
         double[] d = Projector.direction(x, y, z);
         double dx = d[0], dy = d[1];
         double len = Math.sqrt(dx * dx + dy * dy);
@@ -87,16 +98,16 @@ public final class Arrows {
         pose.pushMatrix();
         pose.translate(px, py);
         pose.rotate((float) a);
-        triangle(g, size + 2, 0xC0000000);
+        triangle(g, size + 1, Draw.alpha(0xA0000000, f));
         pose.translate(0f, -1f);
-        triangle(g, size, color | 0xFF000000);
+        triangle(g, size, color);
         pose.popMatrix();
         if (label != null && !label.isEmpty()) {
             int w = mc.font.width(label);
             int lx = (int) (px - dx * (size + 12)) - w / 2, ly = (int) (py - dy * (size + 12)) - 4;
             lx = Math.max(2, Math.min(g.guiWidth() - w - 2, lx));
             ly = Math.max(2, Math.min(g.guiHeight() - 10, ly));
-            g.text(mc.font, label, lx, ly, color | 0xFF000000, true);
+            g.text(mc.font, label, lx, ly, color, true);
         }
         return true;
     }

@@ -265,6 +265,20 @@ public final class Commands {
                 Chat.ok(hide ? "OP-Cheats sind im Menü versteckt (" + mm.hiddenCount() + "). Wieder zeigen: ///opcheats an"
                         : "OP-Cheats werden im Menü wieder gezeigt.");
             }
+            case "hud", "liste" -> {
+                if (a.length < 2) { Chat.info("Liste oben rechts: Größe §f" + dev.teizen.client.gui.Hud.scale + "§7. Ändern: ///hud 0.5 (0 = aus, 1 = normal)"); return; }
+                try {
+                    float v = Float.parseFloat(a[1].replace(',', '.'));
+                    if (a[1].equalsIgnoreCase("aus")) v = 0;
+                    dev.teizen.client.gui.Hud.scale = Math.max(0f, Math.min(2f, v));
+                    Config.save();
+                    Chat.ok(dev.teizen.client.gui.Hud.scale == 0 ? "Liste oben rechts ausgeblendet." : "Liste oben rechts: Größe " + dev.teizen.client.gui.Hud.scale);
+                } catch (NumberFormatException ex) {
+                    if (a[1].equalsIgnoreCase("aus")) { dev.teizen.client.gui.Hud.scale = 0; Config.save(); Chat.ok("Liste oben rechts ausgeblendet."); }
+                    else if (a[1].equalsIgnoreCase("an")) { dev.teizen.client.gui.Hud.scale = 0.6f; Config.save(); Chat.ok("Liste oben rechts wieder an."); }
+                    else Chat.error("///hud <Zahl>, z.B. ///hud 0.5");
+                }
+            }
             case "panic", "alleaus", "panik" -> {
                 int n = dev.teizen.client.modules.PanicButton.panic();
                 Chat.ok("Alle Funktionen aus (" + n + " ausgeschaltet).");
@@ -405,6 +419,7 @@ public final class Commands {
         Chat.raw("§d///friend add <Name> §7– wird nicht angegriffen");
         Chat.raw("§d///seedmap §7– Seed holen und Seed-Karte mit allen Strukturen öffnen (SeedMapper / Seed Atlas / Chunkbase) · §d///seed [Zahl]");
         Chat.raw("§d///opcheats §7– Cheats, die OP brauchen, im Menü verstecken/zeigen (auch Knopf oben rechts)");
+        Chat.raw("§d///hud <Größe> §7– Liste oben rechts kleiner/größer (z.B. 0.5, 0 = aus, 1 = normal)");
         Chat.raw("§d///panic §7– alles aus   §d///save §7– speichern");
     }
 }

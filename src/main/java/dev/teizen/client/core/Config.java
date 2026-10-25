@@ -18,7 +18,7 @@ public final class Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     /** Version der Datei: bei neuen Standard-Tasten werden alte "keine Taste"-Einträge nicht übernommen. */
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
 
     /** Funktionen, deren neue Standard-Taste übernommen werden soll (auch in den Minecraft-Optionen). */
     public static final java.util.Set<String> keepDefaultKey = new java.util.HashSet<>();
@@ -58,6 +58,7 @@ public final class Config {
             root.addProperty("menuTaste", TeizenClient.menuKey);
             root.addProperty("version", VERSION);
             root.addProperty("opAusblenden", ModuleManager.hideOp);
+            root.addProperty("hudGroesse", dev.teizen.client.gui.Hud.scale);
             Files.writeString(file(), GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
             TeizenClient.LOG.warn("Config konnte nicht gespeichert werden", e);
@@ -72,6 +73,7 @@ public final class Config {
             if (root == null) return;
             if (root.has("menuTaste")) TeizenClient.menuKey = root.get("menuTaste").getAsInt();
             if (root.has("opAusblenden")) ModuleManager.hideOp = root.get("opAusblenden").getAsBoolean();
+            if (root.has("hudGroesse")) dev.teizen.client.gui.Hud.scale = Math.max(0f, Math.min(2f, root.get("hudGroesse").getAsFloat()));
             if (root.has("freunde")) for (JsonElement e : root.getAsJsonArray("freunde")) Friends.add(e.getAsString());
             if (!root.has("funktionen")) return;
             JsonObject mods = root.getAsJsonObject("funktionen");
@@ -92,6 +94,8 @@ public final class Config {
                         if (!set.has(e.getKey())) continue;
                         Setting s = e.getValue();
                         if (s.type == Setting.Type.ACTION) continue;
+                        // Version 3: Pfeile sind kleiner geworden – alte große Pfeil-Größe nicht übernehmen
+                        if (version < 3 && e.getKey().equals("pfeilgroesse")) continue;
                         switch (s.type) {
                             case NUMBER -> s.setNumber(set.get(e.getKey()).getAsDouble());
                             case BOOL -> s.setBool(set.get(e.getKey()).getAsBoolean());

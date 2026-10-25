@@ -39,19 +39,28 @@ public final class Hud {
         List<Module> on = new ArrayList<>();
         for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) on.add(m);
         on.sort(Comparator.comparingInt((Module m) -> -mc.font.width(label(m))));
-        int y = 2;
-        int w = g.guiWidth();
         // mit Xaero's Minimap ist oben links die Karte -> Schriftzug weglassen
         if (!dev.teizen.client.compat.XaeroCompat.minimapInstalled()) g.text(mc.font, "§5§lTeizen §7Client", 3, 3, 0xFFFFFFFF, true);
+        if (scale <= 0.01f || on.isEmpty()) return;
+        // Liste oben rechts, verkleinert (///hud <Größe>)
+        float sc = scale;
+        int w = (int) Math.floor(g.guiWidth() / sc);
+        int y = 1;
+        g.pose().pushMatrix();
+        g.pose().scale(sc, sc);
         for (Module m : on) {
             String t = label(m);
             int tw = mc.font.width(t);
-            g.fill(w - tw - 5, y, w, y + 11, 0x80140A26);
-            g.fill(w - 2, y, w, y + 11, 0xFF9D52FF);
-            g.text(mc.font, t, w - tw - 3, y + 2, 0xFFE8D2FF, true);
-            y += 11;
+            g.fill(w - tw - 5, y, w, y + 10, 0x80140A26);
+            g.fill(w - 2, y, w, y + 10, 0xFF9D52FF);
+            g.text(mc.font, t, w - tw - 3, y + 1, 0xFFE8D2FF, true);
+            y += 10;
         }
+        g.pose().popMatrix();
     }
+
+    /** Größe der Liste oben rechts (1 = normal, 0 = ausblenden). */
+    public static float scale = 0.6f;
 
     private static String label(Module m) {
         String i = m.info();

@@ -158,7 +158,7 @@ public final class StorageESP extends Module {
         }
         if (tracers.on() && nearest != null) {
             Vec3 c = nearest.box().getCenter();
-            Draw.tracerNearest(g, c.x, c.y, c.z, nearest.color(), nearest.label() + " " + Math.round(nd) + "m");
+            Draw.tracerNearest(g, c.x, c.y, c.z, nearest.color(), null);
         }
         int n = 0;
         if (shulkerItems.on()) {

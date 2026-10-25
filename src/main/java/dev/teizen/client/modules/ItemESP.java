@@ -114,7 +114,7 @@ public final class ItemESP extends Module {
         }
         if (tracers.on() && nearest != null) {
             Vec3 p = nearest.getPosition(partial);
-            Draw.tracerNearest(g, p.x, p.y + 0.2, p.z, 0xFFFFC800, nearest.getItem().getHoverName().getString() + " " + Math.round(nd) + "m");
+            Draw.tracerNearest(g, p.x, p.y + 0.2, p.z, 0xFFFFC800, null);
         }
         if (list.on() && highlighted > 0) {
             Map<String, int[]> sum = new LinkedHashMap<>(); // Name -> {Anzahl, nächste Entfernung}
