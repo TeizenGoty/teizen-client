@@ -4,35 +4,48 @@ import dev.teizen.client.TeizenClient;
 import dev.teizen.client.core.Config;
 import dev.teizen.client.core.KeyBinds;
 import dev.teizen.client.core.Module;
+import dev.teizen.client.core.Setting;
+import dev.teizen.client.modules.PanicButton;
+import dev.teizen.client.util.Chat;
 import dev.teizen.client.util.Keys;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Übersicht: alle Cheats auf einen Blick, mit an/aus und Taste. Favoriten stehen ganz oben.
- * Linksklick = an/aus, Rechtsklick = Cheat bearbeiten, Mittelklick oder Shift+Klick = Favorit.
- * Lupe oben: einfach lostippen zum Suchen. Menü-Taste (Standard Rechte Shift) = großes Menü.
+ * Übersicht (Hauptbildschirm, Taste O): ALLE Cheats als große Kacheln, nach Kategorie sortiert –
+ * jede Kategorie fängt in einer neuen Reihe an. Mausrad = scrollen.
+ * Linksklick = an/aus · Rechtsklick = Einstellungen direkt hier aufklappen · Mitte/Shift = Favorit.
+ * Lupe oben: einfach lostippen. Roter Knopf: alles aus.
  */
 public final class Overview extends Screen {
-    private static final int CELL_W = 124, CELL_H = 24, GAP = 4;
-    private static final int BG = 0xD0100820, ON = 0xFF6A24D8, OFF = 0xC0201236, HOVER = 0xD0362060;
+    private static final int CELL_W = 124, CELL_H = 24, GAP = 4, TOP = 44, HEAD_H = 14, ROW_H = 13;
+    private static final int ON = 0xFF6A24D8, OFF = 0xC0201236, HOVER = 0xD0362060;
 
-    private int scroll;
+    private record Cell(Module m, int x, int y) {}
+    private record Header(String title, int y, int color) {}
+    private record PanelRow(SettingRows.Row row, int x, int y, int w) {}
+
     private final SearchBox search = new SearchBox();
+    private final SettingRows rows = new SettingRows();
+    private int scroll;
+    private Module expanded;
+    private Module binding;
 
-    private List<Module> shown() {
-        return search.active() ? SearchBox.search(search.query) : TeizenClient.modules().favoritesFirst();
-    }
-
-    /** Suche setzen (Selbsttest). */
-    public void setSearch(String q) { search.query = q; search.focused = !q.isEmpty(); }
-
-    public List<Module> shownModules() { return shown(); }
+    // Aufbau (wird bei jedem Bild neu berechnet)
+    private final List<Cell> cells = new ArrayList<>();
+    private final List<Header> headers = new ArrayList<>();
+    private final List<PanelRow> panelRows = new ArrayList<>();
+    private int panelY = -1, panelH, gridX, gridW, contentH;
+    private int btnOnX, btnKeyX, btnFavX, btnCloseX, btnW;
+    private int panicX, panicY, panicW;
 
     public Overview() {
         super(Component.literal("Teizen Übersicht"));
@@ -52,116 +65,303 @@ public final class Overview extends Screen {
         };
     }
 
-    private static final int TOP = 40;
+    private record Section(String title, List<Module> mods, int color) {}
 
-    /** Spalten, Zellgröße, Abstand. Kompakt = eine Zeile pro Cheat, notfalls mehr und schmalere Spalten. */
-    private record Layout(int cols, int cellW, int cellH, int stepX, int stepY, boolean compact) {}
-
-    private Layout layout() {
-        int n = Math.max(1, shown().size());
-        int cols = Math.max(1, Math.min(6, (width - 16 + GAP) / (CELL_W + GAP)));
-        int rows = (n + cols - 1) / cols;
-        if (TOP + rows * (CELL_H + GAP) <= height - 18) return new Layout(cols, CELL_W, CELL_H, CELL_W + GAP, CELL_H + GAP, false);
-        int maxRows = Math.max(1, (height - 18 - TOP) / 14);
-        int need = (n + maxRows - 1) / maxRows;
-        int c = Math.max(cols, Math.min(8, need));
-        int w = Math.min(CELL_W, (width - 8 - (c - 1) * 3) / c);
-        if (w < 70) { c = cols; w = CELL_W; } // zu schmal -> lieber scrollen
-        return new Layout(c, w, 12, w + 3, 14, true);
+    private List<Section> sections() {
+        List<Section> out = new ArrayList<>();
+        if (search.active()) {
+            List<Module> hits = SearchBox.search(search.query);
+            out.add(new Section("Suche: " + hits.size() + " Treffer", hits, 0xFF1F8AB8));
+            return out;
+        }
+        List<Module> fav = TeizenClient.modules().favorites();
+        if (!fav.isEmpty()) out.add(new Section("★ Favoriten", fav, 0xFFE8B030));
+        for (Module.Category c : Module.Category.values()) {
+            List<Module> l = new ArrayList<>();
+            for (Module m : TeizenClient.modules().inCategory(c)) if (!m.favorite) l.add(m);
+            if (!l.isEmpty()) out.add(new Section(c.title, l, catColor(c)));
+        }
+        return out;
     }
 
-    private int startX(Layout l) {
-        return (width - (l.cols() * l.stepX() - (l.stepX() - l.cellW()))) / 2;
+    /** Alle angezeigten Cheats in Reihenfolge (Selbsttest). */
+    private List<Module> shown() {
+        List<Module> out = new ArrayList<>();
+        for (Section s : sections()) out.addAll(s.mods());
+        return out;
+    }
+
+    public List<Module> shownModules() { return shown(); }
+
+    /** Suche setzen (Selbsttest). */
+    public void setSearch(String q) { search.query = q; search.focused = !q.isEmpty(); scroll = 0; }
+
+    /** Cheat, dessen Einstellungen gerade aufgeklappt sind. */
+    public Module expanded() { return expanded; }
+
+    public boolean isEditing() { return rows.isEditing(); }
+
+    /** Einstellungen eines Cheats auf-/zuklappen (wie Rechtsklick). */
+    public void toggleExpand(Module m) {
+        if (rows.isEditing()) rows.finish(true);
+        expanded = expanded == m ? null : m;
+        binding = null;
+    }
+
+    /** Wie ein Klick auf eine Einstellung im aufgeklappten Bereich (Selbsttest). */
+    public void clickSetting(Setting s, int button) {
+        if (expanded != null) rows.click(expanded, new SettingRows.Row(SettingRows.Kind.SETTING, s, null), button);
+    }
+
+    /** Wie ein Klick auf eine beliebige Zeile im aufgeklappten Bereich (Selbsttest). */
+    public void clickRow(SettingRows.Row r, int button) {
+        if (expanded != null) rows.click(expanded, r, button);
+    }
+
+    public int scroll() { return scroll; }
+
+    /** Mitte des roten PANIK-Knopfs (nach dem ersten Bild). */
+    public double[] panicCenter() { return new double[]{panicX + panicW / 2.0, panicY + 6.5}; }
+
+    /** Fängt jede Kategorie in einer neuen Reihe an (erste Kachel ganz links)? (Selbsttest) */
+    public boolean categoriesStartNewRow() {
+        layout();
+        for (Header h : headers) {
+            Cell first = null;
+            for (Cell c : cells) if (c.y() > h.y() && (first == null || c.y() < first.y() || (c.y() == first.y() && c.x() < first.x()))) first = c;
+            if (first == null) continue;
+            if (first.x() != gridX) return false;
+            // keine Kachel einer anderen Kategorie in derselben Reihe
+            for (Cell c : cells) if (c.y() == first.y() && c.m().category != first.m().category && !search.active() && !first.m().favorite) return false;
+        }
+        return !headers.isEmpty();
+    }
+
+    public int maxScroll() { return Math.max(0, contentH - (height - 16 - TOP)); }
+
+    private void layout() {
+        cells.clear();
+        headers.clear();
+        panelRows.clear();
+        panelY = -1;
+        int cols = Math.max(1, Math.min(7, (width - 20 + GAP) / (CELL_W + GAP)));
+        gridW = cols * (CELL_W + GAP) - GAP;
+        gridX = (width - gridW) / 2;
+        int y = 0;
+        for (Section s : sections()) {
+            headers.add(new Header(s.title() + " §7(" + s.mods().size() + ")", y, s.color()));
+            y += HEAD_H;
+            List<Module> mods = s.mods();
+            for (int i = 0; i < mods.size(); i += cols) {
+                boolean hasPanel = false;
+                for (int c = 0; c < cols && i + c < mods.size(); c++) {
+                    Module m = mods.get(i + c);
+                    cells.add(new Cell(m, gridX + c * (CELL_W + GAP), y));
+                    if (m == expanded) hasPanel = true;
+                }
+                y += CELL_H + GAP;
+                if (hasPanel) {
+                    panelY = y;
+                    panelH = buildPanel(y);
+                    y += panelH + GAP + 2;
+                }
+            }
+            y += 6;
+        }
+        contentH = y;
+    }
+
+    /** Einstellungs-Bereich unter der Reihe des Cheats; Einstellungen in Spalten. @return Höhe */
+    private int buildPanel(int y) {
+        List<SettingRows.Row> list = SettingRows.rows(expanded);
+        int k = Math.max(1, Math.min(3, gridW / 180));
+        if (list.size() <= 4) k = Math.min(k, Math.max(1, list.size()));
+        int per = Math.max(1, (list.size() + k - 1) / k);
+        int colW = (gridW - 8 - (k - 1) * 6) / k;
+        for (int i = 0; i < list.size(); i++) {
+            int c = i / per, r = i % per;
+            panelRows.add(new PanelRow(list.get(i), gridX + 4 + c * (colW + 6), y + 18 + r * ROW_H, colW));
+        }
+        int body = list.isEmpty() ? ROW_H : per * ROW_H;
+        return 18 + body + 6;
+    }
+
+    private boolean in(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx < x + w && my >= y && my < y + h;
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
         var font = getFont();
-        List<Module> mods = shown();
+        layout();
+        int maxS = maxScroll();
+        if (scroll > maxS) scroll = maxS;
         int on = 0;
         for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) on++;
-
         g.fill(0, 0, width, height, 0x80000000);
-        g.text(font, "§5§lTEIZEN §7Übersicht", 6, 6, 0xFFFFFFFF, true);
-        int sw = Math.max(80, Math.min(220, width - 2 * (font.width("TEIZEN Übersicht") + 16)));
-        search.render(g, font, width / 2 - sw / 2, 4, sw, mouseX, mouseY);
-        String head = "§a" + on + "§7 von §f" + TeizenClient.modules().all().size() + "§7 an  §8|  §7Links: an/aus · Rechts: bearbeiten · Mitte/Shift: §6★ Favorit";
-        if (font.width(head) > width - 8) head = "§a" + on + "§7 an §8| §7L: an/aus · R: bearbeiten · Mitte: §6★";
-        g.centeredText(font, head, width / 2, 22, 0xFFFFFFFF);
-        if (search.active() && mods.isEmpty()) g.centeredText(font, "§7Kein Cheat gefunden für \"" + search.query + "\"", width / 2, TOP + 10, 0xFFFFFFFF);
 
-        Layout l = layout();
-        int cols = l.cols(), x0 = startX(l), ch = l.cellH(), cw = l.cellW();
-        boolean compact = l.compact();
-        for (int i = 0; i < mods.size(); i++) {
-            Module m = mods.get(i);
-            int x = x0 + (i % cols) * l.stepX();
-            int y = TOP + (i / cols) * l.stepY() - scroll;
-            if (y < TOP - 4 || y + ch > height - 16) continue;
-            boolean hover = mouseX >= x && mouseX < x + cw && mouseY >= y && mouseY < y + ch;
-            g.fill(x, y, x + cw, y + ch, m.isEnabled() ? ON : (hover ? HOVER : OFF));
-            g.fill(x, y, x + 3, y + ch, catColor(m.category));
-            if (m.favorite) g.fill(x, y, x + cw, y + 1, 0xFFE8B030);
+        int off = TOP - scroll;
+        int clipTop = TOP - 2, clipBottom = height - 16;
+        for (Header h : headers) {
+            int y = h.y() + off;
+            if (y < clipTop - HEAD_H || y > clipBottom) continue;
+            g.fill(gridX, y + HEAD_H - 3, gridX + gridW, y + HEAD_H - 2, (h.color() & 0x00FFFFFF) | 0x80000000);
+            g.text(font, "§l" + h.title(), gridX + 2, y + 2, h.color(), true);
+        }
+        for (Cell c : cells) {
+            Module m = c.m();
+            int x = c.x(), y = c.y() + off;
+            if (y + CELL_H < clipTop || y > clipBottom) continue;
+            boolean hover = in(mouseX, mouseY, x, y, CELL_W, CELL_H) && mouseY >= clipTop && mouseY < clipBottom;
+            g.fill(x, y, x + CELL_W, y + CELL_H, m.isEnabled() ? ON : (hover ? HOVER : OFF));
+            g.fill(x, y, x + 3, y + CELL_H, catColor(m.category));
+            if (m.favorite) g.fill(x, y, x + CELL_W, y + 1, 0xFFE8B030);
+            if (m == expanded) g.fill(x, y + CELL_H - 2, x + CELL_W, y + CELL_H, 0xFFFFD040);
             String state = m.isEnabled() ? "§aAN" : "§8aus";
-            if (compact && m.key >= 0 && cw >= 110) state = "§7" + Keys.name(m.key) + " " + state;
             String name = (m.favorite ? "§6★ §r" : "") + m.name;
-            int room = cw - 7 - font.width(state) - 6;
+            int room = CELL_W - 7 - font.width(state) - 6;
             if (font.width(name) > room) name = font.plainSubstrByWidth(name, room - font.width("…")) + "…";
             g.text(font, name, x + 7, y + 2, m.isEnabled() ? 0xFFFFFFFF : 0xFFC8B8E8, false);
-            g.text(font, state, x + cw - 4 - font.width(state), y + 2, 0xFFFFFFFF, false);
-            if (hover) g.setTooltipForNextFrame(font, Component.literal(m.description), mouseX, mouseY);
-            if (compact) continue;
+            g.text(font, state, x + CELL_W - 4 - font.width(state), y + 2, 0xFFFFFFFF, false);
             String sub = "§7" + m.category.title + (m.key >= 0 ? " §8· §fTaste " + Keys.name(m.key) : "");
             String info = m.isEnabled() ? m.info() : "";
             if (info != null && !info.isEmpty()) sub += " §8· §b" + info;
-            if (font.width(sub) > cw - 10) sub = font.plainSubstrByWidth(sub, cw - 14) + "…";
+            if (!m.settings.isEmpty()) sub += m == expanded ? " §e▾" : " §8▸";
+            if (font.width(sub) > CELL_W - 10) sub = font.plainSubstrByWidth(sub, CELL_W - 14) + "…";
             g.text(font, sub, x + 7, y + 13, 0xFFFFFFFF, false);
+            if (hover) g.setTooltipForNextFrame(font, Component.literal(m.description + " §7(Rechtsklick = Einstellungen)"), mouseX, mouseY);
         }
-        String foot = "§8Schließen: Esc oder " + KeyBinds.overviewName() + "  ·  Großes Menü: " + SettingsScreen.keyName(TeizenClient.menuKey)
-                + "  ·  Tasten ändern: Optionen → Steuerung → Teizen Client";
-        if (font.width(foot) > width - 4) foot = "§8Esc/" + KeyBinds.overviewName() + " = zu · Menü: " + SettingsScreen.keyName(TeizenClient.menuKey);
-        g.centeredText(font, foot, width / 2, height - 12, 0xFFFFFFFF);
+        if (expanded != null && panelY >= 0) {
+            int y = panelY + off;
+            g.fill(gridX - 1, y - 1, gridX + gridW + 1, y + panelH + 1, 0xFFFFD040);
+            g.fill(gridX, y, gridX + gridW, y + panelH, 0xF0100820);
+            // Kopfzeile mit Knöpfen
+            btnW = 78;
+            btnCloseX = gridX + gridW - 16;
+            btnFavX = btnCloseX - 4 - btnW;
+            btnKeyX = btnFavX - 4 - btnW;
+            btnOnX = btnKeyX - 4 - btnW;
+            String title = "§e§l" + expanded.name + " §7– " + expanded.description;
+            int titleRoom = btnOnX - gridX - 10;
+            if (font.width(title) > titleRoom) title = font.plainSubstrByWidth(title, titleRoom - 6) + "…";
+            g.text(font, title, gridX + 5, y + 5, 0xFFFFFFFF, false);
+            button(g, btnOnX, y + 2, btnW, expanded.isEnabled() ? "§aAN" : "§caus", expanded.isEnabled(), mouseX, mouseY);
+            button(g, btnKeyX, y + 2, btnW, binding == expanded ? "§eTaste drücken…" : "Taste: §f" + (expanded.key >= 0 ? Keys.name(expanded.key) : "keine"), binding == expanded, mouseX, mouseY);
+            button(g, btnFavX, y + 2, btnW, expanded.favorite ? "§6★ Favorit" : "☆ Favorit", false, mouseX, mouseY);
+            button(g, btnCloseX, y + 2, 14, "§c✕", false, mouseX, mouseY);
+            if (panelRows.isEmpty()) g.text(font, "§7Dieser Cheat hat keine Einstellungen.", gridX + 6, y + 21, 0xFFFFFFFF, false);
+            for (PanelRow r : panelRows) {
+                int ry = r.y() + off;
+                if (ry + ROW_H < clipTop || ry > clipBottom) continue;
+                rows.render(g, font, expanded, r.row(), r.x(), ry, r.w(), ROW_H - 1, mouseX, mouseY);
+            }
+        }
+        if (search.active() && cells.isEmpty()) g.centeredText(font, "§7Kein Cheat gefunden für \"" + search.query + "\"", width / 2, TOP + 20, 0xFFFFFFFF);
+
+        // Bildlaufleiste
+        if (maxS > 0) {
+            int trackH = clipBottom - TOP;
+            int thumbH = Math.max(16, trackH * trackH / Math.max(1, contentH));
+            int thumbY = TOP + (int) ((trackH - thumbH) * (scroll / (double) maxS));
+            g.fill(width - 5, TOP, width - 2, clipBottom, 0x40FFFFFF);
+            g.fill(width - 5, thumbY, width - 2, thumbY + thumbH, 0xFF9C88C8);
+        }
+
+        // Kopf (über dem Inhalt)
+        g.fill(0, 0, width, TOP - 3, 0xE0100820);
+        g.text(font, "§5§lTEIZEN §7Übersicht", 6, 6, 0xFFFFFFFF, true);
+        int sw = Math.max(80, Math.min(220, width - 2 * (font.width("TEIZEN Übersicht") + 60)));
+        search.render(g, font, width / 2 - sw / 2, 4, sw, mouseX, mouseY);
+        panicW = font.width("PANIK – alles aus") + 10;
+        panicX = width - panicW - 6;
+        panicY = 4;
+        boolean ph = in(mouseX, mouseY, panicX, panicY, panicW, 13);
+        g.fill(panicX, panicY, panicX + panicW, panicY + 13, ph ? 0xFFFF4040 : 0xFFC02020);
+        g.text(font, "§lPANIK §r– alles aus", panicX + 5, panicY + 3, 0xFFFFFFFF, false);
+        String head = "§a" + on + "§7 von §f" + TeizenClient.modules().all().size() + "§7 an  §8|  §7Links: an/aus · Rechts: Einstellungen · Mitte/Shift: §6★ · §7Mausrad: scrollen";
+        if (font.width(head) > width - 8) head = "§a" + on + "§7 an §8| §7L: an/aus · R: Einst. · Mitte: §6★ §7· Mausrad";
+        g.centeredText(font, head, width / 2, 24, 0xFFFFFFFF);
+
+        String foot;
+        if (binding != null) foot = "§eDrück eine Taste für " + binding.name + " (Entf = keine)";
+        else if (rows.hint() != null) foot = rows.hint();
+        else foot = "§8Schließen: Esc oder " + KeyBinds.overviewName() + "  ·  Großes Menü: " + SettingsScreen.keyName(TeizenClient.menuKey)
+                + "  ·  Tasten: Optionen → Steuerung → Teizen Client";
+        g.fill(0, height - 14, width, height, 0xC0000000);
+        if (font.width(foot) > width - 4) foot = font.plainSubstrByWidth(foot, width - 8);
+        g.centeredText(font, foot, width / 2, height - 11, 0xFFFFFFFF);
     }
 
-    /** Mitte der Zelle eines Cheats (oder null, wenn nicht sichtbar). */
+    private void button(GuiGraphicsExtractor g, int x, int y, int w, String label, boolean active, int mx, int my) {
+        boolean hover = in(mx, my, x, y, w, 13);
+        g.fill(x, y, x + w, y + 13, active ? 0xFF7A2CF0 : (hover ? 0xE0362060 : 0xD0281646));
+        var font = getFont();
+        String l = font.width(label) > w - 4 ? font.plainSubstrByWidth(label, w - 6) : label;
+        g.text(font, l, x + (w - font.width(l)) / 2, y + 3, 0xFFFFFFFF, false);
+    }
+
+    /** Mitte der Zelle eines Cheats (oder null, wenn nicht da). */
     public double[] cellCenter(Module target) {
-        List<Module> mods = shown();
-        Layout l = layout();
-        int x0 = startX(l);
-        int i = mods.indexOf(target);
-        if (i < 0) return null;
-        int x = x0 + (i % l.cols()) * l.stepX();
-        int y = TOP + (i / l.cols()) * l.stepY() - scroll;
-        return new double[]{x + l.cellW() / 2.0, y + l.cellH() / 2.0};
-    }
-
-    private Module at(double mx, double my) {
-        List<Module> mods = shown();
-        Layout l = layout();
-        int x0 = startX(l);
-        for (int i = 0; i < mods.size(); i++) {
-            int x = x0 + (i % l.cols()) * l.stepX();
-            int y = TOP + (i / l.cols()) * l.stepY() - scroll;
-            if (mx >= x && mx < x + l.cellW() && my >= y && my < y + l.cellH()) return mods.get(i);
+        layout();
+        for (Cell c : cells) {
+            if (c.m() == target) return new double[]{c.x() + CELL_W / 2.0, c.y() + TOP - scroll + CELL_H / 2.0};
         }
         return null;
     }
 
+    /** Scrollt, bis der Cheat zu sehen ist (Selbsttest / Suche). */
+    public void scrollTo(Module target) {
+        layout();
+        for (Cell c : cells) {
+            if (c.m() != target) continue;
+            int visible = height - 16 - TOP;
+            if (c.y() < scroll) scroll = c.y();
+            else if (c.y() + CELL_H > scroll + visible) scroll = c.y() + CELL_H - visible;
+            scroll = Math.max(0, Math.min(maxScroll(), scroll));
+        }
+    }
+
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
-        if (search.click(e.x(), e.y())) return true;
-        if (e.y() < TOP - 4) return true;
-        Module m = at(e.x(), e.y());
-        if (m != null) {
-            boolean shift = (e.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0;
-            if (e.button() == 2 || (e.button() == 0 && shift)) {
+        if (rows.isEditing() && !rows.finish(true)) return true;
+        double mx = e.x(), my = e.y();
+        if (in(mx, my, panicX, panicY, panicW, 13)) {
+            int n = PanicButton.panic();
+            Chat.ok("PANIK: " + n + " Cheats ausgeschaltet.");
+            return true;
+        }
+        if (search.click(mx, my)) return true;
+        if (my < TOP - 3 || my >= height - 16) return true;
+        layout();
+        int off = TOP - scroll;
+        int button = e.button();
+        // aufgeklappter Bereich
+        if (expanded != null && panelY >= 0 && in(mx, my, gridX, panelY + off, gridW, panelH)) {
+            int y = panelY + off + 2;
+            if (in(mx, my, btnCloseX, y, 14, 13)) { toggleExpand(expanded); return true; }
+            if (in(mx, my, btnOnX, y, btnW, 13)) { expanded.toggle(); Config.save(); return true; }
+            if (in(mx, my, btnKeyX, y, btnW, 13)) { binding = binding == expanded ? null : expanded; return true; }
+            if (in(mx, my, btnFavX, y, btnW, 13)) { expanded.favorite = !expanded.favorite; Config.save(); return true; }
+            for (PanelRow r : panelRows) {
+                if (in(mx, my, r.x(), r.y() + off, r.w(), ROW_H)) {
+                    rows.click(expanded, r.row(), button);
+                    return true;
+                }
+            }
+            return true;
+        }
+        for (Cell c : cells) {
+            if (!in(mx, my, c.x(), c.y() + off, CELL_W, CELL_H)) continue;
+            Module m = c.m();
+            boolean shift = (e.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0;
+            if (button == 2 || (button == 0 && shift)) {
                 m.favorite = !m.favorite;
                 Config.save();
-            } else if (e.button() == 0) {
+            } else if (button == 0) {
                 m.toggle();
                 Config.save();
-            } else if (e.button() == 1) {
-                net.minecraft.client.Minecraft.getInstance().gui.setScreen(new ModuleScreen(m, this));
+            } else if (button == 1) {
+                toggleExpand(m);
             }
             return true;
         }
@@ -170,22 +370,30 @@ public final class Overview extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
-        Layout l = layout();
-        int rows = (shown().size() + l.cols() - 1) / l.cols();
-        int max = Math.max(0, TOP + rows * l.stepY() - (height - 18));
-        scroll = Math.max(0, Math.min(max, scroll - (int) (sy * 12)));
+        layout();
+        scroll = Math.max(0, Math.min(maxScroll(), scroll - (int) (sy * 24)));
         return true;
     }
 
     @Override
-    public boolean charTyped(net.minecraft.client.input.CharacterEvent e) {
-        if (search.charTyped(e)) { scroll = 0; return true; }
+    public boolean charTyped(CharacterEvent e) {
+        if (rows.charTyped(e)) return true;
+        if (binding == null && search.charTyped(e)) { scroll = 0; return true; }
         return super.charTyped(e);
     }
 
     @Override
     public boolean keyPressed(KeyEvent e) {
+        if (rows.keyPressed(e)) return true;
+        if (binding != null) {
+            int k = e.key();
+            binding.key = (k == GLFW.GLFW_KEY_DELETE || k == GLFW.GLFW_KEY_BACKSPACE || k == GLFW.GLFW_KEY_ESCAPE) ? -1 : k;
+            binding = null;
+            Config.save();
+            return true;
+        }
         if (search.keyPressed(e)) return true;
+        if (e.key() == GLFW.GLFW_KEY_ESCAPE && expanded != null) { toggleExpand(expanded); return true; }
         if (e.key() == TeizenClient.menuKey) {
             net.minecraft.client.Minecraft.getInstance().gui.setScreen(new ClickGui());
             return true;
@@ -194,6 +402,8 @@ public final class Overview extends Screen {
             onClose();
             return true;
         }
+        if (e.key() == GLFW.GLFW_KEY_PAGE_DOWN || e.key() == GLFW.GLFW_KEY_DOWN) { scroll = Math.min(maxScroll(), scroll + (e.key() == GLFW.GLFW_KEY_DOWN ? 24 : height / 2)); return true; }
+        if (e.key() == GLFW.GLFW_KEY_PAGE_UP || e.key() == GLFW.GLFW_KEY_UP) { scroll = Math.max(0, scroll - (e.key() == GLFW.GLFW_KEY_UP ? 24 : height / 2)); return true; }
         return super.keyPressed(e);
     }
 }

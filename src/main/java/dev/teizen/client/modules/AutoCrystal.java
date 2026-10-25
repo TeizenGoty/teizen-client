@@ -24,11 +24,16 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * AutoCrystal: setzt End-Kristalle neben Gegner und zerschlägt sie sofort (Explosion).
+ * AutoCrystal. Modus "einfach" (Standard, wie die Crystal-Aura-Mod): mit Kristallen in der Hand wird auf den nächsten
+ * Obsidian/Grundgestein gesetzt und jeder Kristall in 3 Blöcken Nähe sofort zerschlagen – kein Ziel nötig. Taste: J.
+ * Modus "ziel": setzt End-Kristalle neben Gegner und zerschlägt sie sofort (Explosion).
  * Ohne Kristalle (oder als Ergänzung) auch mit Respawn-Ankern: setzen, mit Glowstone laden, zünden
  * (Anker explodieren in der Oberwelt und im End, nicht im Nether).
  */
 public final class AutoCrystal extends Module {
+    private final Setting mode = add(Setting.choice("modus", "einfach = wie die Crystal-Aura-Mod (nächster Obsidian), ziel = neben Gegner", "einfach", "einfach", "ziel"));
+    private final Setting simpleBreak = add(Setting.number("schlagweite", "Modus einfach: Kristalle in dieser Nähe zerschlagen (Blöcke)", 3, 1, 6));
+    private final Setting simpleHand = add(Setting.bool("nurinhand", "Modus einfach: nur wenn du Kristalle in der Hand hältst", true));
     private final Setting targetRange = add(Setting.number("zielreichweite", "Wie weit Gegner gesucht werden (Blöcke)", 10, 2, 20));
     private final Setting range = add(Setting.number("reichweite", "Wie weit Kristalle gesetzt/zerschlagen werden (Blöcke)", 4.5, 1, 6));
     private final Setting placeDelay = add(Setting.number("setzpause", "Ticks zwischen zwei Kristallen", 2, 0, 20));
@@ -51,7 +56,59 @@ public final class AutoCrystal extends Module {
     private int anchorStage, anchorTimeout;
 
     public AutoCrystal() {
-        super("AutoCrystal", Category.KAMPF, "Setzt und zündet End-Kristalle / Respawn-Anker neben Gegnern.");
+        super("AutoCrystal", Category.KAMPF, "Setzt und zündet End-Kristalle automatisch (Taste J).");
+        key = org.lwjgl.glfw.GLFW.GLFW_KEY_J;
+    }
+
+    /** Modus einfach: kürzlich belegte Plätze (10 Ticks Pause je Platz, wie bei der Mod). */
+    private final java.util.Map<BlockPos, Integer> recent = new java.util.HashMap<>();
+
+    private void simpleTick() {
+        recent.replaceAll((k, v) -> v - 1);
+        recent.values().removeIf(v -> v <= 0);
+        Vec3 eye = mc.player.getEyePosition();
+        double br = simpleBreak.num();
+        // 1) alle Kristalle in der Nähe sofort zerschlagen
+        java.util.List<EndCrystal> list = mc.level.getEntitiesOfClass(EndCrystal.class,
+                new AABB(eye.x - br, eye.y - br, eye.z - br, eye.x + br, eye.y + br, eye.z + br),
+                c -> c.isAlive() && c.position().distanceTo(eye) <= br);
+        list.sort(java.util.Comparator.comparingDouble(c -> c.distanceToSqr(mc.player)));
+        for (EndCrystal c : list) {
+            if (rotate.on()) { float[] rr = Rot.to(c.getBoundingBox().getCenter()); Rot.sendSilent(rr[0], rr[1]); }
+            mc.gameMode.attack(mc.player, c);
+            mc.player.swing(InteractionHand.MAIN_HAND);
+            recent.remove(c.blockPosition().below());
+            broken++;
+        }
+        // 2) Kristall auf den nächsten freien Obsidian/Grundgestein setzen
+        InteractionHand hand = mc.player.getMainHandItem().is(Items.END_CRYSTAL) ? InteractionHand.MAIN_HAND
+                : mc.player.getOffhandItem().is(Items.END_CRYSTAL) ? InteractionHand.OFF_HAND : null;
+        if (hand == null && !simpleHand.on()) hand = takeInHand(Items.END_CRYSTAL);
+        if (hand == null) return;
+        double r = range.num();
+        int ri = (int) Math.ceil(r);
+        BlockPos c = mc.player.blockPosition();
+        BlockPos best = null;
+        double bestD = Double.MAX_VALUE;
+        for (BlockPos p : BlockPos.betweenClosed(c.offset(-ri, -ri, -ri), c.offset(ri, ri, ri))) {
+            BlockState st = mc.level.getBlockState(p);
+            if (!st.is(Blocks.OBSIDIAN) && !st.is(Blocks.BEDROCK)) continue;
+            if (!mc.level.getBlockState(p.above()).isAir()) continue;
+            double d = eye.distanceToSqr(p.getX() + 0.5, p.getY() + 1.0, p.getZ() + 0.5);
+            if (d > r * r || d >= bestD) continue;
+            if (recent.containsKey(p)) continue;
+            BlockPos up = p.above();
+            if (!mc.level.getEntitiesOfClass(EndCrystal.class, new AABB(up)).isEmpty()) continue;
+            best = p.immutable();
+            bestD = d;
+        }
+        if (best == null) return;
+        Vec3 hit = new Vec3(best.getX() + 0.5, best.getY() + 1.0, best.getZ() + 0.5);
+        if (rotate.on()) { float[] rr = Rot.to(hit); Rot.sendSilent(rr[0], rr[1]); }
+        mc.gameMode.useItemOn(mc.player, hand, new BlockHitResult(hit, Direction.UP, best, false));
+        mc.player.swing(hand);
+        recent.put(best, 10);
+        placed++;
     }
 
     @Override
@@ -70,6 +127,7 @@ public final class AutoCrystal extends Module {
     @Override
     public void onTick() {
         if (!inGame() || mc.gui.screen() != null) { target = null; return; }
+        if (mode.is("einfach")) { target = null; simpleTick(); return; }
         target = Targets.nearest(targetRange.num(), players.on(), monsters.on(), false, true);
         if (target == null) {
             // Anker, der schon steht, trotzdem fertig zünden (sonst bleibt ein geladener Anker liegen)
@@ -230,5 +288,5 @@ public final class AutoCrystal extends Module {
     }
 
     @Override
-    public String info() { return target == null ? "" : target.getName().getString(); }
+    public String info() { return mode.is("einfach") ? "einfach" : target == null ? "" : target.getName().getString(); }
 }

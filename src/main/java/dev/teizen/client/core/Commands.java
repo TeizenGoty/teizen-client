@@ -228,9 +228,9 @@ public final class Commands {
                 Config.save();
             }
             case "save", "speichern" -> { Config.save(); Chat.ok("Gespeichert."); }
-            case "panic", "alleaus" -> {
-                for (Module m : mm.all()) m.setEnabled(false);
-                Chat.ok("Alle Funktionen aus.");
+            case "panic", "alleaus", "panik" -> {
+                int n = dev.teizen.client.modules.PanicButton.panic();
+                Chat.ok("Alle Funktionen aus (" + n + " ausgeschaltet).");
             }
             default -> {
                 // ///killaura = einfach umschalten
@@ -285,7 +285,10 @@ public final class Commands {
             case "Nametags", "ArmorESP" -> "groesse";
             case "ItemESP" -> "filter";
             case "Tracers" -> "distanz";
-            case "Nuker", "StorageESP", "ShulkerESP", "PortalFinder" -> "radius";
+            case "Nuker", "StorageESP", "PortalFinder" -> "radius";
+            case "FastBreak" -> "faktor";
+            case "FakeLag" -> "verzoegerung";
+            case "Radar" -> "zoom";
             case "AntiKnockback" -> "rest";
             case "AutoReconnect", "FastEat" -> "sekunden";
             case "AutoEat" -> "hunger";

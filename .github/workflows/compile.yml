@@ -44,23 +44,6 @@ jobs:
               else javap -p -cp "$CP" "$a" >> api-dump.txt 2>&1; fi
             done
           fi
-      - name: Xaero dump
-        if: always()
-        run: |
-          set +e
-          mkdir -p /tmp/xaero && cd /tmp/xaero
-          for proj in xaeros-minimap xaeros-world-map; do
-            curl -sL "https://api.modrinth.com/v2/project/$proj/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%2226.2%22%5D" -o v.json
-            URL=$(jq -r '.[0].files[0].url' v.json)
-            echo "== $proj: $(jq -r '.[0].version_number' v.json) $URL" >> $GITHUB_WORKSPACE/api-dump.txt
-            curl -sL "$URL" -o $proj.jar
-            CLS=$(unzip -Z1 $proj.jar | grep '\.class$' | grep -v 'mixin' | sed 's/\.class$//' | tr / .)
-            javap -c -p -cp $proj.jar $CLS > $proj-all.txt 2>/dev/null
-            python3 $GITHUB_WORKSPACE/ci/xaero_scan.py < $proj-all.txt | head -80 >> $GITHUB_WORKSPACE/api-dump.txt
-            for c in $(unzip -Z1 $proj.jar | grep -E 'tracker/system/[A-Za-z]+\.class$' | sed 's/\.class$//' | tr / .); do
-              javap -p -cp $proj.jar "$c" >> $GITHUB_WORKSPACE/api-dump.txt 2>&1
-            done
-          done
       - name: Publish
         if: always()
         run: |

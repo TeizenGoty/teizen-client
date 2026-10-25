@@ -15,7 +15,7 @@ import dev.teizen.client.modules.Freecam;
 import dev.teizen.client.modules.ItemESP;
 import dev.teizen.client.modules.Nametags;
 import dev.teizen.client.modules.PortalFinder;
-import dev.teizen.client.modules.ShulkerESP;
+import dev.teizen.client.modules.StorageESP;
 import dev.teizen.client.modules.StructureFinder;
 import dev.teizen.client.modules.XRay;
 import dev.teizen.client.util.Inv;
@@ -50,6 +50,8 @@ final class NewTests {
     private static int n0, kb0;
     private static boolean flag1, flag2;
     private static String predictedText = "";
+    private static boolean elytraKey;
+    private static int i0;
     private static float minHealth;
 
     private static String describe(List<net.minecraft.world.item.enchantment.EnchantmentInstance> list) {
@@ -61,14 +63,14 @@ final class NewTests {
 
     /** Klicks in der Erz-Liste des Bearbeiten-Bildschirms. */
     private static final class SettingRowsHelper {
-        static void clickAll(dev.teizen.client.gui.ModuleScreen ms, Module m) {
+        static void clickAll(Overview ov, Module m) {
             for (var r : dev.teizen.client.gui.SettingRows.rows(m))
-                if (r.kind() == dev.teizen.client.gui.SettingRows.Kind.MULTI_ALL) { ms.clickRow(r, 0); return; }
+                if (r.kind() == dev.teizen.client.gui.SettingRows.Kind.MULTI_ALL) { ov.clickRow(r, 0); return; }
         }
 
-        static void clickOption(dev.teizen.client.gui.ModuleScreen ms, Module m, String option) {
+        static void clickOption(Overview ov, Module m, String option) {
             for (var r : dev.teizen.client.gui.SettingRows.rows(m))
-                if (r.kind() == dev.teizen.client.gui.SettingRows.Kind.MULTI_OPTION && option.equals(r.option())) { ms.clickRow(r, 0); return; }
+                if (r.kind() == dev.teizen.client.gui.SettingRows.Kind.MULTI_OPTION && option.equals(r.option())) { ov.clickRow(r, 0); return; }
         }
     }
 
@@ -162,6 +164,7 @@ final class NewTests {
                 summonHusk(tgt, "");
                 cmd("give @s minecraft:end_crystal 16");
                 tp(area, 0.5, 0, 0.5, -90, 20);
+                t("///set autocrystal modus ziel");
                 t("///set autocrystal monster an");
                 t("///set autocrystal spieler aus");
                 next();
@@ -288,7 +291,7 @@ final class NewTests {
             // ---------------------------------------------- AutoShield
             case 48 -> {
                 cmd("give @s minecraft:shield");
-                t("///set autoshield modus gegner");
+                t("///set autoshield wann alles");
                 t("///set autoshield reichweite 4");
                 next();
             }
@@ -493,7 +496,7 @@ final class NewTests {
             case 75 -> {
                 area = o.offset(24, 0, 24);
                 tp(area, 0.5, 0, 0.5, -90, 0);
-                t("///set freecam reichweite 6");
+                t("///set freecam maxabstand 6");
                 t("///set freecam tempo 0.5");
                 next();
             }
@@ -518,10 +521,21 @@ final class NewTests {
                 result("Freecam: Kamera " + f(camD) + " Blöcke weg (Grenze 6), Spieler bewegt " + f(moved) + " (soll 0), Kamera aktiv=" + yes(isCam) + " "
                         + ok(isCam && camD > 3 && camD <= 6.2 && moved < 0.3));
                 keys(false, false);
+                // nach links/rechts schauen: Maus-Drehung muss die Kamera drehen, nicht den Spieler
+                a0 = mc.gameRenderer.mainCamera().yRot();
+                d1 = mc.player.getYRot();
+                fc.playerDrawn = 0;
+                mc.player.turn(400, 0); // = 60 Grad nach rechts
                 next();
             }
             case 79 -> {
                 if (!after(10)) return;
+                Freecam fc = mod(Freecam.class);
+                double camTurn = Math.abs(net.minecraft.util.Mth.wrapDegrees(mc.gameRenderer.mainCamera().yRot() - (float) a0));
+                double playerTurn = Math.abs(net.minecraft.util.Mth.wrapDegrees(mc.player.getYRot() - (float) d1));
+                shot("14b-freecam-gedreht");
+                result("Freecam links/rechts schauen: Kamera gedreht " + Math.round(camTurn) + "° (soll 60), Spieler gedreht " + Math.round(playerTurn)
+                        + "° (soll 0), Spieler sichtbar gezeichnet=" + yes(fc.playerDrawn > 0) + " " + ok(camTurn > 50 && camTurn < 70 && playerTurn < 1 && fc.playerDrawn > 0));
                 t("///freecam");
                 next();
             }
@@ -560,6 +574,9 @@ final class NewTests {
                 cmd("setblock " + blk(area.offset(5, 0, 3)) + " minecraft:end_portal_frame[facing=north,eye=true]");
                 cmd("setblock " + blk(area.offset(6, 0, 3)) + " minecraft:end_portal_frame[facing=north,eye=false]");
                 cmd("setblock " + blk(area.offset(7, 0, 0)) + " minecraft:purple_shulker_box");
+                // Doppelkiste (soll als EINE Box erscheinen)
+                cmd("setblock " + blk(area.offset(6, 0, -6)) + " minecraft:chest[facing=north,type=left]");
+                cmd("setblock " + blk(area.offset(7, 0, -6)) + " minecraft:chest[facing=north,type=right]");
                 cmd("summon minecraft:item " + xyz(area.offset(3, 0, 1), 0.5, 0, 0.5) + " {Item:{id:\"minecraft:diamond\",count:3},PickupDelay:32767}");
                 cmd("summon minecraft:item " + xyz(area.offset(3, 0, -1), 0.5, 0, 0.5) + " {Item:{id:\"minecraft:dirt\",count:5},PickupDelay:32767}");
                 cmd("summon minecraft:item " + xyz(area.offset(4, 0, 0), 0.5, 0, 0.5) + " {Item:{id:\"minecraft:shulker_box\",count:1},PickupDelay:32767}");
@@ -577,7 +594,7 @@ final class NewTests {
                 t("///set armoresp mobs an");
                 t("///portalfinder");
                 t("///itemesp");
-                t("///shulkeresp");
+                t("///storageesp");
                 t("///nametags");
                 t("///armoresp");
                 next();
@@ -596,8 +613,16 @@ final class NewTests {
                 result("PortalFinder: " + pf.portals.size() + " Portale (" + sb + ") " + ok(nether && frames));
                 ItemESP ie = mod(ItemESP.class);
                 result("ItemESP: " + ie.total + " Items, hervorgehoben " + ie.highlighted + " (Diamant + Shulker) " + ok(ie.total >= 3 && ie.highlighted >= 2));
-                ShulkerESP se = mod(ShulkerESP.class);
-                result("ShulkerESP: aufgestellt " + se.blockCount + ", am Boden " + se.itemCount + " " + ok(se.blockCount >= 1 && se.itemCount >= 1));
+                StorageESP se = mod(StorageESP.class);
+                int dblBoxes = 0, singleNear = 0;
+                BlockPos c1 = area.offset(6, 0, -6), c2 = area.offset(7, 0, -6);
+                for (StorageESP.Found fo : se.found) {
+                    boolean touches = fo.box().intersects(new AABB(c1)) || fo.box().intersects(new AABB(c2));
+                    if (!touches) continue;
+                    if (fo.doubleChest()) dblBoxes++; else singleNear++;
+                }
+                result("Kisten-ESP (mit Shulker): Shulker aufgestellt " + se.shulkerBlocks + ", am Boden " + se.shulkerItemCount + ", Doppelkiste als eine Box="
+                        + yes(dblBoxes == 1 && singleNear == 0) + " " + ok(se.shulkerBlocks >= 1 && se.shulkerItemCount >= 1 && dblBoxes == 1 && singleNear == 0));
                 Nametags nt = mod(Nametags.class);
                 result("Nametags: " + nt.drawn + " Namensschild(er) gezeichnet " + ok(nt.drawn >= 1));
                 ArmorESP ae = mod(ArmorESP.class);
@@ -611,7 +636,7 @@ final class NewTests {
                         : "gefunden bei " + pf.located.get(0).pos().getX() + " " + pf.located.get(0).pos().getZ() + " OK"));
                 t("///portalfinder");
                 t("///itemesp");
-                t("///shulkeresp");
+                t("///storageesp");
                 t("///nametags");
                 t("///armoresp");
                 cmd("kill @e[type=minecraft:husk]");
@@ -620,6 +645,7 @@ final class NewTests {
             // ---------------------------------------------- XRay: nur bestimmte Erze, Lava, Wasser, Höhlen
             case 88 -> {
                 cmd("setblock " + blk(area.offset(0, -10, 0)) + " minecraft:lava");
+                cmd("setblock " + blk(area.offset(2, -6, 3)) + " minecraft:diamond_ore");
                 cmd("fill " + blk(area.offset(3, -16, -2)) + " " + blk(area.offset(7, -13, 2)) + " minecraft:air");
                 t("///xray nur diamond");
                 t("///xray lava an");
@@ -634,6 +660,7 @@ final class NewTests {
                 shot("16-xray-extra");
                 result("XRay extra: nur diamond=" + yes(only) + ", Lava " + x.lavaCount() + ", Wasser " + x.waterCount() + ", Höhlen-Punkte "
                         + x.caveCount() + " " + ok(only && x.lavaCount() > 0 && x.caveCount() > 0));
+                result("XRay Pfeile zu Erzen: " + x.arrowCount + " Pfeil(e) " + ok(x.arrowCount >= 1));
                 t("///xray alle");
                 t("///xray lava aus");
                 t("///xray wasser aus");
@@ -655,17 +682,28 @@ final class NewTests {
                 if (!sf.found.isEmpty()) shot("17-structurefinder");
                 result("StructureFinder: Dorf " + (sf.found.isEmpty() ? "nicht gefunden FEHLER" : "gefunden bei " + sf.found.get(0).pos().getX()
                         + " " + sf.found.get(0).pos().getZ() + " OK"));
-                t("///structurefinder aus");
+                // im Menü eine zweite Struktur anhaken (wie ein Klick in der Liste)
+                flag1 = sf.structures.choices.size() >= 20;
+                sf.structures.toggleOption("ruined_portal");
                 next();
             }
-            // ---------------------------------------------- Favoriten
             case 92 -> {
+                StructureFinder sf = mod(StructureFinder.class);
+                boolean two = sf.found.stream().anyMatch(fo -> fo.key().equals("ruined_portal")) && sf.found.stream().anyMatch(fo -> fo.key().equals("village"));
+                if (!two && !after(600)) return;
+                result("StructureFinder Auswahl: " + sf.structures.choices.size() + " Strukturen wählbar, Portalruine dazu angehakt -> gefunden="
+                        + yes(two) + " (" + sf.found.size() + " Treffer) " + ok(flag1 && two));
+                t("///structurefinder aus");
+                SelfTest.jump(192);
+            }
+            // ---------------------------------------------- Favoriten
+            case 192 -> {
                 t("///fav killaura");
                 t("///fav xray");
                 mc.gui.setScreen(new ClickGui());
                 next();
             }
-            case 93 -> {
+            case 193 -> {
                 if (!after(20)) return;
                 shot("18-favoriten-menue");
                 var mm = TeizenClient.modules();
@@ -678,12 +716,27 @@ final class NewTests {
                 mc.gui.setScreen(new Overview());
                 next();
             }
-            case 94 -> {
+            case 194 -> {
                 if (!after(20)) return;
                 shot("19-favoriten-uebersicht");
-                result("Favoriten: KillAura + XRay oben=" + yes(flag1) + ", gespeichert=" + yes(flag2) + " " + ok(flag1 && flag2));
-                mc.gui.setScreen(null);
+                Overview ov = mc.gui.screen() instanceof Overview o2 ? o2 : null;
+                boolean favTop = ov != null && !ov.shownModules().isEmpty() && ov.shownModules().get(0).name.equals("KillAura");
+                result("Favoriten: KillAura + XRay oben=" + yes(flag1 && favTop) + ", gespeichert=" + yes(flag2) + " " + ok(flag1 && flag2 && favTop));
+                // Übersicht: jede Kategorie fängt in einer neuen Reihe an, Mausrad scrollt
+                boolean rowsOk = ov != null && ov.categoriesStartNewRow();
+                int before = ov == null ? 0 : ov.scroll();
+                if (ov != null) ov.mouseScrolled(100, 100, 0, -3);
+                int afterScroll = ov == null ? 0 : ov.scroll();
+                result("Übersicht: alle " + (ov == null ? 0 : ov.shownModules().size()) + " Cheats, Kategorien in neuer Reihe=" + yes(rowsOk)
+                        + ", Mausrad scrollt (" + before + " -> " + afterScroll + ", max " + (ov == null ? 0 : ov.maxScroll()) + ") "
+                        + ok(rowsOk && afterScroll > before && ov.shownModules().size() == TeizenClient.modules().all().size()));
                 next();
+            }
+            case 195 -> {
+                if (!after(10)) return;
+                shot("19b-uebersicht-gescrollt");
+                mc.gui.setScreen(null);
+                SelfTest.jump(95);
             }
             // ---------------------------------------------- God aus
             case 150 -> {
@@ -881,34 +934,39 @@ final class NewTests {
             case 115 -> {
                 if (!after(8)) return;
                 flag1 = mc.player.isFallFlying();
+                elytraKey = false;
+                dev.teizen.client.modules.ElytraReset.keyDown = () -> elytraKey;
                 t("///elytrareset");
                 next();
             }
             case 116 -> {
                 if (!after(2)) return;
-                mc.options.keyJump.setDown(true);
+                elytraKey = true; // eigene Taste (Standard Strg links)
                 next();
             }
             case 117 -> {
                 if (!after(3)) return;
-                mc.options.keyJump.setDown(false);
+                elytraKey = false;
                 next();
             }
             case 118 -> {
                 if (!after(6)) return;
                 flag2 = !mc.player.isFallFlying();
                 d1 = mc.player.getDeltaMovement().y;
-                mc.options.keyJump.setDown(true); // nochmal Leertaste: Minecraft öffnet die Elytra wieder
+                elytraKey = true; // nochmal die Taste: Elytra wieder auf
                 next();
             }
             case 119 -> {
                 if (!after(4)) return;
-                mc.options.keyJump.setDown(false);
+                elytraKey = false;
                 boolean again = mc.player.isFallFlying();
                 var er = mod(dev.teizen.client.modules.ElytraReset.class);
-                result("ElytraReset: Gleiten vorher=" + yes(flag1) + ", Leertaste = Elytra zu=" + yes(flag2) + " (Fallen " + f(d1) + "), nochmal Leertaste = wieder offen="
-                        + yes(again) + " " + ok(flag1 && flag2 && again && er.resets >= 1));
+                var km = dev.teizen.client.core.KeyBinds.elytra();
+                boolean ctrl = km != null && net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.getBoundKeyOf(km).getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL;
+                result("ElytraReset: Gleiten vorher=" + yes(flag1) + ", Taste = Elytra zu=" + yes(flag2) + " (Fallen " + f(d1) + "), nochmal Taste = wieder offen="
+                        + yes(again) + ", eigene Taste in der Steuerung = Strg links=" + yes(ctrl) + " " + ok(flag1 && flag2 && again && er.resets >= 1 && ctrl));
                 t("///elytrareset");
+                dev.teizen.client.modules.ElytraReset.keyDown = () -> dev.teizen.client.core.KeyBinds.elytra() != null && dev.teizen.client.core.KeyBinds.elytra().isDown();
                 tp(area, 0.5, 0, 0.5, -90, 0);
                 next();
             }
@@ -947,17 +1005,20 @@ final class NewTests {
             // ---------------------------------------------- ChatSpammer
             case 125 -> {
                 dev.teizen.client.modules.ChatSpammer.echoes = 0;
-                t("///set chatspammer anzahl 3");
-                t("///set chatspammer sekunden 1");
+                t("///set chatspammer anzahl 20");
+                t("///set chatspammer ticks 1");
+                t("///set chatspammer protick 2");
                 t("///chatspammer Teizen Spam Test");
+                i0 = -1;
                 next();
             }
             case 126 -> {
-                if (!after(100)) return;
                 var cs = mod(dev.teizen.client.modules.ChatSpammer.class);
+                if (i0 < 0 && !cs.isEnabled()) i0 = SelfTest.local();
+                if (!after(100)) return;
                 int echoes = dev.teizen.client.modules.ChatSpammer.echoes;
-                result("ChatSpammer: gesendet " + cs.sent + "/3, im Chat angekommen " + echoes + ", danach aus=" + yes(!cs.isEnabled()) + " "
-                        + ok(cs.sent == 3 && echoes >= 3 && !cs.isEnabled()));
+                result("ChatSpammer schnell: 20 Nachrichten in " + i0 + " Ticks gesendet (soll höchstens 12), im Chat angekommen " + echoes + ", danach aus="
+                        + yes(!cs.isEnabled()) + " " + ok(cs.sent == 20 && echoes >= 18 && !cs.isEnabled() && i0 >= 0 && i0 <= 12));
                 next();
             }
             // ---------------------------------------------- VillagerRoller (Lesepult abbauen/setzen bis Angebot passt)
@@ -1079,9 +1140,10 @@ final class NewTests {
                 boolean ovOk = !c.isEmpty() && c.get(0).name.equals("DolphinMode");
                 result("Lupe/Suche: Menü \"velo\" -> Velocity=" + yes(flag1) + ", \"fall\" -> NoFall=" + yes(flag2) + ", Übersicht \"dolph\" -> DolphinMode="
                         + yes(ovOk) + " " + ok(flag1 && flag2 && ovOk));
-                // Rechtsklick auf XRay in der Übersicht -> Bearbeiten-Bildschirm
+                // Rechtsklick auf XRay in der Übersicht -> Einstellungen klappen direkt dort auf
                 ov.setSearch("");
                 Module xr = TeizenClient.modules().get(XRay.class);
+                ov.scrollTo(xr);
                 double[] cc = ov.cellCenter(xr);
                 if (cc != null) ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(cc[0], cc[1], new net.minecraft.client.input.MouseButtonInfo(1, 0)), false);
                 next();
@@ -1090,21 +1152,29 @@ final class NewTests {
                 if (!after(10)) return;
                 Module xr = TeizenClient.modules().get(XRay.class);
                 XRay x = (XRay) xr;
-                boolean editor = mc.gui.screen() instanceof dev.teizen.client.gui.ModuleScreen ms && ms.module() == xr;
+                Overview ov = mc.gui.screen() instanceof Overview o2 ? o2 : null;
+                boolean inline = ov != null && ov.expanded() == xr;
                 shot("27-cheat-bearbeiten");
-                if (editor) {
-                    dev.teizen.client.gui.ModuleScreen ms = (dev.teizen.client.gui.ModuleScreen) mc.gui.screen();
+                if (inline) {
                     x.ores.setText("diamond");
-                    SettingRowsHelper.clickAll(ms, xr);           // "alle" -> alle Erze an
+                    SettingRowsHelper.clickAll(ov, xr);           // "alle" -> alle Erze an
                     flag1 = x.ores.allSelected();
-                    SettingRowsHelper.clickOption(ms, xr, "coal"); // Kohle wieder ab
+                    SettingRowsHelper.clickOption(ov, xr, "coal"); // Kohle wieder ab
                     flag2 = !x.ores.isSelected("coal") && x.ores.isSelected("diamond") && x.ores.selected().size() == XRay.ALL_ORES.length - 1;
                     log("XRay-Erze nach Klicks: " + x.ores.str());
+                    // Zahl direkt in der Übersicht eintippen
+                    ov.clickSetting(x.setting("radius"), 0);
+                    ov.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_DELETE, 0, 0));
+                    ov.charTyped(new net.minecraft.client.input.CharacterEvent('7'));
+                    ov.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
                 }
-                result("Rechtsklick in der Übersicht öffnet Cheat bearbeiten=" + yes(editor) + "; XRay-Erze: \"alle\"=alle an " + yes(flag1)
-                        + ", dann Kohle einzeln ab " + yes(flag2) + " " + ok(editor && flag1 && flag2));
+                boolean typed = x.setting("radius").integer() == 7;
+                result("Rechtsklick in der Übersicht klappt die Einstellungen direkt dort auf=" + yes(inline) + " (gleicher Bildschirm=" + yes(ov != null)
+                        + "); XRay-Erze: \"alle\"=alle an " + yes(flag1) + ", dann Kohle einzeln ab " + yes(flag2) + ", Zahl eingetippt=" + yes(typed) + " "
+                        + ok(inline && flag1 && flag2 && typed));
                 x.ores.setText(XRay.DEFAULT_ORES);
-                // Menü-Taste im Bearbeiten-Bildschirm -> großes Menü
+                x.setting("radius").setNumber(4);
+                // Menü-Taste in der Übersicht -> großes Menü
                 if (mc.gui.screen() != null) mc.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(TeizenClient.menuKey, 0, 0));
                 next();
             }
@@ -1285,6 +1355,486 @@ final class NewTests {
                 var fly = mod(dev.teizen.client.modules.Fly.class);
                 result("Fly Fallschaden: in 12 Blöcken Höhe ausgeschaltet -> Schaden " + f(d2) + ", runtergeflogen und gelandet -> Schaden " + f(dmg2)
                         + " (Schutz-Pakete " + fly.protectedPackets + ") " + ok(d2 < 0.5 && dmg2 < 0.5));
+                SelfTest.jump(210);
+            }
+            // ============================================== Runde 6: neue Funktionen
+            // ---------------------------------------------- AimAssist mit Bogen + Auto-Schuss
+            case 210 -> {
+                area = o.offset(48, 0, 0);
+                tp(area, 0.5, 1, 0.5, -90, 0);
+                next();
+            }
+            case 211 -> {
+                if (!after(20)) return;
+                arena(area, 14, 8);
+                cmd("kill @e[type=minecraft:husk]");
+                summonHusk(area.offset(12, 0, 0), "");
+                cmd("clear @s");
+                cmd("give @s minecraft:bow");
+                cmd("give @s minecraft:arrow 64");
+                tp(area, -1.5, 0, 0.5, -60, 0);
+                t("///set aimassist monster an");
+                t("///set aimassist bogen an");
+                t("///set aimassist autoschuss an");
+                next();
+            }
+            case 212 -> {
+                if (!after(30)) return;
+                Inv.ensureInHand(s -> s.is(Items.BOW));
+                mod(AimAssist.class).shots = 0;
+                t("///aimassist");
+                next();
+            }
+            case 213 -> {
+                List<LivingEntity> h = husks(16);
+                AimAssist aa = mod(AimAssist.class);
+                if (SelfTest.local() == 60) shot("30-aimassist-bogen");
+                boolean dead = h.isEmpty();
+                if (!dead && !after(400)) return;
+                float hp = dead ? 0 : h.get(0).getHealth();
+                result("AimAssist Bogen: automatisch geschossen " + aa.shots + "x, Gegner in 13 Blöcken Leben " + f(hp) + "/20 (tot=" + yes(dead) + ") "
+                        + ok(aa.shots >= 1 && hp < 20));
+                t("///aimassist");
+                mc.options.keyUse.setDown(false);
+                cmd("kill @e[type=minecraft:husk]");
+                next();
+            }
+            // ---------------------------------------------- AntiKnockback (Schlag + Pfeil)
+            case 214 -> {
+                area = o.offset(48, 0, 24);
+                tp(area, 0.5, 1, 0.5, 180, 0);
+                next();
+            }
+            case 215 -> {
+                if (!after(20)) return;
+                arena(area, 9, 6);
+                summonHusk(area.offset(2, 0, 0), "");
+                tp(area, 0.5, 0, 0.5, 180, 0);
+                t("///set antiknockback rest 0");
+                if (!mod(dev.teizen.client.modules.AntiKnockback.class).isEnabled()) t("///antiknockback");
+                next();
+            }
+            case 216 -> {
+                if (!after(40)) return;
+                p0 = mc.player.position();
+                kb0 = SelfTest.knockbacks;
+                cmd("damage @s 1 minecraft:mob_attack by @e[type=minecraft:husk,limit=1,sort=nearest]");
+                next();
+            }
+            case 217 -> {
+                if (!after(25)) return;
+                d1 = horiz(p0, mc.player.position());
+                n0 = SelfTest.knockbacks - kb0;
+                tp(area, 0.5, 0, 0.5, 180, 0);
+                next();
+            }
+            case 218 -> {
+                if (!after(20)) return;
+                p0 = mc.player.position();
+                cmd("summon minecraft:arrow " + xyz(area, 8.5, 1.3, 0.5) + " {Motion:[-2.0d,0.1d,0.0d]}");
+                next();
+            }
+            case 219 -> {
+                if (!after(30)) return;
+                d2 = horiz(p0, mc.player.position());
+                t("///antiknockback");
+                tp(area, 0.5, 0, 0.5, 180, 0);
+                next();
+            }
+            case 220 -> {
+                if (!after(30)) return;
+                p0 = mc.player.position();
+                cmd("damage @s 1 minecraft:mob_attack by @e[type=minecraft:husk,limit=1,sort=nearest]");
+                next();
+            }
+            case 221 -> {
+                if (!after(25)) return;
+                double d3 = horiz(p0, mc.player.position());
+                result("AntiKnockback: Schlag -> weggeschoben " + f(d1) + ", Pfeil -> " + f(d2) + " Blöcke, ohne AntiKnockback " + f(d3) + " Blöcke (Pakete "
+                        + n0 + ") " + ok(d1 < 0.15 && d2 < 0.3 && d3 > 0.3));
+                cmd("kill @e[type=minecraft:husk]");
+                cmd("kill @e[type=minecraft:arrow]");
+                next();
+            }
+            // ---------------------------------------------- GodPvP: unbesiegbar, auch gegen Explosionen/Kristalle
+            case 222 -> {
+                area = o.offset(48, 0, -24);
+                tp(area, 0.5, 1, 0.5, -90, 0);
+                next();
+            }
+            case 223 -> {
+                if (!after(20)) return;
+                arena(area, 8, 6);
+                summonHusk(area.offset(3, 0, 0), "");
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                t("///godpvp");
+                next();
+            }
+            case 224 -> {
+                if (!after(80)) return;
+                var gp = mod(dev.teizen.client.modules.GodPvP.class);
+                flag1 = gp.protectedNow();
+                var dmgAttr = mc.player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+                d2 = dmgAttr == null ? -1 : dmgAttr.getBaseValue();
+                flag2 = husks(8).isEmpty();
+                d1 = mc.player.getHealth();
+                cmd("damage @s 40 minecraft:explosion");
+                next();
+            }
+            case 225 -> {
+                if (!after(10)) return;
+                a0 = mc.player.getHealth();
+                cmd("summon minecraft:end_crystal " + xyz(area, 2.0, 0, 0.5) + " {ShowBottom:0b}");
+                next();
+            }
+            case 226 -> {
+                if (!after(5)) return;
+                cmd("damage @e[type=minecraft:end_crystal,limit=1,sort=nearest] 1 minecraft:generic");
+                next();
+            }
+            case 227 -> {
+                if (!after(25)) return;
+                boolean alive = mc.player != null && mc.player.isAlive();
+                double hpAfter = mc.player.getHealth();
+                var gp = mod(dev.teizen.client.modules.GodPvP.class);
+                shot("31-godpvp");
+                result("GodPvP: Resistenz V=" + yes(flag1) + ", Schaden pro Schlag " + Math.round(d2) + ", Gegner sofort tot=" + yes(flag2) + " (Schläge "
+                        + gp.hits + "), Explosion 40 -> Leben " + f(d1) + "->" + f(a0) + ", End-Kristall direkt daneben -> Leben " + f(hpAfter) + ", lebt=" + yes(alive) + " "
+                        + ok(flag1 && d2 >= 2048 && flag2 && alive && a0 >= d1 - 0.5 && hpAfter >= d1 - 0.5));
+                t("///godpvp");
+                next();
+            }
+            case 228 -> {
+                if (!after(60)) return;
+                var dmgAttr = mc.player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+                double base = dmgAttr == null ? -1 : dmgAttr.getBaseValue();
+                boolean res = mc.player.hasEffect(MobEffects.RESISTANCE);
+                result("GodPvP aus: Resistenz weg=" + yes(!res) + ", Schaden wieder " + f(base) + ", Herzen " + f(mc.player.getMaxHealth() / 2) + " "
+                        + ok(!res && base < 5 && Math.abs(mc.player.getMaxHealth() - 20) < 0.1));
+                next();
+            }
+            // ---------------------------------------------- NoCooldown
+            case 229 -> {
+                t("///nocooldown");
+                next();
+            }
+            case 230 -> {
+                if (!after(60)) return;
+                double v = mc.player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_SPEED);
+                mc.player.resetAttackStrengthTicker();
+                float scale = mc.player.getAttackStrengthScale(0.5f);
+                d1 = v;
+                a0 = scale;
+                t("///nocooldown");
+                next();
+            }
+            case 231 -> {
+                if (!after(40)) return;
+                double v = mc.player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_SPEED);
+                result("NoCooldown: Angriffstempo " + Math.round(d1) + ", Schlagkraft direkt nach einem Schlag " + Math.round(a0 * 100) + "% (soll 100), aus: wieder "
+                        + f(v) + " " + ok(d1 > 1000 && a0 >= 0.99 && v < 10));
+                next();
+            }
+            // ---------------------------------------------- FastBreak (Holzbretter mit der Hand)
+            case 232 -> {
+                area = o.offset(-48, 0, 0);
+                tp(area, 0.5, 1, 0.5, -90, 0);
+                next();
+            }
+            case 233 -> {
+                if (!after(20)) return;
+                arena(area, 5, 4);
+                cmd("setblock " + blk(area.offset(2, 0, 0)) + " minecraft:oak_planks");
+                cmd("clear @s");
+                tp(area, 0.5, 0, 0.5, -90, 30);
+                i0 = 0;
+                next();
+            }
+            case 234 -> {
+                if (!after(20)) return;
+                BlockPos b = area.offset(2, 0, 0);
+                i0++;
+                dev.teizen.client.util.Breaker.tick(b, false, false);
+                if (!mc.level.getBlockState(b).isAir() && i0 < 240) return;
+                d1 = i0;
+                dev.teizen.client.util.Breaker.stop();
+                cmd("setblock " + blk(b) + " minecraft:oak_planks");
+                t("///fastbreak");
+                next();
+            }
+            case 235 -> {
+                if (!after(60)) return;
+                i0 = 0;
+                next();
+            }
+            case 236 -> {
+                BlockPos b = area.offset(2, 0, 0);
+                i0++;
+                dev.teizen.client.util.Breaker.tick(b, false, false);
+                if (!mc.level.getBlockState(b).isAir() && i0 < 240) return;
+                d2 = i0;
+                dev.teizen.client.util.Breaker.stop();
+                var fb = mod(dev.teizen.client.modules.FastBreak.class);
+                result("FastBreak: Holzbrett mit der Hand normal " + (int) d1 + " Ticks, mit FastBreak " + (int) d2 + " Ticks (früher fertig " + fb.boosted + "x) "
+                        + ok(d1 > 20 && d2 < d1 * 0.6));
+                t("///fastbreak");
+                next();
+            }
+            // ---------------------------------------------- FakeLag
+            case 237 -> {
+                if (!after(20)) return;
+                dev.teizen.client.modules.FakeLag.heldCount = 0;
+                dev.teizen.client.modules.FakeLag.releasedCount = 0;
+                dev.teizen.client.modules.FakeLag.maxHeldMs = 0;
+                t("///set fakelag verzoegerung 500");
+                t("///set fakelag modus verzoegert");
+                t("///fakelag");
+                next();
+            }
+            case 238 -> {
+                if (!after(10)) return;
+                keys(true, false); // laufen -> viele Bewegungs-Pakete
+                next();
+            }
+            case 239 -> {
+                if (!after(30)) return;
+                keys(false, false);
+                int held = dev.teizen.client.modules.FakeLag.heldCount, rel = dev.teizen.client.modules.FakeLag.releasedCount;
+                long max = dev.teizen.client.modules.FakeLag.maxHeldMs;
+                t("///fakelag");
+                result("FakeLag: " + held + " Pakete zurückgehalten, " + rel + " später geschickt, Verzögerung bis " + max + " ms (soll ~500) "
+                        + ok(held > 10 && rel > 5 && max >= 450 && max < 2000));
+                next();
+            }
+            // ---------------------------------------------- PanicButton
+            case 240 -> {
+                if (!after(20)) return;
+                t("///fullbright");
+                t("///autosprint");
+                next();
+            }
+            case 241 -> {
+                if (!after(5)) return;
+                n0 = 0;
+                for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) n0++;
+                t("///panicbutton");
+                next();
+            }
+            case 242 -> {
+                if (!after(5)) return;
+                i0 = 0;
+                for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) i0++;
+                t("///fullbright");
+                mc.gui.setScreen(new Overview());
+                next();
+            }
+            case 243 -> {
+                if (!after(10)) return;
+                if (mc.gui.screen() instanceof Overview ov) {
+                    double[] pc = ov.panicCenter();
+                    ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(pc[0], pc[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                }
+                int left = 0;
+                for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) left++;
+                result("PanicButton: vorher " + n0 + " an, nach PanicButton " + i0 + " an, roter Knopf in der Übersicht -> " + left + " an "
+                        + ok(n0 >= 2 && i0 == 0 && left == 0));
+                mc.gui.setScreen(null);
+                next();
+            }
+            // ---------------------------------------------- ChestStealer: alles sofort
+            case 244 -> {
+                area = o.offset(-48, 0, 24);
+                tp(area, 0.5, 1, 0.5, -90, 0);
+                next();
+            }
+            case 245 -> {
+                if (!after(20)) return;
+                arena(area, 5, 4);
+                cmd("clear @s");
+                cmd("setblock " + blk(area.offset(2, 0, 0)) + " minecraft:chest[facing=west]{Items:[{Slot:0b,id:\"minecraft:dirt\",count:64},"
+                        + "{Slot:5b,id:\"minecraft:cobblestone\",count:64},{Slot:12b,id:\"minecraft:oak_log\",count:32},{Slot:20b,id:\"minecraft:sand\",count:64},"
+                        + "{Slot:26b,id:\"minecraft:gravel\",count:10}]}");
+                tp(area, 0.5, 0, 0.5, -90, 20);
+                t("///set cheststealer pause 0");
+                t("///cheststealer");
+                next();
+            }
+            case 246 -> {
+                if (!after(20)) return;
+                BlockPos chest = area.offset(2, 0, 0);
+                mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND,
+                        new net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(chest), net.minecraft.core.Direction.WEST, chest, false));
+                i0 = -1;
+                n0 = -1;
+                next();
+            }
+            case 247 -> {
+                boolean open = mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>;
+                if (open && i0 < 0) i0 = SelfTest.local();
+                if (!open && i0 >= 0 && n0 < 0) n0 = SelfTest.local();
+                if (n0 < 0 && !after(100)) return;
+                if (!after(Math.max(10, n0 + 10))) return;
+                int got = 0;
+                for (int i = 0; i < 36; i++) got += mc.player.getInventory().getItem(i).getCount();
+                int took = n0 < 0 || i0 < 0 ? -1 : n0 - i0;
+                result("ChestStealer: " + got + "/234 Items genommen, Kiste nach " + took + " Tick(s) zu (soll höchstens 2) "
+                        + ok(got == 234 && took >= 0 && took <= 2));
+                t("///cheststealer");
+                cmd("clear @s");
+                next();
+            }
+            // ---------------------------------------------- PotionHUD (Effekte per /data und aus den Partikeln)
+            case 248 -> {
+                cmd("effect give @s minecraft:speed 120 1");
+                cmd("effect give @s minecraft:strength 120 0");
+                t("///set potionhud selbst an");
+                t("///potionhud");
+                next();
+            }
+            case 249 -> {
+                if (!after(80)) return;
+                var ph = mod(dev.teizen.client.modules.PotionHUD.class);
+                int speedColor = 0xFF000000 | MobEffects.SPEED.value().getColor(), strColor = 0xFF000000 | MobEffects.STRENGTH.value().getColor();
+                var l = ph.effects.get(mc.player.getUUID());
+                boolean dataSpeed = l != null && l.stream().anyMatch(e -> e.color() == speedColor && e.amp() == 1 && e.ticks() > 0);
+                boolean dataStr = l != null && l.stream().anyMatch(e -> e.color() == strColor);
+                var parts = ph.fromParticles(mc.player);
+                boolean partSpeed = parts.stream().anyMatch(e -> e.color() == speedColor);
+                shot("32-potionhud");
+                StringBuilder sb = new StringBuilder();
+                if (l != null) for (var e : l) sb.append(dev.teizen.client.modules.PotionHUD.text(e)).append("; ");
+                result("PotionHUD: per " + ph.source + ": [" + sb + "] Speed II=" + yes(dataSpeed) + ", Stärke=" + yes(dataStr) + "; aus Partikeln erkannt: Speed="
+                        + yes(partSpeed) + " (" + parts.size() + ") " + ok(dataSpeed && dataStr && partSpeed));
+                t("///potionhud");
+                t("///set potionhud selbst aus");
+                cmd("effect clear @s");
+                next();
+            }
+            // ---------------------------------------------- Radar + PlayerFinder + Xaero
+            case 250 -> {
+                t("///radar");
+                t("///playerfinder");
+                next();
+            }
+            case 251 -> {
+                if (!after(80)) return;
+                shot("33-radar");
+                boolean xm = dev.teizen.client.compat.XaeroCompat.minimapInstalled(), xw = dev.teizen.client.compat.XaeroCompat.worldMapInstalled();
+                boolean okM = !xm || dev.teizen.client.compat.XaeroCompat.minimapOk, okW = !xw || dev.teizen.client.compat.XaeroCompat.worldMapOk;
+                var r = mod(dev.teizen.client.modules.Radar.class);
+                var pf = mod(dev.teizen.client.modules.PlayerFinder.class);
+                result("Radar/PlayerFinder: an=" + yes(r.isEnabled() && pf.isEnabled()) + ", Xaero Minimap installiert=" + yes(xm) + " angemeldet=" + yes(dev.teizen.client.compat.XaeroCompat.minimapOk)
+                        + ", Xaero World Map installiert=" + yes(xw) + " angemeldet=" + yes(dev.teizen.client.compat.XaeroCompat.worldMapOk) + " "
+                        + ok(r.isEnabled() && pf.isEnabled() && okM && okW));
+                t("///radar");
+                t("///playerfinder");
+                next();
+            }
+            // ---------------------------------------------- AutoCrystal "einfach" (wie die Crystal-Aura-Mod)
+            case 252 -> {
+                area = o.offset(0, 0, 70);
+                tp(area, 0.5, 1, 0.5, -90, 0);
+                next();
+            }
+            case 253 -> {
+                if (!after(20)) return;
+                arena(area, 7, 6);
+                cmd("fill " + blk(area.offset(2, -1, -1)) + " " + blk(area.offset(4, -1, 1)) + " minecraft:obsidian");
+                summonHusk(area.offset(4, 0, 0), "");
+                cmd("give @s minecraft:end_crystal 32");
+                cmd("effect give @s minecraft:resistance 60 4 true");
+                tp(area, 0.5, 0, 0.5, -90, 30);
+                t("///set autocrystal modus einfach");
+                next();
+            }
+            case 254 -> {
+                if (!after(20)) return;
+                Inv.ensureInHand(s -> s.is(Items.END_CRYSTAL));
+                AutoCrystal ac = mod(AutoCrystal.class);
+                ac.placed = 0;
+                ac.broken = 0;
+                t("///autocrystal");
+                next();
+            }
+            case 255 -> {
+                if (!after(80)) return;
+                AutoCrystal ac = mod(AutoCrystal.class);
+                int key = ac.key;
+                result("AutoCrystal einfach (wie Crystal-Aura): gesetzt " + ac.placed + ", zerschlagen " + ac.broken + ", Taste=" + dev.teizen.client.util.Keys.name(key)
+                        + " " + ok(ac.placed >= 2 && ac.broken >= 2 && key == org.lwjgl.glfw.GLFW.GLFW_KEY_J));
+                t("///autocrystal");
+                cmd("effect clear @s minecraft:resistance");
+                cmd("kill @e[type=minecraft:husk]");
+                next();
+            }
+            // ---------------------------------------------- Freecam unbegrenzt weit
+            case 256 -> {
+                if (!after(20)) return;
+                t("///set freecam maxabstand 0");
+                t("///set freecam tempo 2");
+                t("///freecam");
+                next();
+            }
+            case 257 -> {
+                if (!after(5)) return;
+                keys(true, false);
+                next();
+            }
+            case 258 -> {
+                if (!after(30)) return;
+                keys(false, false);
+                double dist = mod(Freecam.class).distance();
+                result("Freecam unbegrenzt: Kamera " + f(dist) + " Blöcke weg (Standard ohne Grenze) " + ok(dist > 40));
+                t("///freecam");
+                next();
+            }
+            // ---------------------------------------------- Fly wie im Kreativ: 2x Leertaste, Sprinten schneller
+            case 259 -> {
+                if (!after(10)) return;
+                area = o.offset(24, 0, 24);
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                next();
+            }
+            case 260 -> {
+                if (!after(20)) return;
+                t("///fly");
+                next();
+            }
+            case 261 -> {
+                if (!after(5)) return;
+                flag1 = !mc.player.getAbilities().flying; // am Boden: noch nicht fliegen
+                mc.options.keyJump.setDown(true);
+                next();
+            }
+            case 262 -> {
+                if (!after(2)) return;
+                mc.options.keyJump.setDown(false);
+                next();
+            }
+            case 263 -> {
+                if (!after(2)) return;
+                mc.options.keyJump.setDown(true);
+                next();
+            }
+            case 264 -> {
+                if (!after(2)) return;
+                mc.options.keyJump.setDown(false);
+                next();
+            }
+            case 265 -> {
+                if (!after(5)) return;
+                flag2 = mc.player.getAbilities().flying;
+                d1 = mc.player.getAbilities().getFlyingSpeed();
+                mc.options.keySprint.setDown(true);
+                next();
+            }
+            case 266 -> {
+                if (!after(3)) return;
+                d2 = mc.player.getAbilities().getFlyingSpeed();
+                mc.options.keySprint.setDown(false);
+                t("///fly");
+                result("Fly wie Kreativ: am Boden erst nicht fliegen=" + yes(flag1) + ", 2x Leertaste -> fliegt=" + yes(flag2) + ", Sprinten Tempo x"
+                        + f(d2 / Math.max(1e-6, d1) * 2) + " (soll 8) " + ok(flag1 && flag2 && d2 / Math.max(1e-6, d1) > 3.9));
                 SelfTest.jump(152);
             }
             default -> {}

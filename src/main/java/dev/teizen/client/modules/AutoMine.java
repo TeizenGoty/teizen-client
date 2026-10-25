@@ -34,6 +34,9 @@ public final class AutoMine extends Module {
     private final Setting radius = add(Setting.number("radius", "Suchradius in Chunks", 3, 1, 8));
     private final Setting minHealth = add(Setting.number("minleben", "Stoppt bei so wenig Leben", 8, 1, 19));
     private final Setting nodes = add(Setting.number("suchtiefe", "Wie weit der Weg gesucht wird", 6000, 500, 40000));
+    private final Setting collect = add(Setting.bool("einsammeln", "Abgebaute Erze einsammeln (nur Erze, nichts anderes)", true));
+    private final Setting human = add(Setting.bool("menschlich", "Weich drehen wie ein echter Spieler (nicht ruckartig)", true));
+    private final Setting turnSpeed = add(Setting.number("drehtempo", "Wie schnell gedreht wird (Grad pro Sekunde)", 260, 60, 1500));
 
     private Set<Block> blocks = new HashSet<>();
     private String lastOres = "";
@@ -65,6 +68,8 @@ public final class AutoMine extends Module {
     protected void onEnable() {
         rebuild();
         reset();
+        hasWant = false;
+        collected = 0;
         failed.clear();
         if (blocks.isEmpty()) Chat.error("Keine gültigen Erze in: " + ores.str());
         else Chat.info("AutoMine sucht: §f" + ores.str());
@@ -78,6 +83,7 @@ public final class AutoMine extends Module {
     }
 
     private void reset() {
+        pickup = null;
         target = null;
         path = null;
         index = 0;
@@ -112,6 +118,10 @@ public final class AutoMine extends Module {
             Breaker.stop();
             reset();
         }
+        // erst die Erze einsammeln, die herumliegen
+        if (target == null || pickup != null) {
+            if (collectTick()) return;
+        }
         if (target == null) {
             if (!pickTarget()) {
                 releaseKeys();
@@ -127,7 +137,7 @@ public final class AutoMine extends Module {
                 releaseKeys();
                 status = "baut ab";
                 lookAt(Vec3.atCenterOf(target));
-                Breaker.tick(target, false, true);
+                if (aimed()) Breaker.tick(target, false, true);
                 return;
             }
             BlockPos obs = obstruction(target);
@@ -135,14 +145,14 @@ public final class AutoMine extends Module {
                 releaseKeys();
                 status = "gräbt zum Erz";
                 lookAt(Vec3.atCenterOf(obs));
-                Breaker.tick(obs, false, true);
+                if (aimed()) Breaker.tick(obs, false, true);
                 return;
             }
             // Block davor wäre gefährlich (Lava/Wasser/tiefer Fall) -> Erz direkt durch die Wand abbauen (Server erlaubt das)
             releaseKeys();
             status = "baut ab (durch Wand)";
             lookAt(Vec3.atCenterOf(target));
-            Breaker.tick(target, false, true);
+            if (aimed()) Breaker.tick(target, false, true);
             return;
         }
 
@@ -218,7 +228,7 @@ public final class AutoMine extends Module {
                 releaseKeys();
                 status = "gräbt";
                 lookAt(Vec3.atCenterOf(c));
-                Breaker.tick(c, false, true);
+                if (aimed()) Breaker.tick(c, false, true);
                 stuck = 0;
                 return;
             }
@@ -242,8 +252,8 @@ public final class AutoMine extends Module {
             mc.options.keyJump.setDown(false);
         }
         float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
-        Rot.look(yaw, 25f);
-        boolean move = horiz > 0.15;
+        aim(yaw, 25f);
+        boolean move = horiz > 0.15 && (!human.on() || Math.abs(net.minecraft.util.Mth.wrapDegrees(yaw - mc.player.getYRot())) < 50);
         mc.options.keyUp.setDown(move);
         mc.options.keyJump.setDown(step.kind() == MinePath.Kind.UP && mc.player.onGround() && horiz < 1.3);
         mc.player.setSprinting(false);
@@ -259,13 +269,143 @@ public final class AutoMine extends Module {
         lastFeet = feet;
     }
 
+    // ------------------------------------------------------------ weich drehen
+    private float wantYaw, wantPitch;
+    private boolean hasWant;
+    private long lastFrame;
+    private int lastFrameTick = -100;
+    private final java.util.Random rnd = new java.util.Random();
+    private float jitterYaw, jitterPitch;
+
     private void lookAt(Vec3 v) {
         float[] r = Rot.to(v);
-        Rot.look(r[0], r[1]);
+        aim(r[0], r[1]);
+    }
+
+    private void aim(float yaw, float pitch) {
+        if (!human.on()) { Rot.look(yaw, pitch); hasWant = false; return; }
+        if (!hasWant || Math.abs(net.minecraft.util.Mth.wrapDegrees(yaw - wantYaw)) > 4 || Math.abs(pitch - wantPitch) > 4) {
+            // kleine Ungenauigkeit wie bei einem Menschen
+            jitterYaw = (rnd.nextFloat() - 0.5f) * 1.6f;
+            jitterPitch = (rnd.nextFloat() - 0.5f) * 1.2f;
+        }
+        wantYaw = yaw;
+        wantPitch = pitch;
+        hasWant = true;
+        // HUD aus (F1)? Dann im Tick drehen
+        if (mc.player.tickCount - lastFrameTick > 1) turnStep(0.05);
+    }
+
+    /** Wie weit (Grad) das Fadenkreuz noch vom Ziel weg ist. */
+    private double aimError() {
+        if (!hasWant || !human.on()) return 0;
+        double dy = net.minecraft.util.Mth.wrapDegrees(wantYaw - mc.player.getYRot());
+        double dp = wantPitch - mc.player.getXRot();
+        return Math.sqrt(dy * dy + dp * dp);
+    }
+
+    /** Ein Stück zur Wunsch-Richtung drehen: erst schneller, kurz vor dem Ziel langsamer (wie mit der Maus). */
+    private void turnStep(double dt) {
+        float yaw = mc.player.getYRot(), pitch = mc.player.getXRot();
+        double ty = wantYaw + jitterYaw, tp = wantPitch + jitterPitch;
+        double dy = net.minecraft.util.Mth.wrapDegrees(ty - yaw), dp = tp - pitch;
+        double dist = Math.sqrt(dy * dy + dp * dp);
+        if (dist < 0.05) return;
+        double ease = 1.0 - Math.exp(-9.0 * dt);
+        double step = Math.min(dist * ease, turnSpeed.num() * dt);
+        step = Math.max(step, Math.min(dist, 12 * dt));
+        float ny = (float) (yaw + dy / dist * step);
+        float np = (float) net.minecraft.util.Mth.clamp(pitch + dp / dist * step, -90, 90);
+        mc.player.setYRot(ny);
+        mc.player.setXRot(np);
+        mc.player.yRotO += ny - yaw;
+        mc.player.xRotO += np - pitch;
+        mc.player.setYHeadRot(ny);
+    }
+
+    /** Darf schon abgebaut werden? (Menschlich: erst wenn man ungefähr hinschaut.) */
+    private boolean aimed() { return !human.on() || aimError() < 14; }
+
+    // ------------------------------------------------------------ Erze einsammeln
+    private net.minecraft.world.entity.item.ItemEntity pickup;
+    private int pickupTicks;
+    public int collected;
+
+    /** Ist das ein Erz-Drop (Diamant, Rohes Eisen, Kohle, ...) von den gewählten Erzen? */
+    public boolean isOreDrop(net.minecraft.world.item.ItemStack st) {
+        String p = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).getPath();
+        for (String g : ores.selected()) {
+            if (p.endsWith("_ore") && p.contains(g)) return true;
+            switch (g) {
+                case "diamond" -> { if (p.equals("diamond")) return true; }
+                case "emerald" -> { if (p.equals("emerald")) return true; }
+                case "gold" -> { if (p.equals("raw_gold") || p.equals("gold_nugget")) return true; }
+                case "iron" -> { if (p.equals("raw_iron")) return true; }
+                case "copper" -> { if (p.equals("raw_copper")) return true; }
+                case "redstone" -> { if (p.equals("redstone")) return true; }
+                case "lapis" -> { if (p.equals("lapis_lazuli")) return true; }
+                case "coal" -> { if (p.equals("coal")) return true; }
+                case "quartz" -> { if (p.equals("quartz")) return true; }
+                case "ancient_debris" -> { if (p.equals("ancient_debris")) return true; }
+                default -> { }
+            }
+        }
+        return false;
+    }
+
+    /** Liegt ein Erz-Drop in der Nähe? Dann hinlaufen. @return true wenn gerade eingesammelt wird */
+    private boolean collectTick() {
+        if (!collect.on()) return false;
+        if (pickup != null && (!pickup.isAlive() || ++pickupTicks > 160)) {
+            if (!pickup.isAlive()) collected++;
+            pickup = null;
+            path = null;
+        }
+        if (pickup == null) {
+            double best = 64;
+            for (var e : mc.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, mc.player.getBoundingBox().inflate(7, 3, 7))) {
+                if (!isOreDrop(e.getItem())) continue;
+                double d = e.distanceToSqr(mc.player);
+                if (d < best) { best = d; pickup = e; }
+            }
+            if (pickup == null) return false;
+            pickupTicks = 0;
+            path = null;
+        }
+        Vec3 me = mc.player.position();
+        Vec3 it = pickup.position();
+        double dx = it.x - me.x, dz = it.z - me.z;
+        double horiz = Math.sqrt(dx * dx + dz * dz);
+        status = "sammelt " + pickup.getItem().getHoverName().getString();
+        if (horiz < 1.6 && Math.abs(it.y - me.y) < 1.5) {
+            // direkt hinlaufen
+            float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
+            aim(yaw, 30f);
+            mc.options.keyUp.setDown(horiz > 0.25);
+            mc.options.keyJump.setDown(false);
+            return true;
+        }
+        if (path == null || index >= path.size()) {
+            path = MinePath.find(mc.player.blockPosition(), pickup.blockPosition().above(), 2.2, Math.min(3000, nodes.integer()));
+            index = 0;
+            if (path == null || path.isEmpty()) {
+                // nicht erreichbar -> vergessen
+                pickup = null;
+                path = null;
+                return false;
+            }
+        }
+        follow();
+        return true;
     }
 
     @Override
     public void onHud(GuiGraphicsExtractor g, float partial) {
+        long now = System.nanoTime();
+        double dt = lastFrame == 0 ? 0.016 : Math.min(0.1, (now - lastFrame) / 1e9);
+        lastFrame = now;
+        lastFrameTick = mc.player.tickCount;
+        if (hasWant && human.on() && mc.gui.screen() == null) turnStep(dt);
         if (target != null) Draw.worldBox(g, new AABB(target), 0xFF33EBFF, true);
         if (path != null) {
             for (int i = index; i < path.size() && i < index + 40; i++) {

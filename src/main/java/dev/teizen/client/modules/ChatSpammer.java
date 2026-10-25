@@ -9,7 +9,8 @@ import java.util.Random;
 /** Schickt eine (oder abwechselnd mehrere) Nachricht(en) immer wieder in den Chat. */
 public final class ChatSpammer extends Module {
     public final Setting text = add(Setting.text("nachricht", "Was gesendet wird (mehrere mit | trennen = abwechselnd)", "Teizen Client on top!"));
-    private final Setting interval = add(Setting.number("sekunden", "Abstand zwischen zwei Nachrichten (Sekunden)", 3, 0.5, 600));
+    private final Setting interval = add(Setting.number("ticks", "Abstand in Ticks (1 = 20 pro Sekunde, 20 = 1 pro Sekunde)", 1, 1, 12000));
+    private final Setting perTick = add(Setting.number("protick", "Nachrichten auf einmal (mehr = noch schneller; ohne OP kickt der Server)", 2, 1, 10));
     private final Setting count = add(Setting.number("anzahl", "Wie oft gesendet wird (0 = endlos)", 0, 0, 10000));
     private final Setting random = add(Setting.bool("zufall", "Zufällige Zeichen anhängen (gegen Spam-Filter)", false));
 
@@ -35,22 +36,25 @@ public final class ChatSpammer extends Module {
         if (!inGame()) return;
         if (wait > 0) { wait--; return; }
         String[] parts = text.str().split("\\|");
-        String msg = parts[index++ % parts.length].trim();
-        if (msg.isEmpty() || msg.startsWith("///")) return;
-        if (random.on()) {
-            StringBuilder sb = new StringBuilder(" ");
-            for (int i = 0; i < 4; i++) sb.append((char) ('a' + rnd.nextInt(26)));
-            msg += sb;
+        for (int n = 0; n < perTick.integer(); n++) {
+            String msg = parts[index++ % parts.length].trim();
+            if (msg.isEmpty() || msg.startsWith("///")) return;
+            if (random.on()) {
+                StringBuilder sb = new StringBuilder(" ");
+                for (int i = 0; i < 4; i++) sb.append((char) ('a' + rnd.nextInt(26)));
+                msg += sb;
+            }
+            if (msg.length() > 256) msg = msg.substring(0, 256);
+            if (msg.startsWith("/")) mc.player.connection.sendCommand(msg.substring(1));
+            else mc.player.connection.sendChat(msg);
+            sent++;
+            if (count.integer() > 0 && sent >= count.integer()) {
+                setEnabled(false);
+                Chat.info("ChatSpammer fertig: " + sent + " Nachrichten gesendet.");
+                return;
+            }
         }
-        if (msg.length() > 256) msg = msg.substring(0, 256);
-        if (msg.startsWith("/")) mc.player.connection.sendCommand(msg.substring(1));
-        else mc.player.connection.sendChat(msg);
-        sent++;
-        wait = Math.max(1, (int) Math.round(interval.num() * 20)) - 1;
-        if (count.integer() > 0 && sent >= count.integer()) {
-            setEnabled(false);
-            Chat.info("ChatSpammer fertig: " + sent + " Nachrichten gesendet.");
-        }
+        wait = interval.integer() - 1;
     }
 
     /** Einmal anmelden: zählt, ob unsere Nachrichten im Chat ankommen. */

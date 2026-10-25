@@ -38,6 +38,9 @@ public final class ClickGui extends Screen {
     private final SearchBox search = new SearchBox();
     private Module binding;
     private int scroll;
+    /** Unterkante des Inhalts (ohne Scrollen) – fürs Begrenzen des Mausrads. */
+    private int contentBottom;
+    private int panicX, panicW;
 
     public ClickGui() {
         super(Component.literal("Teizen Client"));
@@ -100,6 +103,7 @@ public final class ClickGui extends Screen {
 
         List<Panel> panels = panels();
         int[][] pos = layout(panels);
+        contentBottom = 0;
         for (int c = 0; c < panels.size(); c++) {
             Panel p = panels.get(c);
             int x = pos[c][0], y = pos[c][1];
@@ -126,6 +130,7 @@ public final class ClickGui extends Screen {
                 }
             }
             g.fill(x, y, x + COL_W, y + 2, p.color());
+            contentBottom = Math.max(contentBottom, y + 2 + scroll);
         }
         if (search.active() && panels.get(0).mods().isEmpty())
             g.centeredText(font, "§7Kein Cheat gefunden für \"" + search.query + "\"", width / 2, TOP + 26, 0xFFFFFFFF);
@@ -133,6 +138,11 @@ public final class ClickGui extends Screen {
         // Kopf: Titel + Lupe (über den Spalten, damit nichts überdeckt wird)
         g.fill(0, 0, width, TOP - 3, 0xC0100820);
         g.text(font, "§5§lTEIZEN CLIENT", 6, 6, 0xFFFFFFFF, true);
+        panicW = font.width("PANIK") + 10;
+        panicX = width - panicW - 6;
+        boolean ph = mouseX >= panicX && mouseX < panicX + panicW && mouseY >= 4 && mouseY < 17;
+        g.fill(panicX, 4, panicX + panicW, 17, ph ? 0xFFFF4040 : 0xFFC02020);
+        g.text(font, "§lPANIK", panicX + 5, 7, 0xFFFFFFFF, false);
         int sw = Math.max(80, Math.min(220, width - 2 * (font.width("TEIZEN CLIENT") + 16)));
         search.render(g, font, width / 2 - sw / 2, 4, sw, mouseX, mouseY);
         String sub = "§7Links: an/aus · Rechts: Einstellungen · Mitte: Taste · Shift+Klick: §6★ Favorit";
@@ -154,6 +164,11 @@ public final class ClickGui extends Screen {
         // Klick woanders hin = Eingabe übernehmen
         if (rows.isEditing() && !rows.finish(true)) return true;
         double mx = e.x(), my = e.y();
+        if (mx >= panicX && mx < panicX + panicW && my >= 4 && my < 17) {
+            int n = dev.teizen.client.modules.PanicButton.panic();
+            dev.teizen.client.util.Chat.ok("PANIK: " + n + " Cheats ausgeschaltet.");
+            return true;
+        }
         if (search.click(mx, my)) return true;
         if (my < TOP - 3) return true;
         int button = e.button();
@@ -219,7 +234,8 @@ public final class ClickGui extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
-        scroll = Math.max(0, scroll - (int) (sy * 12));
+        int max = Math.max(0, contentBottom - (height - 20));
+        scroll = Math.max(0, Math.min(max, scroll - (int) (sy * 16)));
         return true;
     }
 

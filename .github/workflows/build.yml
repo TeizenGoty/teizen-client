@@ -59,6 +59,15 @@ jobs:
             done ) &
           mkdir -p run/schematics
           cp ci/teizentest.litematic run/schematics/
+          # Xaero's Minimap + World Map mittesten (Radar zeigt Spieler dort an)
+          mkdir -p run/mods
+          for proj in xaeros-minimap xaeros-world-map; do
+            curl -sL "https://api.modrinth.com/v2/project/$proj/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%2226.2%22%5D" -o /tmp/v.json
+            URL=$(jq -r '.[0].files[0].url' /tmp/v.json)
+            echo "$proj: $URL"
+            curl -sL "$URL" -o "run/mods/$proj.jar"
+          done
+          ls -la run/mods
           printf "onboardAccessibility:false\nskipMultiplayerWarning:true\njoinedFirstServer:true\ntutorialStep:none\nguiScale:2\nrenderDistance:5\nsimulationDistance:5\nsoundCategory_master:0.0\n" > run/options.txt
           export LIBGL_ALWAYS_SOFTWARE=1
           timeout 1800 xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClient --no-daemon > client-log.txt 2>&1

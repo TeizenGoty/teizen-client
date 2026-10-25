@@ -17,6 +17,12 @@ import java.util.Map;
 public final class Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
+    /** Version der Datei: bei neuen Standard-Tasten werden alte "keine Taste"-Einträge nicht übernommen. */
+    private static final int VERSION = 2;
+
+    /** Funktionen, deren neue Standard-Taste übernommen werden soll (auch in den Minecraft-Optionen). */
+    public static final java.util.Set<String> keepDefaultKey = new java.util.HashSet<>();
+
     private Config() {}
 
     private static Path file() {
@@ -49,6 +55,7 @@ public final class Config {
             for (String f : Friends.NAMES) fr.add(f);
             root.add("freunde", fr);
             root.addProperty("menuTaste", TeizenClient.menuKey);
+            root.addProperty("version", VERSION);
             Files.writeString(file(), GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
             TeizenClient.LOG.warn("Config konnte nicht gespeichert werden", e);
@@ -65,10 +72,16 @@ public final class Config {
             if (root.has("freunde")) for (JsonElement e : root.getAsJsonArray("freunde")) Friends.add(e.getAsString());
             if (!root.has("funktionen")) return;
             JsonObject mods = root.getAsJsonObject("funktionen");
+            int version = root.has("version") ? root.get("version").getAsInt() : 1;
             for (Module m : TeizenClient.modules().all()) {
                 if (!mods.has(m.name)) continue;
                 JsonObject o = mods.getAsJsonObject(m.name);
-                if (o.has("taste")) m.key = o.get("taste").getAsInt();
+                if (o.has("taste")) {
+                    int k = o.get("taste").getAsInt();
+                    // neue Standard-Taste (z.B. AutoCrystal = J) nicht durch ein altes "keine Taste" überschreiben
+                    if (version < 2 && k == -1 && m.key >= 0) keepDefaultKey.add(m.name.toLowerCase(java.util.Locale.ROOT));
+                    else m.key = k;
+                }
                 if (o.has("favorit")) m.favorite = o.get("favorit").getAsBoolean();
                 if (o.has("einstellungen")) {
                     JsonObject set = o.getAsJsonObject("einstellungen");

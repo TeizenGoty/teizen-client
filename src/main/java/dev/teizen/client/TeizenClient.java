@@ -51,6 +51,8 @@ public final class TeizenClient implements ClientModInitializer {
                 Chat.info("geladen! §f" + dev.teizen.client.gui.SettingsScreen.keyName(menuKey) + "§7 = Menü, §f///help§7 = Befehle");
             }
             modules.tick();
+            dev.teizen.client.core.FarPlayers.tick();
+            dev.teizen.client.util.ServerQuery.tick();
             modules.get(dev.teizen.client.modules.Fly.class).fallGuard();
             Finder.tick();
             dev.teizen.client.core.Locator.tick();
@@ -67,6 +69,8 @@ public final class TeizenClient implements ClientModInitializer {
         dev.teizen.client.modules.AutoReconnect.register();
         dev.teizen.client.modules.ChatSpammer.register();
         dev.teizen.client.modules.EnchantPreview.register();
+        // Antworten auf /data-Abfragen (PlayerFinder, Radar, PotionHUD, EnchantPreview) lesen und verstecken
+        dev.teizen.client.util.ServerQuery.register();
 
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("teizenclient", "hud"), Hud::render);
 

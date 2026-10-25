@@ -33,7 +33,10 @@ public final class KeyBinds {
     private static final List<Link> links = new ArrayList<>();
     private static final Map<KeyMapping, Integer> lastBound = new LinkedHashMap<>();
     private static final Map<KeyMapping, Integer> lastValue = new LinkedHashMap<>();
-    private static KeyMapping menu, overview;
+    private static KeyMapping menu, overview, elytra;
+
+    /** Taste für ElytraReset (Elytra zu/auf), Standard: Strg links. */
+    public static KeyMapping elytra() { return elytra; }
 
     private KeyBinds() {}
 
@@ -51,6 +54,9 @@ public final class KeyBinds {
         // Übersicht: hat keinen eigenen Wert im Client – die Minecraft-Taste ist der Wert
         overview = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.teizenclient.overview", InputConstants.Type.KEYSYM, OVERVIEW_DEFAULT, cat));
+
+        elytra = KeyMappingHelper.registerKeyMapping(
+                new KeyMapping("key.teizenclient.elytrareset", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_CONTROL, cat));
 
         for (Module m : TeizenClient.modules().all()) {
             String id = "key.teizenclient.module." + m.name.toLowerCase(Locale.ROOT);
@@ -81,9 +87,26 @@ public final class KeyBinds {
     }
 
     /** Jeden Tick aufrufen: Tasten abgleichen, Übersicht öffnen, Maus-Belegungen ausführen. */
+    private static boolean migrated;
+
     public static void tick(Minecraft mc) {
         if (menu == null) return;
         boolean reset = false, save = false;
+        if (!migrated) {
+            // neue Standard-Tasten (z.B. AutoCrystal = J) auch dann setzen, wenn in options.txt noch "keine Taste" steht
+            migrated = true;
+            for (Link l : links) {
+                String n = l.mapping.getName();
+                String mod = n.startsWith("key.teizenclient.module.") ? n.substring("key.teizenclient.module.".length()) : "";
+                int v = l.get.getAsInt();
+                if (Config.keepDefaultKey.contains(mod) && bound(l.mapping) < 0 && v >= 0) {
+                    l.mapping.setKey(InputConstants.Type.KEYSYM.getOrCreate(v));
+                    lastBound.put(l.mapping, v);
+                    lastValue.put(l.mapping, v);
+                    reset = true;
+                }
+            }
+        }
         for (Link l : links) {
             KeyMapping k = l.mapping;
             int b = bound(k);

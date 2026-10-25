@@ -14,7 +14,9 @@
     "LocalPlayerMixin",
     "FishingHookAccessor",
     "LevelExtractorMixin",
-    "GameRendererMixin"
+    "GameRendererMixin",
+    "LivingEntityAccessor",
+    "ConnectionMixin"
   ],
   "injectors": {
     "defaultRequire": 0

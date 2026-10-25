@@ -61,25 +61,7 @@ public final class EnchantPreview extends Module {
                 if (ep != null && ep.isEnabled()) ep.draw(es, g);
             });
         });
-        // Antwort auf "/data get entity @s XpSeed" abfangen (nicht im Chat zeigen)
-        ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
-            EnchantPreview ep = TeizenClient.modules() == null ? null : TeizenClient.modules().get(EnchantPreview.class);
-            if (ep == null || !ep.requested || ep.seed != null) return true;
-            if (!(message.getContents() instanceof TranslatableContents tc)) return true;
-            if (tc.getKey().equals("commands.data.entity.query") && tc.getArgs().length >= 2) {
-                Object v = tc.getArgs()[tc.getArgs().length - 1];
-                String txt = v instanceof Component c ? c.getString() : String.valueOf(v);
-                Matcher m = NUMBER.matcher(txt);
-                if (m.find()) {
-                    try {
-                        ep.seed = Integer.parseInt(m.group());
-                        return false;
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-            }
-            return true;
-        });
+        // die Antwort auf "/data get entity @s XpSeed" holt ServerQuery (und versteckt sie im Chat)
     }
 
     @Override
@@ -121,7 +103,12 @@ public final class EnchantPreview extends Module {
                 } else if (askServer.on() && !requested) {
                     requested = true;
                     requestTick = mc.player.tickCount;
-                    mc.player.connection.sendCommand("data get entity @s XpSeed");
+                    dev.teizen.client.util.ServerQuery.data("@s", "XpSeed", txt -> {
+                        Matcher m = NUMBER.matcher(txt);
+                        if (m.find()) {
+                            try { seed = Integer.parseInt(m.group()); } catch (NumberFormatException ignored) { }
+                        }
+                    }, null);
                 } else if (requested && mc.player.tickCount - requestTick > 60 && !warned) {
                     warned = true;
                     dev.teizen.client.util.Chat.error("EnchantPreview: für die ganze Liste braucht man OP (Befehl /data). Ohne OP nur der normale Hinweis.");

@@ -1,2 +1,6 @@
 # Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
-net.minecraft.world.level.block.ChestBlock
+net.minecraft.world.effect.MobEffects
+net.minecraft.resources.ResourceKey
+net.minecraft.commands.CommandSourceStack
+net.minecraft.commands.Commands
+net.minecraft.core.Registry

@@ -8,11 +8,12 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 
-/** Leert geöffnete Kisten automatisch in dein Inventar. */
+/** Leert geöffnete Kisten automatisch in dein Inventar – standardmäßig alles sofort im selben Moment. */
 public final class ChestStealer extends Module {
-    private final Setting delay = add(Setting.number("verzoegerung", "Ticks zwischen zwei Items", 1, 0, 10));
+    private final Setting delay = add(Setting.number("pause", "Ticks zwischen zwei Items (0 = alles sofort auf einmal)", 0, 0, 10));
     private final Setting close = add(Setting.bool("schliessen", "Kiste danach schließen", true));
     private int wait;
+    public int taken;
 
     public ChestStealer() {
         super("ChestStealer", Category.SONSTIGES, "Räumt Kisten automatisch aus.");
@@ -26,14 +27,20 @@ public final class ChestStealer extends Module {
         AbstractContainerMenu menu = mc.player.containerMenu;
         int containerSlots = menu.slots.size() - 36;
         if (containerSlots <= 0) return;
+        boolean moved = false;
         for (int i = 0; i < containerSlots; i++) {
             Slot s = menu.slots.get(i);
             if (s.hasItem()) {
                 mc.gameMode.handleContainerInput(menu.containerId, i, 0, ContainerInput.QUICK_MOVE, mc.player);
-                wait = delay.integer();
-                return;
+                taken++;
+                moved = true;
+                if (delay.integer() > 0) {
+                    wait = delay.integer();
+                    return;
+                }
             }
         }
-        if (close.on()) mc.player.closeContainer();
+        // alles genommen (oder Inventar voll) -> schließen
+        if (close.on() && (!moved || delay.integer() == 0)) mc.player.closeContainer();
     }
 }

@@ -4,9 +4,14 @@ import dev.teizen.client.core.Module;
 import dev.teizen.client.core.Setting;
 import net.minecraft.world.entity.player.Abilities;
 
-/** Fliegen wie im Kreativmodus. */
+/**
+ * Fliegen genau wie im Kreativmodus: zweimal schnell Leertaste = losfliegen / landen,
+ * Leertaste = hoch, Shift = runter, Sprinten = 8x so schnell (einstellbar).
+ */
 public final class Fly extends Module {
     private final Setting speed = add(Setting.number("tempo", "Flug-Tempo (1 = wie Kreativ, 0.5 = halb so schnell)", 2, 0.1, 10));
+    private final Setting doubleJump = add(Setting.bool("doppelsprung", "Wie im Kreativ: 2x Leertaste zum Fliegen (aus = immer fliegen)", true));
+    private final Setting sprintFactor = add(Setting.number("sprint", "Mit Sprinten so viel schneller", 8, 1, 20));
     private final Setting antiKick = add(Setting.bool("antikick", "Kleine Abwärtsbewegung gegen Fly-Kick", true));
     private final Setting noFall = add(Setting.bool("fallschutz", "Kein Fallschaden beim Landen und nach dem Ausschalten in der Luft", true));
     /** Nach dem Ausschalten in der Luft: bis zur Landung vor Fallschaden schützen. */
@@ -24,6 +29,8 @@ public final class Fly extends Module {
     protected void onEnable() {
         if (!inGame()) return;
         hadMayfly = mc.player.getAbilities().mayfly;
+        // schon in der Luft? Dann gleich fliegen, damit man nicht runterfällt
+        if (!mc.player.onGround()) mc.player.getAbilities().flying = true;
     }
 
     @Override
@@ -43,8 +50,20 @@ public final class Fly extends Module {
         if (!inGame()) return;
         Abilities a = mc.player.getAbilities();
         a.mayfly = true;
-        a.flying = true;
-        a.setFlyingSpeed((float) (0.05 * speed.num()));
+        if (!doubleJump.on()) a.flying = true;
+        // Minecraft verdoppelt beim Sprinten selbst -> den Rest hier dazu
+        boolean sprint = mc.options.keySprint.isDown() || mc.player.isSprinting();
+        double f = sprint ? Math.max(1, sprintFactor.num() / 2.0) : 1;
+        a.setFlyingSpeed((float) (0.05 * speed.num() * f));
+        if (!a.flying) {
+            // nicht am Fliegen (z.B. nach 2x Leertaste in der Luft): Fallschaden verhindern
+            lastY = mc.player.getY();
+            if (noFall.on() && !mc.player.onGround() && mc.player.fallDistance > 1.5 && !mc.player.isCreative()) {
+                groundPacket();
+                mc.player.fallDistance = 0;
+            }
+            return;
+        }
         // Beim Runterfliegen dem Server sagen, dass wir stehen: so sammelt sich keine Fallhöhe an -> kein Fallschaden beim Landen
         double y = mc.player.getY();
         if (noFall.on() && !Double.isNaN(lastY) && y < lastY - 0.001 && !mc.player.isCreative()) groundPacket();
@@ -56,7 +75,7 @@ public final class Fly extends Module {
     }
 
     @Override
-    public String info() { return Setting.fmt(speed.num()); }
+    public String info() { return Setting.fmt(speed.num()) + (mc.player != null && !mc.player.getAbilities().flying ? " §8(2x Leertaste)" : ""); }
 
     private void groundPacket() {
         mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.StatusOnly(true, mc.player.horizontalCollision));

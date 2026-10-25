@@ -28,6 +28,8 @@ public final class ModuleManager {
         add(new AutoArmor());
         add(new AutoShield());
         add(new God());
+        add(new GodPvP());
+        add(new NoCooldown());
         add(new HitMarker());
         add(new CombatLog());
         // Abbau
@@ -35,6 +37,7 @@ public final class ModuleManager {
         add(new AutoMine());
         add(new Nuker());
         add(new AutoTool());
+        add(new FastBreak());
         // Bewegung
         add(new Fly());
         add(new Speed());
@@ -60,7 +63,9 @@ public final class ModuleManager {
         add(new Tracers());
         add(new ItemESP());
         add(new StorageESP());
-        add(new ShulkerESP());
+        add(new PlayerFinder());
+        add(new Radar());
+        add(new PotionHUD());
         add(new PortalFinder());
         add(new StructureFinder());
         add(new Fullbright());
@@ -79,6 +84,8 @@ public final class ModuleManager {
         add(new VillagerRoller());
         add(new MoreDurability());
         add(new ChatSpammer());
+        add(new FakeLag());
+        add(new PanicButton());
     }
 
     private void add(Module m) {
@@ -93,6 +100,15 @@ public final class ModuleManager {
 
     public Module byName(String name) {
         String n = name.toLowerCase(Locale.ROOT);
+        // alte / andere Namen
+        switch (n) {
+            case "shulkeresp", "chestesp", "kistenesp" -> n = "storageesp";
+            case "panic", "panik" -> n = "panicbutton";
+            case "radar", "minimap" -> n = "radar";
+            case "potionhud", "traenke", "effekte" -> n = "potionhud";
+            case "nocd", "kein_cooldown" -> n = "nocooldown";
+            default -> { }
+        }
         for (Module m : all) if (m.name.toLowerCase(Locale.ROOT).equals(n)) return m;
         for (Module m : all) if (m.name.toLowerCase(Locale.ROOT).startsWith(n)) return m;
         return null;
