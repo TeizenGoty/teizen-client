@@ -24,13 +24,20 @@ public final class BlockSwap {
     /** @return true wenn gesetzt */
     public static boolean place(BlockPos pos, Predicate<ItemStack> item) {
         if (!Placer.replaceable(pos) || blockedByEntity(pos)) return false;
-        if (Placer.findSupport(pos) == null) return false;
         int slot = Inv.findHotbar(item);
         if (slot < 0) return false;
         int prev = Inv.selected();
         Inv.select(slot);
         ((MultiPlayerGameModeAccessor) mc.gameMode).teizen$sendCarriedItem();
-        boolean ok = Placer.place(pos, false);
+        boolean ok;
+        if (Placer.findSupport(pos) != null) {
+            ok = Placer.place(pos, false);
+        } else {
+            // kein Nachbarblock: direkt in die Luft setzen (wie AirPlace)
+            var hit = new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(pos), net.minecraft.core.Direction.UP, pos, false);
+            ok = mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND, hit).consumesAction();
+            if (ok) mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+        }
         Inv.select(prev);
         return ok;
     }

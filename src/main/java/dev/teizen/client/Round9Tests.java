@@ -743,7 +743,7 @@ final class Round9Tests {
                 spots.add(f.above(2));
                 for (BlockPos p : spots) if (mc.level.getBlockState(p).is(net.minecraft.world.level.block.Blocks.OBSIDIAN)) n++;
                 shot("53-autotrap");
-                result("AutoTrap (AutoCrystal): Gegner eingebaut " + n + "/9 Blöcke " + ok(n >= 8));
+                result("AutoTrap (AutoCrystal): Gegner eingebaut " + n + "/9 Blöcke " + ok(n == 9));
                 mod(AutoCrystal.class).setEnabled(false);
                 t("///set autocrystal autotrap aus");
                 t("///set autocrystal trapziel spieler");
