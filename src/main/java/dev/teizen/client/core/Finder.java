@@ -186,14 +186,22 @@ public final class Finder {
         if (markers.isEmpty() || mc.player == null) return;
         Vec3 eye = mc.player.getEyePosition();
         int shown = 0;
+        Marker nearest = null;
+        double nd = Double.MAX_VALUE;
+        for (Marker m : markers) {
+            double d = eye.distanceTo(Vec3.atCenterOf(m.pos()));
+            if (d < nd) { nd = d; nearest = m; }
+        }
         for (Marker m : markers) {
             if (shown++ > 400) break;
             double[] r = Draw.worldBox(g, new AABB(m.pos()), m.color(), true);
-            if (shown <= 5) Draw.tracer(g, m.pos().getX() + 0.5, m.pos().getY() + 0.5, m.pos().getZ() + 0.5, m.color());
+            if (shown <= 5 && m != nearest) Draw.tracer(g, m.pos().getX() + 0.5, m.pos().getY() + 0.5, m.pos().getZ() + 0.5, m.color());
             if (r != null && shown <= 30) {
                 String t = m.label() + " " + Math.round(eye.distanceTo(Vec3.atCenterOf(m.pos()))) + "m";
                 g.text(mc.font, t, (int) r[0], (int) r[1] - 10, m.color(), true);
             }
         }
+        if (nearest != null) Draw.tracerNearest(g, nearest.pos().getX() + 0.5, nearest.pos().getY() + 0.5, nearest.pos().getZ() + 0.5,
+                nearest.color(), nearest.label() + " " + Math.round(nd) + "m");
     }
 }

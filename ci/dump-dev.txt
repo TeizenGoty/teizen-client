@@ -1,13 +1,2 @@
 # Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
-net.minecraft.network.Connection
-net.minecraft.network.PacketSendListener
-net.minecraft.core.particles.ColorParticleOption
-net.minecraft.world.effect.MobEffect
 net.minecraft.world.level.block.ChestBlock
-net.minecraft.world.entity.monster.Creeper
-net.minecraft.world.entity.item.PrimedTnt
-net.minecraft.world.entity.player.Abilities
-net.minecraft.client.player.LocalPlayer
-net.minecraft.world.entity.ai.attributes.Attributes
-net.minecraft.world.level.block.state.properties.ChestType
-net.minecraft.world.entity.item.ItemEntity

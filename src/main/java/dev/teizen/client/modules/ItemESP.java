@@ -78,6 +78,8 @@ public final class ItemESP extends Module {
         Vec3 eye = mc.player.getEyePosition();
         int labels = 0;
         // erst die normalen (unten), dann die besonderen (oben drauf)
+        ItemEntity nearest = null;
+        double nd = Double.MAX_VALUE;
         for (int pass = 0; pass < 2; pass++) {
             for (Entry en : entries) {
                 if (en.special() != (pass == 1)) continue;
@@ -96,6 +98,8 @@ public final class ItemESP extends Module {
                 }
                 double[] r = Draw.worldBox(g, box, 0xFFFFC800, true);
                 if (tracers.on()) Draw.tracer(g, p.x, p.y + 0.2, p.z, 0xFFFFC800);
+                double dd = eye.distanceTo(p);
+                if (dd < nd) { nd = dd; nearest = e; }
                 if (r != null) {
                     int cx = (int) ((r[0] + r[2]) / 2), top = (int) r[1];
                     g.fill(cx - 10, top - 30, cx + 10, top - 10, 0xA0302000);
@@ -107,6 +111,10 @@ public final class ItemESP extends Module {
                     }
                 }
             }
+        }
+        if (tracers.on() && nearest != null) {
+            Vec3 p = nearest.getPosition(partial);
+            Draw.tracerNearest(g, p.x, p.y + 0.2, p.z, 0xFFFFC800, nearest.getItem().getHoverName().getString() + " " + Math.round(nd) + "m");
         }
         if (list.on() && highlighted > 0) {
             Map<String, int[]> sum = new LinkedHashMap<>(); // Name -> {Anzahl, nächste Entfernung}

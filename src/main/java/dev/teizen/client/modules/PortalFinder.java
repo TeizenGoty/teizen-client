@@ -156,10 +156,16 @@ public final class PortalFinder extends Module {
                 Arrows.draw(g, c.x, c.y, c.z, p.color(), Math.round(eye.distanceTo(c)) + "m" + Arrows.height(c.y), 62);
             }
         }
+        Portal nearestP = null;
+        for (Portal p : portals)
+            if (nearestP == null || p.box().getCenter().distanceToSqr(eye) < nearestP.box().getCenter().distanceToSqr(eye)) nearestP = p;
         for (Portal p : portals) {
             double[] r = Draw.worldBox(g, p.box(), p.color(), true);
             var c = p.box().getCenter();
-            if (tracers.on()) Draw.tracer(g, c.x, c.y, c.z, p.color());
+            if (tracers.on()) {
+                if (p == nearestP) Draw.tracerNearest(g, c.x, c.y, c.z, p.color(), p.label() + " " + Math.round(eye.distanceTo(c)) + "m");
+                else Draw.tracer(g, c.x, c.y, c.z, p.color());
+            }
             if (r != null) {
                 String t = p.label() + " " + Math.round(eye.distanceTo(c)) + "m";
                 g.text(mc.font, t, (int) ((r[0] + r[2]) / 2) - mc.font.width(t) / 2, (int) r[1] - 10, p.color(), true);

@@ -2,6 +2,7 @@ package dev.teizen.client.modules;
 
 import dev.teizen.client.core.Module;
 import dev.teizen.client.core.Setting;
+import dev.teizen.client.util.Arrows;
 import dev.teizen.client.util.BlockScanner;
 import dev.teizen.client.util.Draw;
 import dev.teizen.client.util.Ids;
@@ -14,6 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,10 +34,12 @@ public final class XRay extends Module {
     public final Setting ores = add(Setting.multi("erze", "Welche Erze: \"alle\" = alle an/aus, dann einzeln wählen", DEFAULT_ORES, ALL_ORES));
     private final Setting radius = add(Setting.number("radius", "Suchradius in Chunks", 4, 1, 12));
     private final Setting maxShown = add(Setting.number("anzahl", "Maximal angezeigte Markierungen je Art", 300, 20, 2000));
-    private final Setting tracers = add(Setting.bool("linien", "Linien zu den nächsten Erzen", false));
+    private final Setting tracers = add(Setting.bool("linien", "Linien zu den nächsten Erzen (das nächste dick)", false));
+    private final Setting arrows = add(Setting.bool("pfeile", "Pfeile um das Fadenkreuz zum nächsten Erz jeder Sorte", true));
+    private final Setting fade = add(Setting.bool("verblassen", "Weit entfernte Erze schwächer zeigen", true));
     private final Setting bright = add(Setting.bool("hell", "Dabei alles hell machen", true));
-    public final Setting lava = add(Setting.bool("lava", "Auch Lava anzeigen (orange)", false));
-    public final Setting water = add(Setting.bool("wasser", "Auch Wasser unter der Erde anzeigen (blau)", false));
+    public final Setting lava = add(Setting.bool("lava", "Auch Lava anzeigen (dezente orange Punkte)", false));
+    public final Setting water = add(Setting.bool("wasser", "Auch Wasser unter der Erde anzeigen (dezente blaue Punkte)", false));
     public final Setting caves = add(Setting.bool("hoehlen", "Auch Höhlen anzeigen (blaue Punkte)", false));
 
     private Set<Block> blocks = new HashSet<>();
@@ -152,33 +156,74 @@ public final class XRay extends Module {
 
     public int caveCount() { return caveScanner.results().size(); }
 
+    /** Deckkraft nach Entfernung: nah = voll, ganz weit = etwa ein Drittel. */
+    private double fadeFor(BlockPos p, double maxDist) {
+        if (!fade.on()) return 1.0;
+        double d = Math.sqrt(Vec3.atCenterOf(p).distanceToSqr(mc.player.getEyePosition()));
+        if (d <= 8) return 1.0;
+        return Math.max(0.3, 1.0 - (d - 8) / Math.max(8, maxDist - 8) * 0.7);
+    }
+
     @Override
     public void onHud(GuiGraphicsExtractor g, float partial) {
         if (!inGame()) return;
         int max = maxShown.integer();
+        double maxDist = radius.integer() * 16 + 8;
         // Höhlen zuerst (liegen hinten), als kleine Punkte
         if (caves.on()) {
             for (BlockPos p : nearest(caveScanner.results(), max)) {
                 double[] s = Projector.project(p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5);
                 if (s == null) continue;
-                g.fill((int) s[0] - 1, (int) s[1] - 1, (int) s[0] + 2, (int) s[1] + 2, 0xB04080FF);
+                g.fill((int) s[0] - 1, (int) s[1] - 1, (int) s[0] + 2, (int) s[1] + 2, Draw.alpha(0xB04080FF, fadeFor(p, maxDist)));
             }
         }
+        // Lava/Wasser: nur dezente Punkte, damit man weiß, dass sie da ist – sieht nicht aus wie ein Erz
         if (lava.on() || water.on()) {
             for (BlockPos p : nearest(fluids.results(), max)) {
                 boolean isLava = mc.level.getFluidState(p).is(FluidTags.LAVA);
-                Draw.worldBox(g, new AABB(p), isLava ? 0xFFFF7A00 : 0xFF2F6BFF, isLava);
+                double[] s = Projector.project(p.getX() + 0.5, p.getY() + 0.85, p.getZ() + 0.5);
+                if (s == null) continue;
+                int c = Draw.alpha(isLava ? 0x90FF6A00 : 0x803070FF, fadeFor(p, maxDist));
+                g.fill((int) s[0] - 1, (int) s[1] - 1, (int) s[0] + 1, (int) s[1] + 1, c);
             }
         }
         List<BlockPos> list = nearest(max);
-        int i = 0;
-        for (BlockPos p : list) {
+        // weit weg zuerst zeichnen, nah zuletzt (liegt dann oben)
+        for (int i = list.size() - 1; i >= 0; i--) {
+            BlockPos p = list.get(i);
             Block b = mc.level.getBlockState(p).getBlock();
-            int c = Ids.oreColor(b);
-            Draw.worldBox(g, new AABB(p), c, true);
-            if (tracers.on() && i++ < 8) Draw.tracer(g, p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, c);
+            Draw.worldBox(g, new AABB(p), Draw.alpha(Ids.oreColor(b), fadeFor(p, maxDist)), true);
+        }
+        Vec3 eye = mc.player.getEyePosition();
+        if (tracers.on() && !list.isEmpty()) {
+            for (int i = Math.min(8, list.size()) - 1; i >= 1; i--) {
+                BlockPos p = list.get(i);
+                Draw.tracer(g, p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, Ids.oreColor(mc.level.getBlockState(p).getBlock()));
+            }
+            BlockPos n = list.get(0);
+            Block b = mc.level.getBlockState(n).getBlock();
+            Draw.tracerNearest(g, n.getX() + 0.5, n.getY() + 0.5, n.getZ() + 0.5, Ids.oreColor(b),
+                    Ids.oreLabel(b) + " " + Math.round(Math.sqrt(Vec3.atCenterOf(n).distanceToSqr(eye))) + "m");
+        }
+        if (arrows.on()) {
+            // je Erz-Sorte ein Pfeil zum nächsten Erz dieser Sorte
+            java.util.Map<String, BlockPos> best = new java.util.LinkedHashMap<>();
+            for (BlockPos p : list) {
+                String l = Ids.oreLabel(mc.level.getBlockState(p).getBlock());
+                best.putIfAbsent(l, p);
+            }
+            for (var e : best.entrySet()) {
+                BlockPos p = e.getValue();
+                int c = Ids.oreColor(mc.level.getBlockState(p).getBlock());
+                Arrows.draw(g, p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, c,
+                        e.getKey() + " " + Math.round(Math.sqrt(Vec3.atCenterOf(p).distanceToSqr(eye))) + "m" + Arrows.height(p.getY() + 0.5), 48);
+            }
+            arrowCount = best.size();
         }
     }
+
+    /** Wie viele Pfeile gerade gezeigt werden (Selbsttest). */
+    public int arrowCount;
 
     @Override
     public String info() {

@@ -59,6 +59,22 @@ public final class Ids {
         return p.endsWith("_ore") || p.equals("ancient_debris");
     }
 
+    /** Kurzer deutscher Name für ein Erz (für Pfeile und Linien). */
+    public static String oreLabel(Block b) {
+        String p = path(b);
+        if (p.contains("diamond")) return "Diamant";
+        if (p.contains("emerald")) return "Smaragd";
+        if (p.contains("gold")) return "Gold";
+        if (p.contains("iron")) return "Eisen";
+        if (p.contains("redstone")) return "Redstone";
+        if (p.contains("lapis")) return "Lapis";
+        if (p.contains("coal")) return "Kohle";
+        if (p.contains("copper")) return "Kupfer";
+        if (p.contains("quartz")) return "Quarz";
+        if (p.contains("debris")) return "Antiker Schrott";
+        return b.getName().getString();
+    }
+
     /** Farbe für ein Erz (für X-Ray). */
     public static int oreColor(Block b) {
         String p = path(b);

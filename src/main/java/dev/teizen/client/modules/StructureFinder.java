@@ -117,6 +117,11 @@ public final class StructureFinder extends Module {
         }
     }
 
+    private static double flat(Found f, net.minecraft.world.phys.Vec3 eye) {
+        double dx = f.pos().getX() + 0.5 - eye.x, dz = f.pos().getZ() + 0.5 - eye.z;
+        return dx * dx + dz * dz;
+    }
+
     static String direction(double dx, double dz) {
         double ang = Math.toDegrees(Math.atan2(dz, dx)); // 0 = Osten, 90 = Süden
         String[] dirs = {"O", "SO", "S", "SW", "W", "NW", "N", "NO"};
@@ -129,13 +134,19 @@ public final class StructureFinder extends Module {
         if (!inGame() || found.isEmpty()) return;
         var eye = mc.player.getEyePosition();
         int line = 0;
+        Found nearestF = null;
+        for (Found f : found)
+            if (nearestF == null || flat(f, eye) < flat(nearestF, eye)) nearestF = f;
         for (Found f : found) {
             double x = f.pos().getX() + 0.5, z = f.pos().getZ() + 0.5;
             double dx = x - eye.x, dz = z - eye.z;
             long dist = Math.round(Math.sqrt(dx * dx + dz * dz));
             // Markierung immer auf Augenhöhe, damit sie am Horizont zu sehen ist
             double y = eye.y;
-            if (tracers.on()) Draw.tracer(g, x, y, z, 0xFFFFAA00);
+            if (tracers.on()) {
+                if (f == nearestF) Draw.tracerNearest(g, x, y, z, 0xFFFFAA00, f.label() + " " + dist + "m");
+                else Draw.tracer(g, x, y, z, 0xFFFFAA00);
+            }
             if (arrows.on()) Arrows.draw(g, x, y, z, 0xFFFFAA00, f.label() + " " + dist + "m", 70);
             double[] s = Projector.project(x, y, z);
             if (s != null) {
