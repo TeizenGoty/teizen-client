@@ -10,14 +10,20 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Freecam: die Kamera löst sich vom Spieler und fliegt frei herum, du selbst bleibst stehen.
- * Mit "reichweite" stellst du ein, wie weit sich die Kamera vom Spieler entfernen darf.
+ * Freecam wie die Freecam-Mod: die Kamera löst sich vom Spieler und fliegt frei herum (WASD, Leertaste, Shift),
+ * du selbst bleibst stehen und bist sichtbar. Standard: unbegrenzt weit ("maxabstand" 0).
+ * Blöcke abbauen/benutzen ist mit der Kamera gesperrt (wie bei der Mod), außer "interagieren" ist an.
  */
 public final class Freecam extends Module {
     private final Setting speed = add(Setting.number("tempo", "Tempo der Kamera (Blöcke pro Tick, Sprinten = doppelt)", 1, 0.05, 10));
-    private final Setting maxDist = add(Setting.number("reichweite", "Wie weit die Kamera weg darf (Blöcke, 0 = unbegrenzt)", 64, 0, 2000));
+    private final Setting maxDist = add(Setting.number("maxabstand", "Wie weit die Kamera weg darf (Blöcke, 0 = unbegrenzt)", 0, 0, 100000));
+    public final Setting showPlayer = add(Setting.bool("spielerzeigen", "Dich selbst sehen, während die Kamera weg ist", true));
+    public final Setting hideHand = add(Setting.bool("handweg", "Hand und Item in der Hand ausblenden", true));
+    public final Setting interact = add(Setting.bool("interagieren", "Mit der Kamera abbauen/benutzen erlauben (sonst gesperrt)", false));
 
     public ArmorStand cam;
+    /** Wie oft der eigene Spieler extra gezeichnet wurde (Selbsttest). */
+    public int playerDrawn;
     private ClientInput savedInput;
 
     public Freecam() {
@@ -28,13 +34,35 @@ public final class Freecam extends Module {
         return isEnabled() && cam != null;
     }
 
+    /** Freecam an und Abbauen/Benutzen gesperrt? (für den Minecraft-Mixin) */
+    public static boolean blocksInteract() {
+        if (dev.teizen.client.TeizenClient.modules() == null) return false;
+        Freecam f = dev.teizen.client.TeizenClient.modules().get(Freecam.class);
+        return f != null && f.active() && !f.interact.on();
+    }
+
+    /** Freecam an und Hand ausblenden? (für den GameRenderer-Mixin) */
+    public static boolean hidesHand() {
+        if (dev.teizen.client.TeizenClient.modules() == null) return false;
+        Freecam f = dev.teizen.client.TeizenClient.modules().get(Freecam.class);
+        return f != null && f.active() && f.hideHand.on();
+    }
+
     @Override
     protected void onEnable() {
         if (inGame()) start();
     }
 
     private void start() {
-        cam = new ArmorStand(mc.level, mc.player.getX(), mc.player.getY(), mc.player.getZ());
+        // Die Kamera nimmt ihre Blickrichtung direkt aus yRot/xRot (ein Rüstungsständer würde sonst die
+        // Kopf-Drehung nehmen, die sich nie ändert -> man konnte nicht nach links/rechts schauen).
+        cam = new ArmorStand(mc.level, mc.player.getX(), mc.player.getY(), mc.player.getZ()) {
+            @Override
+            public float getViewYRot(float partial) { return getYRot(); }
+
+            @Override
+            public float getViewXRot(float partial) { return getXRot(); }
+        };
         cam.setNoGravity(true);
         cam.setInvisible(true);
         cam.noPhysics = true;
@@ -62,8 +90,14 @@ public final class Freecam extends Module {
 
     /** Mausbewegung dreht die Kamera statt den Spieler (aus dem Entity-Mixin). */
     public void turn(double dx, double dy) {
-        if (cam != null) cam.turn(dx, dy);
+        if (cam == null) return;
+        cam.turn(dx, dy);
+        cam.setYHeadRot(cam.getYRot());
+        cam.setYBodyRot(cam.getYRot());
     }
+
+    /** Blickrichtung der Kamera (Selbsttest). */
+    public float camYaw() { return cam == null ? 0 : cam.getYRot(); }
 
     /** Abstand Kamera – Spieler-Augen. */
     public double distance() {
@@ -106,7 +140,7 @@ public final class Freecam extends Module {
         var bb = mc.player.getBoundingBox();
         double[] r = Draw.worldBox(g, bb, 0xFF55FFFF, false);
         if (r != null) g.text(mc.font, "Du", (int) ((r[0] + r[2]) / 2) - mc.font.width("Du") / 2, (int) r[1] - 10, 0xFF55FFFF, true);
-        String t = "Freecam: " + Math.round(distance()) + " m" + (maxDist.num() > 0 ? " / " + Setting.fmt(maxDist.num()) + " m" : "");
+        String t = "Freecam: " + Math.round(distance()) + " m" + (maxDist.num() > 0 ? " / " + Setting.fmt(maxDist.num()) + " m" : " §7(unbegrenzt)");
         g.text(mc.font, t, g.guiWidth() / 2 - mc.font.width(t) / 2, 4, 0xFF55FFFF, true);
     }
 

@@ -204,7 +204,16 @@ public final class Commands {
                 Module sf = mm.byName("structurefinder");
                 if (a.length == 1) { sf.toggle(); Config.save(); return; }
                 if (a[1].equalsIgnoreCase("aus") || a[1].equalsIgnoreCase("stop")) { sf.setEnabled(false); Chat.info("StructureFinder §caus"); return; }
-                sf.setting("strukturen").setText(String.join(",", Arrays.copyOfRange(a, 1, a.length)));
+                java.util.List<String> names = new java.util.ArrayList<>();
+                for (String n : Arrays.copyOfRange(a, 1, a.length)) {
+                    for (String part : n.split(",")) {
+                        if (part.isBlank()) continue;
+                        if (part.equalsIgnoreCase("alle") || part.equalsIgnoreCase("all")) { names.addAll(dev.teizen.client.core.Locator.names()); continue; }
+                        String p = dev.teizen.client.core.Locator.primary(part);
+                        if (!names.contains(p)) names.add(p);
+                    }
+                }
+                sf.setting("strukturen").setText(String.join(",", names));
                 if (sf.isEnabled()) sf.setEnabled(false);
                 sf.setEnabled(true);
                 Config.save();
@@ -277,7 +286,7 @@ public final class Commands {
             case "ItemESP" -> "filter";
             case "Tracers" -> "distanz";
             case "Nuker", "StorageESP", "ShulkerESP", "PortalFinder" -> "radius";
-            case "AntiKnockback" -> "staerke";
+            case "AntiKnockback" -> "rest";
             case "AutoReconnect", "FastEat" -> "sekunden";
             case "AutoEat" -> "hunger";
             case "NoFall" -> "ab";
@@ -340,11 +349,13 @@ public final class Commands {
         Chat.raw("§d///xray §7– an/aus, §f///xray nur diamond §7(nur Dias), §f///xray alle§7, §f///xray add/remove <Erz>");
         Chat.raw("§d///xray lava §7· §d///xray wasser §7· §d///xray hoehlen §7– zusätzlich anzeigen (an/aus)");
         Chat.raw("§d///fav <Funktion> §7– Favorit an/aus (steht oben) · §d///fav §7– alle Favoriten");
-        Chat.raw("§d///structurefinder <Struktur> §7– z.B. §fvillage§7, §fstronghold§7, §fancient_city §7(auf Servern mit OP)");
+        Chat.raw("§d///structurefinder <Strukturen...> §7– z.B. §fvillage stronghold ancient_city§7, §falle §7(oder im Menü anhaken; Server: OP)");
+        Chat.raw("§d///playerfinder §7– Pfeile zu allen Spielern, auch weit weg (Server: OP) · §d///xray §7zeigt Pfeile zu den Erzen");
         Chat.raw("§d///velocity <seitlich%> [hoch%] §7· §d///god <Herzen> §7· §d///aimassist <Stärke> §7· §d///nametags <Größe>");
-        Chat.raw("§d///freecam <Tempo> §7(Reichweite: §f///set freecam reichweite 50§7) · §d///itemesp <Items...>");
+        Chat.raw("§d///freecam <Tempo> §7(unbegrenzt weit; Grenze: §f///set freecam maxabstand 100§7) · §d///itemesp <Items...>");
+        Chat.raw("§d///aimassist §7– zielt auch mit Bogen/Armbrust und schießt automatisch (§f///set aimassist autoschuss an§7)");
         Chat.raw("§d///chatspammer <Text> §7· §d///villagerroller mending §7· §d///moredurability 10 §7| §funzerstoerbar §7| §freparieren");
-        Chat.raw("§7Menü/Übersicht: §ftippen = suchen (Lupe)§7, §fRechtsklick in der Übersicht = Cheat bearbeiten§7, §fZahlen anklicken und eintippen");
+        Chat.raw("§7Menü/Übersicht: §ftippen = suchen (Lupe)§7, §fRechtsklick = Einstellungen direkt aufklappen§7, §fMausrad = scrollen§7, §fZahlen anklicken und eintippen");
         Chat.raw("§d///enchantpreview §7– Zaubertisch zeigt alle Verzauberungen (Server: braucht OP)");
         Chat.raw("§d///combatlog <Herzen> §7· §d///projectiledodge §7· §d///inventorywalk §7· §d///seeinvisible §7· §d///elytrareset §7· §d///hitmarker");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");

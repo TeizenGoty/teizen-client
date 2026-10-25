@@ -52,36 +52,40 @@ public final class Locator {
     private static final Map<String, String> ARG = new LinkedHashMap<>();
     /** Argument -> deutscher Anzeigename. */
     private static final Map<String, String> LABEL = new LinkedHashMap<>();
+    /** Argument -> in welchen Dimensionen es die Struktur gibt (o = Oberwelt, n = Nether, e = End). */
+    private static final Map<String, String> DIM = new LinkedHashMap<>();
+
     /** Erster (englischer) Name je Struktur, für Vorschläge. */
     private static final List<String> PRIMARY = new ArrayList<>();
 
     static {
-        s("#minecraft:village", "Dorf", "village", "dorf", "doerfer");
-        s("minecraft:stronghold", "Festung", "stronghold", "festung", "endportal");
-        s("minecraft:fortress", "Netherfestung", "fortress", "netherfestung", "nether_fortress");
-        s("minecraft:bastion_remnant", "Bastion", "bastion", "bastion_remnant", "bastionsruine");
-        s("minecraft:monument", "Ozeanmonument", "monument", "ozeanmonument", "ocean_monument");
-        s("minecraft:mansion", "Waldanwesen", "mansion", "anwesen", "waldanwesen", "woodland_mansion");
-        s("minecraft:ancient_city", "Antike Stadt", "ancient_city", "antike_stadt", "city");
-        s("minecraft:end_city", "Endsiedlung", "end_city", "endstadt", "endsiedlung");
-        s("minecraft:trial_chambers", "Prüfungskammer", "trial_chambers", "trial", "pruefungskammer");
-        s("minecraft:desert_pyramid", "Wüstentempel", "desert_pyramid", "pyramide", "wuestentempel");
-        s("minecraft:jungle_pyramid", "Dschungeltempel", "jungle_pyramid", "dschungeltempel", "jungle_temple");
-        s("minecraft:igloo", "Iglu", "igloo", "iglu");
-        s("minecraft:swamp_hut", "Hexenhütte", "swamp_hut", "hexenhuette", "witch_hut");
-        s("minecraft:pillager_outpost", "Plünderer-Außenposten", "pillager_outpost", "outpost", "aussenposten");
-        s("#minecraft:ruined_portal", "Portalruine", "ruined_portal", "portalruine");
-        s("#minecraft:shipwreck", "Schiffswrack", "shipwreck", "schiffswrack");
-        s("#minecraft:ocean_ruin", "Ozeanruine", "ocean_ruin", "ozeanruine");
-        s("#minecraft:mineshaft", "Mine", "mineshaft", "mine", "verlassene_mine");
-        s("minecraft:buried_treasure", "Vergrabener Schatz", "buried_treasure", "schatz");
-        s("minecraft:trail_ruins", "Pfadruine", "trail_ruins", "pfadruine");
-        s("minecraft:nether_fossil", "Netherfossil", "nether_fossil", "fossil");
+        s("#minecraft:village", "Dorf", "o", "village", "dorf", "doerfer");
+        s("minecraft:stronghold", "Festung", "o", "stronghold", "festung", "endportal");
+        s("minecraft:fortress", "Netherfestung", "n", "fortress", "netherfestung", "nether_fortress");
+        s("minecraft:bastion_remnant", "Bastion", "n", "bastion", "bastion_remnant", "bastionsruine");
+        s("minecraft:monument", "Ozeanmonument", "o", "monument", "ozeanmonument", "ocean_monument");
+        s("minecraft:mansion", "Waldanwesen", "o", "mansion", "anwesen", "waldanwesen", "woodland_mansion");
+        s("minecraft:ancient_city", "Antike Stadt", "o", "ancient_city", "antike_stadt", "city");
+        s("minecraft:end_city", "Endsiedlung", "e", "end_city", "endstadt", "endsiedlung");
+        s("minecraft:trial_chambers", "Prüfungskammer", "o", "trial_chambers", "trial", "pruefungskammer");
+        s("minecraft:desert_pyramid", "Wüstentempel", "o", "desert_pyramid", "pyramide", "wuestentempel");
+        s("minecraft:jungle_pyramid", "Dschungeltempel", "o", "jungle_pyramid", "dschungeltempel", "jungle_temple");
+        s("minecraft:igloo", "Iglu", "o", "igloo", "iglu");
+        s("minecraft:swamp_hut", "Hexenhütte", "o", "swamp_hut", "hexenhuette", "witch_hut");
+        s("minecraft:pillager_outpost", "Plünderer-Außenposten", "o", "pillager_outpost", "outpost", "aussenposten");
+        s("#minecraft:ruined_portal", "Portalruine", "on", "ruined_portal", "portalruine");
+        s("#minecraft:shipwreck", "Schiffswrack", "o", "shipwreck", "schiffswrack");
+        s("#minecraft:ocean_ruin", "Ozeanruine", "o", "ocean_ruin", "ozeanruine");
+        s("#minecraft:mineshaft", "Mine", "o", "mineshaft", "mine", "verlassene_mine");
+        s("minecraft:buried_treasure", "Vergrabener Schatz", "o", "buried_treasure", "schatz");
+        s("minecraft:trail_ruins", "Pfadruine", "o", "trail_ruins", "pfadruine");
+        s("minecraft:nether_fossil", "Netherfossil", "n", "nether_fossil", "fossil");
     }
 
-    private static void s(String arg, String label, String... names) {
+    private static void s(String arg, String label, String dims, String... names) {
         for (String n : names) ARG.put(n, arg);
         LABEL.put(arg, label);
+        DIM.put(arg, dims);
         PRIMARY.add(names[0]);
     }
 
@@ -96,6 +100,33 @@ public final class Locator {
         if (a != null) return a;
         if (n.startsWith("#") || n.contains(":")) return n;
         return "minecraft:" + n;
+    }
+
+    /** Englischer Hauptname (z.B. "dorf" -> "village"), oder der Name selbst, wenn unbekannt. */
+    public static String primary(String name) {
+        String a = arg(name);
+        for (String p : PRIMARY) if (arg(p).equals(a)) return p;
+        return name.toLowerCase(Locale.ROOT).trim();
+    }
+
+    /** Gibt es die Struktur in dieser Dimension? Unbekannte Strukturen: ja (einfach suchen). */
+    public static boolean inDimension(String name, net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dim) {
+        String d = DIM.get(arg(name));
+        if (d == null) return true;
+        if (dim == net.minecraft.world.level.Level.NETHER) return d.contains("n");
+        if (dim == net.minecraft.world.level.Level.END) return d.contains("e");
+        if (dim == net.minecraft.world.level.Level.OVERWORLD) return d.contains("o");
+        return true;
+    }
+
+    /** Wo es die Struktur gibt, als Text ("Oberwelt", "Nether", "End"). */
+    public static String dimensionText(String name) {
+        String d = DIM.getOrDefault(arg(name), "o");
+        List<String> out = new ArrayList<>();
+        if (d.contains("o")) out.add("Oberwelt");
+        if (d.contains("n")) out.add("Nether");
+        if (d.contains("e")) out.add("End");
+        return String.join("/", out);
     }
 
     public static String label(String name) {

@@ -44,6 +44,22 @@ jobs:
               else javap -p -cp "$CP" "$a" >> api-dump.txt 2>&1; fi
             done
           fi
+      - name: Xaero dump
+        if: always()
+        run: |
+          set +e
+          mkdir -p /tmp/xaero && cd /tmp/xaero
+          for proj in xaeros-minimap xaeros-world-map; do
+            curl -sL "https://api.modrinth.com/v2/project/$proj/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%2226.2%22%5D" -o v.json
+            URL=$(jq -r '.[0].files[0].url' v.json)
+            echo "== $proj: $(jq -r '.[0].version_number' v.json) $URL" >> $GITHUB_WORKSPACE/api-dump.txt
+            curl -sL "$URL" -o $proj.jar
+            unzip -Z1 $proj.jar | grep -i -E 'tracker|PlayerTrack|api/' | head -80 >> $GITHUB_WORKSPACE/api-dump.txt
+            for c in $(unzip -Z1 $proj.jar | grep -i -E 'player/tracker/.*(System|Reader|Manager|Register)[A-Za-z]*\.class$' | sed 's/\.class$//' | tr / . | head -20); do
+              javap -p -cp $proj.jar "$c" >> $GITHUB_WORKSPACE/api-dump.txt 2>&1
+            done
+          done
+          ls -la /tmp/xaero >> $GITHUB_WORKSPACE/api-dump.txt
       - name: Publish
         if: always()
         run: |

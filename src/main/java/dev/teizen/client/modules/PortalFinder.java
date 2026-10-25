@@ -3,6 +3,7 @@ package dev.teizen.client.modules;
 import dev.teizen.client.core.Locator;
 import dev.teizen.client.core.Module;
 import dev.teizen.client.core.Setting;
+import dev.teizen.client.util.Arrows;
 import dev.teizen.client.util.BlockScanner;
 import dev.teizen.client.util.Chat;
 import dev.teizen.client.util.Draw;
@@ -34,6 +35,7 @@ public final class PortalFinder extends Module {
     private final Setting ruins = add(Setting.bool("ruinen", "Auch die nächste Portalruine suchen", false));
     private final Setting radius = add(Setting.number("radius", "Suchradius in Chunks", 8, 1, 16));
     private final Setting tracers = add(Setting.bool("linien", "Linien zu den Portalen", true));
+    private final Setting arrows = add(Setting.bool("pfeile", "Pfeile um das Fadenkreuz, die zu den Portalen zeigen", true));
 
     public record Portal(BlockPos pos, AABB box, String label, int color) {}
 
@@ -145,6 +147,15 @@ public final class PortalFinder extends Module {
     public void onHud(GuiGraphicsExtractor g, float partial) {
         if (!inGame()) return;
         var eye = mc.player.getEyePosition();
+        if (arrows.on()) {
+            List<Portal> near = new ArrayList<>(portals);
+            near.sort(java.util.Comparator.comparingDouble(p -> p.box().getCenter().distanceToSqr(eye)));
+            for (int i = 0; i < Math.min(5, near.size()); i++) {
+                Portal p = near.get(i);
+                var c = p.box().getCenter();
+                Arrows.draw(g, c.x, c.y, c.z, p.color(), Math.round(eye.distanceTo(c)) + "m" + Arrows.height(c.y), 62);
+            }
+        }
         for (Portal p : portals) {
             double[] r = Draw.worldBox(g, p.box(), p.color(), true);
             var c = p.box().getCenter();
@@ -160,6 +171,7 @@ public final class PortalFinder extends Module {
             double dx = x - eye.x, dz = z - eye.z;
             long dist = Math.round(Math.sqrt(dx * dx + dz * dz));
             if (tracers.on()) Draw.tracer(g, x, eye.y, z, 0xFF30FFB0);
+            if (arrows.on()) Arrows.draw(g, x, eye.y, z, 0xFF30FFB0, f.label() + " " + dist + "m", 62);
             double[] s = Projector.project(x, eye.y, z);
             if (s != null) {
                 String t = "§a" + f.label() + " §f" + dist + "m";

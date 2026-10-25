@@ -82,7 +82,9 @@ public final class SettingRows {
                 g.fill(x, y, x + w, y + h, hover ? 0xE0241440 : 0xD0120A20);
                 boolean on = s.isSelected(r.option());
                 checkbox(g, x + 18, ty, on);
-                g.text(font, (on ? "§f" : "§7") + r.option(), x + 30, ty, 0xFFFFFFFF, false);
+                String label = s.optionLabel(r.option());
+                if (font.width(label) > w - 34) label = font.plainSubstrByWidth(label, w - 38) + "…";
+                g.text(font, (on ? "§f" : "§7") + label, x + 30, ty, 0xFFFFFFFF, false);
                 return;
             }
             default -> { }

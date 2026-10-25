@@ -15,6 +15,8 @@ public final class Setting {
     private String text;
     public final double min, max;
     public final List<String> choices;
+    /** Anzeigename je Listen-Eintrag (z.B. "village" -> "Dorf"), sonst der Eintrag selbst. */
+    private java.util.function.Function<String, String> optionLabel;
 
     private Setting(String name, String description, Type type, double number, boolean bool, String text,
                     double min, double max, List<String> choices) {
@@ -48,6 +50,18 @@ public final class Setting {
     /** Mehrfach-Auswahl (z.B. welche Erze): Wert = Komma-Liste. Eigene Einträge außerhalb der Liste bleiben erhalten. */
     public static Setting multi(String name, String desc, String value, String... options) {
         return new Setting(name, desc, Type.MULTI, 0, false, value, 0, 0, List.of(options));
+    }
+
+    /** Anzeigenamen für die Listen-Einträge setzen. */
+    public Setting labels(java.util.function.Function<String, String> f) {
+        optionLabel = f;
+        return this;
+    }
+
+    public String optionLabel(String option) {
+        if (optionLabel == null) return option;
+        String l = optionLabel.apply(option);
+        return l == null || l.isEmpty() ? option : l;
     }
 
     /** Ausgewählte Einträge (MULTI/TEXT als Liste). */

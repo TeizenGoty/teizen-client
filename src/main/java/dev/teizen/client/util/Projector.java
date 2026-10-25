@@ -19,6 +19,7 @@ public final class Projector {
     private static double cx, cy, cz;
     private static double fx, fy, fz, ux, uy, uz, lx, ly, lz;
     private static double tanHalf, halfW, halfH, aspect;
+    private static float camYaw;
     private static boolean ready;
     private static final Matrix4f viewProj = new Matrix4f();
     private static boolean useMatrix;
@@ -31,6 +32,7 @@ public final class Projector {
         if (cam == null || !cam.isInitialized()) { ready = false; return false; }
         Vec3 p = cam.position();
         cx = p.x; cy = p.y; cz = p.z;
+        camYaw = cam.yRot();
         Vector3fc f = cam.forwardVector(), u = cam.upVector(), l = cam.leftVector();
         fx = f.x(); fy = f.y(); fz = f.z();
         ux = u.x(); uy = u.y(); uz = u.z();
@@ -99,6 +101,12 @@ public final class Projector {
         if (visible == 0) return null;
         return new double[]{minX, minY, maxX, maxY};
     }
+
+    public static double camX() { return cx; }
+    public static double camY() { return cy; }
+    public static double camZ() { return cz; }
+    /** Blickrichtung der Kamera (links/rechts, Grad) – auch in der Freecam richtig. */
+    public static float camYaw() { return camYaw; }
 
     public static double screenCenterX() { return halfW; }
     public static double screenCenterY() { return halfH; }
