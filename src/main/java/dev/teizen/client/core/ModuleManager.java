@@ -27,6 +27,9 @@ public final class ModuleManager {
         add(new AutoTotem());
         add(new AutoArmor());
         add(new AutoShield());
+        add(new ShieldBreaker());
+        add(new MaceSwap());
+        add(new SpearSwap());
         add(new God());
         add(new GodPvP());
         add(new NoCooldown());
@@ -54,6 +57,12 @@ public final class ModuleManager {
         add(new InventoryWalk());
         add(new ProjectileDodge());
         add(new ElytraReset());
+        add(new ElytraFly());
+        add(new BoatFly());
+        add(new BoatNoclip());
+        add(new Spider());
+        add(new ClickTP());
+        add(new TridentBoost());
         // Sicht
         add(new PlayerESP());
         add(new SeeInvisible());
@@ -70,6 +79,12 @@ public final class ModuleManager {
         add(new PortalFinder());
         add(new StructureFinder());
         add(new Fullbright());
+        add(new TargetESP());
+        add(new HoleESP());
+        add(new LowHealthWarning());
+        add(new ChunkFinder());
+        add(new TimeChanger());
+        add(new WeatherChanger());
         // Bauen
         add(new AutoBuild());
         add(new Scaffold());
@@ -86,6 +101,10 @@ public final class ModuleManager {
         add(new MoreDurability());
         add(new ChatSpammer());
         add(new FakeLag());
+        add(new AutoReplenish());
+        add(new FastUse());
+        add(new NameProtect());
+        add(new SkinChanger());
         add(new PanicButton());
     }
 

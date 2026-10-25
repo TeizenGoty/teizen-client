@@ -29,4 +29,10 @@ public abstract class EntityMixin {
         var si = TeizenClient.modules().get(dev.teizen.client.modules.SeeInvisible.class);
         if (si != null && si.reveal((Entity) (Object) this)) cir.setReturnValue(false);
     }
+
+    /** BoatNoclip: im Boot in der Wand nicht ersticken (eigene Welt). */
+    @Inject(method = "isInWall", at = @At("HEAD"), cancellable = true)
+    private void teizen$boatNoclipWall(CallbackInfoReturnable<Boolean> cir) {
+        if (dev.teizen.client.modules.BoatNoclip.noSuffocation((Entity) (Object) this)) cir.setReturnValue(false);
+    }
 }

@@ -19,6 +19,18 @@ public abstract class MultiPlayerGameModeMixin {
         dev.teizen.client.modules.HitMarker.onAttack(target);
     }
 
+    /** ShieldBreaker / MaceSwap / SpearSwap: Waffe nur für diesen Schlag wechseln. */
+    @Inject(method = "attack", at = @At("HEAD"), cancellable = true)
+    private void teizen$weaponSwap(Player player, Entity target, CallbackInfo ci) {
+        dev.teizen.client.modules.TargetESP.onAttack(target);
+        if (dev.teizen.client.util.WeaponSwap.before(target)) ci.cancel();
+    }
+
+    @Inject(method = "attack", at = @At("RETURN"))
+    private void teizen$weaponBack(Player player, Entity target, CallbackInfo ci) {
+        dev.teizen.client.util.WeaponSwap.after();
+    }
+
     /** AutoMine/Nuker: Abbau nicht abbrechen lassen, nur weil die Maustaste nicht gedrückt ist. */
     @Inject(method = "stopDestroyBlock", at = @At("HEAD"), cancellable = true)
     private void teizen$keepBreaking(CallbackInfo ci) {

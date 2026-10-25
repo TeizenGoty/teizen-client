@@ -16,7 +16,15 @@
     "LevelExtractorMixin",
     "GameRendererMixin",
     "LivingEntityAccessor",
-    "ConnectionMixin"
+    "ConnectionMixin",
+    "LevelMixin",
+    "ClientClockManagerMixin",
+    "StringDecomposerMixin",
+    "AbstractClientPlayerMixin",
+    "DefaultPlayerSkinAccessor",
+    "LivingEntityMixin",
+    "AbstractBoatMixin",
+    "ServerGamePacketListenerImplMixin"
   ],
   "injectors": {
     "defaultRequire": 0

@@ -27,3 +27,10 @@ net.minecraft.world.entity.player.Inventory
 c net.minecraft.client.Minecraft
 c net.minecraft.server.network.ServerGamePacketListenerImpl
 c net.minecraft.client.multiplayer.ClientPacketListener
+net.minecraft.core.ClientAsset$Texture
+net.minecraft.core.ClientAsset
+net.minecraft.server.Services
+net.minecraft.server.players.ProfileResolver
+net.minecraft.world.inventory.ContainerInput
+net.minecraft.client.multiplayer.ClientChunkCache
+net.minecraft.world.level.chunk.LevelChunk
