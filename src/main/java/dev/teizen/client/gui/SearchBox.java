@@ -83,6 +83,7 @@ public final class SearchBox {
         String s = q.toLowerCase(Locale.ROOT).trim();
         List<Module> start = new ArrayList<>(), rest = new ArrayList<>();
         for (Module m : TeizenClient.modules().favoritesFirst()) {
+            if (!dev.teizen.client.core.ModuleManager.shown(m)) continue;
             String name = m.name.toLowerCase(Locale.ROOT);
             if (name.startsWith(s)) { start.add(m); continue; }
             StringBuilder all = new StringBuilder(name).append(' ').append(m.description).append(' ').append(m.category.title);

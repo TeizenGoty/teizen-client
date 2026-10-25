@@ -116,6 +116,19 @@ public final class ModuleManager {
 
     public List<Module> all() { return Collections.unmodifiableList(all); }
 
+    /** Knopf im Menü: Funktionen, die OP brauchen, ausblenden. */
+    public static boolean hideOp;
+
+    /** Wird die Funktion im Menü / in der Übersicht gezeigt? */
+    public static boolean shown(Module m) { return !hideOp || !m.needsOp(); }
+
+    /** Wie viele Funktionen gerade versteckt sind. */
+    public int hiddenCount() {
+        int n = 0;
+        for (Module m : all) if (!shown(m)) n++;
+        return n;
+    }
+
     /** Favoriten in der normalen Reihenfolge. */
     public List<Module> favorites() {
         List<Module> out = new ArrayList<>();

@@ -34,6 +34,15 @@ public final class Arrows {
      * @param label  Text neben dem Pfeil (oder null)
      */
     public static void draw(GuiGraphicsExtractor g, double x, double y, double z, int color, String label, double radius) {
+        draw(g, x, y, z, color, label, radius, 7);
+    }
+
+    /** Wie viele Pfeile seit dem letzten Zurücksetzen gezeichnet wurden (Selbsttest). */
+    public static int drawn;
+
+    /** Pfeil mit wählbarer Größe (Pixel). */
+    public static void draw(GuiGraphicsExtractor g, double x, double y, double z, int color, String label, double radius, int size) {
+        drawn++;
         double a = angle(x, z);
         double cx = Projector.screenCenterX(), cy = Projector.screenCenterY();
         double sin = Math.sin(a), cos = Math.cos(a);
@@ -42,12 +51,12 @@ public final class Arrows {
         pose.pushMatrix();
         pose.translate(px, py);
         pose.rotate((float) a);
-        triangle(g, 9, 0xC0000000);
+        triangle(g, size + 2, 0xC0000000);
         pose.translate(0f, -1f);
-        triangle(g, 7, color | 0xFF000000);
+        triangle(g, size, color | 0xFF000000);
         pose.popMatrix();
         if (label != null && !label.isEmpty()) {
-            double lr = radius + 16;
+            double lr = radius + 9 + size;
             int lx = (int) (cx + sin * lr), ly = (int) (cy - cos * lr) - 4;
             int w = mc.font.width(label);
             // Text nicht aus dem Bild schieben
@@ -55,6 +64,41 @@ public final class Arrows {
             ly = Math.max(2, Math.min(g.guiHeight() - 10, ly));
             g.text(mc.font, label, lx - w / 2, ly, color | 0xFF000000, true);
         }
+    }
+
+    /**
+     * Pfeil am Bildschirmrand (wenn das Ziel nicht im Bild ist), zeigt in die Richtung, in die man sich drehen muss.
+     * @return true wenn gezeichnet (false = Ziel ist im Bild)
+     */
+    public static boolean drawEdge(GuiGraphicsExtractor g, double x, double y, double z, int color, String label, int size) {
+        double cx = Projector.screenCenterX(), cy = Projector.screenCenterY();
+        double[] s = Projector.project(x, y, z);
+        if (s != null && s[0] > 10 && s[0] < g.guiWidth() - 10 && s[1] > 10 && s[1] < g.guiHeight() - 10) return false;
+        double[] d = Projector.direction(x, y, z);
+        double dx = d[0], dy = d[1];
+        double len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 1e-6) { dx = 0; dy = -1; } else { dx /= len; dy /= len; }
+        double mx = cx - size * 3, my = cy - size * 3 - 10;
+        double t = Math.min(Math.abs(dx) < 1e-6 ? 1e9 : mx / Math.abs(dx), Math.abs(dy) < 1e-6 ? 1e9 : my / Math.abs(dy));
+        float px = (float) (cx + dx * t), py = (float) (cy + dy * t);
+        double a = Math.atan2(dx, -dy);
+        drawn++;
+        var pose = g.pose();
+        pose.pushMatrix();
+        pose.translate(px, py);
+        pose.rotate((float) a);
+        triangle(g, size + 2, 0xC0000000);
+        pose.translate(0f, -1f);
+        triangle(g, size, color | 0xFF000000);
+        pose.popMatrix();
+        if (label != null && !label.isEmpty()) {
+            int w = mc.font.width(label);
+            int lx = (int) (px - dx * (size + 12)) - w / 2, ly = (int) (py - dy * (size + 12)) - 4;
+            lx = Math.max(2, Math.min(g.guiWidth() - w - 2, lx));
+            ly = Math.max(2, Math.min(g.guiHeight() - 10, ly));
+            g.text(mc.font, label, lx, ly, color | 0xFF000000, true);
+        }
+        return true;
     }
 
     /** Dreieck mit Spitze nach oben: Spitze bei y = -size, Grundseite bei y = +size/2. */

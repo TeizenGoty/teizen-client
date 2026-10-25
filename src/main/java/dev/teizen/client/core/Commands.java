@@ -228,6 +228,14 @@ public final class Commands {
                 Config.save();
             }
             case "save", "speichern" -> { Config.save(); Chat.ok("Gespeichert."); }
+            case "opcheats", "op" -> {
+                boolean hide = a.length >= 2 ? (a[1].equalsIgnoreCase("aus") || a[1].equalsIgnoreCase("verstecken") || a[1].equalsIgnoreCase("weg"))
+                        : !ModuleManager.hideOp;
+                ModuleManager.hideOp = hide;
+                Config.save();
+                Chat.ok(hide ? "OP-Cheats sind im Menü versteckt (" + mm.hiddenCount() + "). Wieder zeigen: ///opcheats an"
+                        : "OP-Cheats werden im Menü wieder gezeigt.");
+            }
             case "panic", "alleaus", "panik" -> {
                 int n = dev.teizen.client.modules.PanicButton.panic();
                 Chat.ok("Alle Funktionen aus (" + n + " ausgeschaltet).");
@@ -288,7 +296,6 @@ public final class Commands {
             case "Nuker", "StorageESP", "PortalFinder" -> "radius";
             case "FastBreak" -> "faktor";
             case "FakeLag" -> "verzoegerung";
-            case "Radar" -> "zoom";
             case "AntiKnockback" -> "rest";
             case "AutoReconnect", "FastEat" -> "sekunden";
             case "AutoEat" -> "hunger";
@@ -353,7 +360,8 @@ public final class Commands {
         Chat.raw("§d///xray lava §7· §d///xray wasser §7· §d///xray hoehlen §7– zusätzlich anzeigen (an/aus)");
         Chat.raw("§d///fav <Funktion> §7– Favorit an/aus (steht oben) · §d///fav §7– alle Favoriten");
         Chat.raw("§d///structurefinder <Strukturen...> §7– z.B. §fvillage stronghold ancient_city§7, §falle §7(oder im Menü anhaken; Server: OP)");
-        Chat.raw("§d///playerfinder §7– Pfeile zu allen Spielern, auch weit weg (Server: OP) · §d///xray §7zeigt Pfeile zu den Erzen");
+        Chat.raw("§d///playerfinder §7– Pfeile zu allen Spielern (§f///set playerfinder stil rand§7 = am Bildschirmrand) · §d///xray §7zeigt Pfeile zu den Erzen");
+        Chat.raw("§d///radar §7– alle Spieler auf Xaero's Minimap/World Map, auch weit weg (braucht Xaero's Minimap)");
         Chat.raw("§d///velocity <seitlich%> [hoch%] §7· §d///god <Herzen> §7· §d///aimassist <Stärke> §7· §d///nametags <Größe>");
         Chat.raw("§d///freecam <Tempo> §7(unbegrenzt weit; Grenze: §f///set freecam maxabstand 100§7) · §d///itemesp <Items...>");
         Chat.raw("§d///aimassist §7– zielt auch mit Bogen/Armbrust und schießt automatisch (§f///set aimassist autoschuss an§7)");
@@ -366,6 +374,7 @@ public final class Commands {
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");
         Chat.raw("§d///find chest [Chunks] §7| §d///find biome <Name> §7| §d///find structure <Name> §7| §d///find clear");
         Chat.raw("§d///friend add <Name> §7– wird nicht angegriffen");
+        Chat.raw("§d///opcheats §7– Cheats, die OP brauchen, im Menü verstecken/zeigen (auch Knopf oben rechts)");
         Chat.raw("§d///panic §7– alles aus   §d///save §7– speichern");
     }
 }

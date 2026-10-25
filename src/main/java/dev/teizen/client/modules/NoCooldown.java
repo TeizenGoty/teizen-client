@@ -16,6 +16,7 @@ public final class NoCooldown extends Module {
 
     public NoCooldown() {
         super("NoCooldown", Category.KAMPF, "Kein Cooldown beim Schlagen – jeder Schlag mit voller Kraft.");
+        opOnly();
     }
 
     @Override

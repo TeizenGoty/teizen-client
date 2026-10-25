@@ -42,6 +42,7 @@ public final class StructureFinder extends Module {
 
     public StructureFinder() {
         super("StructureFinder", Category.SICHT, "Findet Dörfer, Festungen und jede andere Struktur.");
+        opOnly();
     }
 
     @Override

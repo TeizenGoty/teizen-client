@@ -730,6 +730,23 @@ final class NewTests {
                 result("Übersicht: alle " + (ov == null ? 0 : ov.shownModules().size()) + " Cheats, Kategorien in neuer Reihe=" + yes(rowsOk)
                         + ", Mausrad scrollt (" + before + " -> " + afterScroll + ", max " + (ov == null ? 0 : ov.maxScroll()) + ") "
                         + ok(rowsOk && afterScroll > before && ov.shownModules().size() == TeizenClient.modules().all().size()));
+                // Knopf "OP-Cheats": versteckt alles, was OP braucht
+                if (ov != null) {
+                    double[] oc = ov.opButtonCenter();
+                    ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(oc[0], oc[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                    List<Module> vis = ov.shownModules();
+                    boolean noOp = vis.stream().noneMatch(Module::needsOp);
+                    int opCount = (int) TeizenClient.modules().all().stream().filter(Module::needsOp).count();
+                    boolean godHidden = vis.stream().noneMatch(m -> m.name.equals("GodPvP"));
+                    ov.setSearch("god");
+                    boolean searchHidden = ov.shownModules().stream().noneMatch(Module::needsOp);
+                    ov.setSearch("");
+                    ov.toggleOpHidden(); // wieder zeigen
+                    boolean back = ov.shownModules().size() == TeizenClient.modules().all().size();
+                    result("Knopf OP-Cheats: versteckt " + opCount + " (" + (TeizenClient.modules().all().size() - vis.size()) + " weg), GodPvP weg=" + yes(godHidden)
+                            + ", auch in der Suche weg=" + yes(searchHidden) + ", wieder gezeigt=" + yes(back) + " "
+                            + ok(noOp && godHidden && searchHidden && back && opCount >= 6 && vis.size() == TeizenClient.modules().all().size() - opCount));
+                }
                 next();
             }
             case 195 -> {
@@ -1718,12 +1735,24 @@ final class NewTests {
             // ---------------------------------------------- Radar + PlayerFinder + Xaero
             case 250 -> {
                 t("///radar");
+                t("///set playerfinder stil beides");
                 t("///playerfinder");
+                // gedachter Spieler 20 Blöcke hinter dir (es gibt im Test keinen zweiten echten Spieler)
+                var me = mc.player.position();
+                double yaw = Math.toRadians(mc.player.getYRot());
+                dev.teizen.client.modules.PlayerFinder.testTargets.clear();
+                dev.teizen.client.modules.PlayerFinder.testTargets.add(new dev.teizen.client.modules.PlayerFinder.Target("Testspieler",
+                        me.x + Math.sin(yaw) * 20, me.y, me.z - Math.cos(yaw) * 20, "Oberwelt", true, false, false));
                 next();
             }
             case 251 -> {
+                if (SelfTest.local() == 40) dev.teizen.client.util.Arrows.drawn = 0;
                 if (!after(80)) return;
+                int arrows = dev.teizen.client.util.Arrows.drawn;
                 shot("33-radar");
+                result("PlayerFinder Pfeile: Spieler hinter dir -> " + arrows + " Pfeile in 40 Ticks (Kreis + Rand) " + ok(arrows >= 4));
+                dev.teizen.client.modules.PlayerFinder.testTargets.clear();
+                t("///set playerfinder stil kreis");
                 boolean xm = dev.teizen.client.compat.XaeroCompat.minimapInstalled(), xw = dev.teizen.client.compat.XaeroCompat.worldMapInstalled();
                 boolean okM = !xm || dev.teizen.client.compat.XaeroCompat.minimapOk, okW = !xw || dev.teizen.client.compat.XaeroCompat.worldMapOk;
                 var r = mod(dev.teizen.client.modules.Radar.class);

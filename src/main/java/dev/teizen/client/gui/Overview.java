@@ -4,6 +4,7 @@ import dev.teizen.client.TeizenClient;
 import dev.teizen.client.core.Config;
 import dev.teizen.client.core.KeyBinds;
 import dev.teizen.client.core.Module;
+import dev.teizen.client.core.ModuleManager;
 import dev.teizen.client.core.Setting;
 import dev.teizen.client.modules.PanicButton;
 import dev.teizen.client.util.Chat;
@@ -46,6 +47,7 @@ public final class Overview extends Screen {
     private int panelY = -1, panelH, gridX, gridW, contentH;
     private int btnOnX, btnKeyX, btnFavX, btnCloseX, btnW;
     private int panicX, panicY, panicW;
+    private int opX, opY = 20, opW;
 
     public Overview() {
         super(Component.literal("Teizen Übersicht"));
@@ -74,11 +76,12 @@ public final class Overview extends Screen {
             out.add(new Section("Suche: " + hits.size() + " Treffer", hits, 0xFF1F8AB8));
             return out;
         }
-        List<Module> fav = TeizenClient.modules().favorites();
+        List<Module> fav = new ArrayList<>();
+        for (Module m : TeizenClient.modules().favorites()) if (ModuleManager.shown(m)) fav.add(m);
         if (!fav.isEmpty()) out.add(new Section("★ Favoriten", fav, 0xFFE8B030));
         for (Module.Category c : Module.Category.values()) {
             List<Module> l = new ArrayList<>();
-            for (Module m : TeizenClient.modules().inCategory(c)) if (!m.favorite) l.add(m);
+            for (Module m : TeizenClient.modules().inCategory(c)) if (!m.favorite && ModuleManager.shown(m)) l.add(m);
             if (!l.isEmpty()) out.add(new Section(c.title, l, catColor(c)));
         }
         return out;
@@ -119,6 +122,18 @@ public final class Overview extends Screen {
     }
 
     public int scroll() { return scroll; }
+
+    /** OP-Cheats ein-/ausblenden (Knopf oben rechts). */
+    public void toggleOpHidden() {
+        ModuleManager.hideOp = !ModuleManager.hideOp;
+        if (expanded != null && !ModuleManager.shown(expanded)) expanded = null;
+        scroll = 0;
+        Config.save();
+        Chat.info(ModuleManager.hideOp ? "OP-Cheats ausgeblendet (" + TeizenClient.modules().hiddenCount() + " versteckt)" : "OP-Cheats werden wieder gezeigt");
+    }
+
+    /** Mitte des OP-Knopfs (nach dem ersten Bild). */
+    public double[] opButtonCenter() { return new double[]{opX + opW / 2.0, opY + 6.5}; }
 
     /** Mitte des roten PANIK-Knopfs (nach dem ersten Bild). */
     public double[] panicCenter() { return new double[]{panicX + panicW / 2.0, panicY + 6.5}; }
@@ -237,7 +252,8 @@ public final class Overview extends Screen {
             if (font.width(name) > room) name = font.plainSubstrByWidth(name, room - font.width("…")) + "…";
             g.text(font, name, x + 7, y + 2, m.isEnabled() ? 0xFFFFFFFF : 0xFFC8B8E8, false);
             g.text(font, state, x + CELL_W - 4 - font.width(state), y + 2, 0xFFFFFFFF, false);
-            String sub = "§7" + m.category.title + (m.key >= 0 ? " §8· §fTaste " + Keys.name(m.key) : "");
+            String sub = "§7" + m.category.title + (m.needsOp() ? " §6OP" : "") + (m.key >= 0 ? " §8· §fTaste " + Keys.name(m.key) : "");
+            if (m.requirement() != null) sub += " §c" + m.requirement();
             String info = m.isEnabled() ? m.info() : "";
             if (info != null && !info.isEmpty()) sub += " §8· §b" + info;
             if (!m.settings.isEmpty()) sub += m == expanded ? " §e▾" : " §8▸";
@@ -292,8 +308,18 @@ public final class Overview extends Screen {
         boolean ph = in(mouseX, mouseY, panicX, panicY, panicW, 13);
         g.fill(panicX, panicY, panicX + panicW, panicY + 13, ph ? 0xFFFF4040 : 0xFFC02020);
         g.text(font, "§lPANIK §r– alles aus", panicX + 5, panicY + 3, 0xFFFFFFFF, false);
+        String opLabel = ModuleManager.hideOp ? "§6OP-Cheats: §cversteckt" : "§6OP-Cheats: §asichtbar";
+        opW = font.width(opLabel) + 10;
+        opX = width - opW - 6;
+        boolean oh = in(mouseX, mouseY, opX, opY, opW, 13);
+        g.fill(opX, opY, opX + opW, opY + 13, oh ? 0xFF5A3A10 : 0xFF3A2408);
+        g.fill(opX, opY + 12, opX + opW, opY + 13, 0xFFE8A030);
+        g.text(font, opLabel, opX + 5, opY + 3, 0xFFFFFFFF, false);
+        if (oh) g.setTooltipForNextFrame(font, Component.literal("Cheats, die OP-Rechte brauchen (z.B. God, GodPvP, NoClip), ein-/ausblenden"), mouseX, mouseY);
         String head = "§a" + on + "§7 von §f" + TeizenClient.modules().all().size() + "§7 an  §8|  §7Links: an/aus · Rechts: Einstellungen · Mitte/Shift: §6★ · §7Mausrad: scrollen";
-        if (font.width(head) > width - 8) head = "§a" + on + "§7 an §8| §7L: an/aus · R: Einst. · Mitte: §6★ §7· Mausrad";
+        int room = width - 2 * (opW + 12);
+        if (font.width(head) > room) head = "§a" + on + "§7 an §8| §7L: an/aus · R: Einst. · Mitte: §6★ §7· Mausrad";
+        if (font.width(head) > room) head = "§a" + on + "§7 an §8| §7R: Einstellungen";
         g.centeredText(font, head, width / 2, 24, 0xFFFFFFFF);
 
         String foot;
@@ -342,6 +368,10 @@ public final class Overview extends Screen {
         if (in(mx, my, panicX, panicY, panicW, 13)) {
             int n = PanicButton.panic();
             Chat.ok("PANIK: " + n + " Cheats ausgeschaltet.");
+            return true;
+        }
+        if (in(mx, my, opX, opY, opW, 13)) {
+            toggleOpHidden();
             return true;
         }
         if (search.click(mx, my)) return true;

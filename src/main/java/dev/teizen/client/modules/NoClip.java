@@ -17,6 +17,7 @@ public final class NoClip extends Module {
 
     public NoClip() {
         super("NoClip", Category.BEWEGUNG, "Durch Wände fliegen (Zuschauer-Modus, braucht OP).");
+        opOnly();
     }
 
     @Override

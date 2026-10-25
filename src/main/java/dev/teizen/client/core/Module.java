@@ -27,6 +27,16 @@ public abstract class Module {
     public int key = -1;
     /** Favorit: steht im Menü und in der Übersicht ganz oben. */
     public boolean favorite;
+    /** Braucht OP-Rechte (bzw. "Cheats erlaubt") – kann im Menü ausgeblendet werden. */
+    private boolean needsOp;
+
+    /** Im Konstruktor aufrufen: diese Funktion braucht OP. */
+    protected void opOnly() { needsOp = true; }
+
+    public boolean needsOp() { return needsOp; }
+
+    /** Was fehlt, damit es geht (z.B. "braucht Xaero's Minimap"), oder null. */
+    public String requirement() { return null; }
 
     protected Module(String name, Category category, String description) {
         this.name = name;

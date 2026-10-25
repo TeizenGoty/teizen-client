@@ -56,6 +56,7 @@ public final class Config {
             root.add("freunde", fr);
             root.addProperty("menuTaste", TeizenClient.menuKey);
             root.addProperty("version", VERSION);
+            root.addProperty("opAusblenden", ModuleManager.hideOp);
             Files.writeString(file(), GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
             TeizenClient.LOG.warn("Config konnte nicht gespeichert werden", e);
@@ -69,6 +70,7 @@ public final class Config {
             JsonObject root = GSON.fromJson(Files.readString(f, StandardCharsets.UTF_8), JsonObject.class);
             if (root == null) return;
             if (root.has("menuTaste")) TeizenClient.menuKey = root.get("menuTaste").getAsInt();
+            if (root.has("opAusblenden")) ModuleManager.hideOp = root.get("opAusblenden").getAsBoolean();
             if (root.has("freunde")) for (JsonElement e : root.getAsJsonArray("freunde")) Friends.add(e.getAsString());
             if (!root.has("funktionen")) return;
             JsonObject mods = root.getAsJsonObject("funktionen");

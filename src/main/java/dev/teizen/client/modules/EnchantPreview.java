@@ -51,6 +51,7 @@ public final class EnchantPreview extends Module {
 
     public EnchantPreview() {
         super("EnchantPreview", Category.SICHT, "Zeigt am Zaubertisch alle kommenden Verzauberungen.");
+        opOnly();
     }
 
     public static void register() {

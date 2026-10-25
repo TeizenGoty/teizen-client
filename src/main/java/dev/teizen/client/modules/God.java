@@ -24,6 +24,7 @@ public final class God extends Module {
 
     public God() {
         super("God", Category.KAMPF, "Unsterblich, kein Lava-Schaden, mehr Herzen (braucht OP).");
+        opOnly();
     }
 
     private void cmd(String c) {

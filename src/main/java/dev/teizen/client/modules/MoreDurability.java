@@ -31,6 +31,7 @@ public final class MoreDurability extends Module {
 
     public MoreDurability() {
         super("MoreDurability", Category.SONSTIGES, "Werkzeuge und Rüstung halten länger (braucht OP).");
+        opOnly();
     }
 
     // 0-35 Inventar, 36 linke Hand, 37-40 Rüstung (Füße, Beine, Brust, Kopf)

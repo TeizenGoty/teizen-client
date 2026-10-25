@@ -45,6 +45,7 @@ public final class GodPvP extends Module {
 
     public GodPvP() {
         super("GodPvP", Category.KAMPF, "Unbesiegbar + jeder Schlag tötet + kämpft von selbst (braucht OP).");
+        opOnly();
     }
 
     @Override

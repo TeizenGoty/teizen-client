@@ -28,6 +28,7 @@ public final class FastEat extends Module {
 
     public FastEat() {
         super("FastEat", Category.SONSTIGES, "Essen geht viel schneller (braucht OP / Cheats an).");
+        opOnly();
     }
 
     @Override

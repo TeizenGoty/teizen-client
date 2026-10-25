@@ -41,6 +41,7 @@ public final class ClickGui extends Screen {
     /** Unterkante des Inhalts (ohne Scrollen) – fürs Begrenzen des Mausrads. */
     private int contentBottom;
     private int panicX, panicW;
+    private int opX, opW;
 
     public ClickGui() {
         super(Component.literal("Teizen Client"));
@@ -56,9 +57,14 @@ public final class ClickGui extends Screen {
             out.add(new Panel("Suche: " + hits.size() + " Treffer", hits, SEARCH_HEAD));
             return out;
         }
-        List<Module> fav = TeizenClient.modules().favorites();
+        List<Module> fav = new ArrayList<>();
+        for (Module m : TeizenClient.modules().favorites()) if (dev.teizen.client.core.ModuleManager.shown(m)) fav.add(m);
         if (!fav.isEmpty()) out.add(new Panel("★ Favoriten", fav, FAV_HEAD));
-        for (Module.Category c : Module.Category.values()) out.add(new Panel(c.title, TeizenClient.modules().inCategory(c), HEAD));
+        for (Module.Category c : Module.Category.values()) {
+            List<Module> l = new ArrayList<>();
+            for (Module m : TeizenClient.modules().inCategory(c)) if (dev.teizen.client.core.ModuleManager.shown(m)) l.add(m);
+            if (!l.isEmpty()) out.add(new Panel(c.title, l, HEAD));
+        }
         return out;
     }
 
@@ -118,6 +124,7 @@ public final class ClickGui extends Screen {
                     String name = (m.favorite ? "§6★ §r" : "") + m.name;
                     g.text(font, name, x + 4, y + 3, m.isEnabled() ? 0xFFFFFFFF : 0xFFB8A6D9, false);
                     String right = m.key >= 0 ? Keys.name(m.key) : (m.settings.isEmpty() ? "" : (expanded.contains(key(p, m)) ? "-" : "+"));
+                    if (m.needsOp()) right = "§6OP §r" + right;
                     g.text(font, right, x + COL_W - 4 - font.width(right), y + 3, 0xFF9C88C8, false);
                     if (hover) g.setTooltipForNextFrame(font, Component.literal(m.description + (m.favorite ? " (★ Favorit)" : "")), mouseX, mouseY);
                     y += ROW_H;
@@ -145,8 +152,18 @@ public final class ClickGui extends Screen {
         g.text(font, "§lPANIK", panicX + 5, 7, 0xFFFFFFFF, false);
         int sw = Math.max(80, Math.min(220, width - 2 * (font.width("TEIZEN CLIENT") + 16)));
         search.render(g, font, width / 2 - sw / 2, 4, sw, mouseX, mouseY);
+        String opLabel = dev.teizen.client.core.ModuleManager.hideOp ? "§6OP: §cversteckt" : "§6OP: §asichtbar";
+        opW = font.width(opLabel) + 10;
+        opX = width - opW - 6;
+        boolean oh = mouseX >= opX && mouseX < opX + opW && mouseY >= 19 && mouseY < 31;
+        g.fill(opX, 19, opX + opW, 31, oh ? 0xFF5A3A10 : 0xFF3A2408);
+        g.fill(opX, 30, opX + opW, 31, 0xFFE8A030);
+        g.text(font, opLabel, opX + 5, 21, 0xFFFFFFFF, false);
+        if (oh) g.setTooltipForNextFrame(font, Component.literal("Cheats, die OP-Rechte brauchen, ein-/ausblenden"), mouseX, mouseY);
         String sub = "§7Links: an/aus · Rechts: Einstellungen · Mitte: Taste · Shift+Klick: §6★ Favorit";
-        if (font.width(sub) > width - 8) sub = "§7L: an/aus · R: Einst. · Mitte: Taste · Shift: §6★";
+        int room = width - 2 * (opW + 12);
+        if (font.width(sub) > room) sub = "§7L: an/aus · R: Einst. · Mitte: Taste · Shift: §6★";
+        if (font.width(sub) > room) sub = "§7R: Einstellungen";
         g.centeredText(font, sub, width / 2, 20, 0xFFFFFFFF);
 
         // Fuß: Hinweise
@@ -164,6 +181,13 @@ public final class ClickGui extends Screen {
         // Klick woanders hin = Eingabe übernehmen
         if (rows.isEditing() && !rows.finish(true)) return true;
         double mx = e.x(), my = e.y();
+        if (mx >= opX && mx < opX + opW && my >= 19 && my < 31) {
+            dev.teizen.client.core.ModuleManager.hideOp = !dev.teizen.client.core.ModuleManager.hideOp;
+            scroll = 0;
+            Config.save();
+            dev.teizen.client.util.Chat.info(dev.teizen.client.core.ModuleManager.hideOp ? "OP-Cheats ausgeblendet" : "OP-Cheats werden wieder gezeigt");
+            return true;
+        }
         if (mx >= panicX && mx < panicX + panicW && my >= 4 && my < 17) {
             int n = dev.teizen.client.modules.PanicButton.panic();
             dev.teizen.client.util.Chat.ok("PANIK: " + n + " Cheats ausgeschaltet.");
