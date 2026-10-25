@@ -54,6 +54,7 @@ final class NewTests {
     private static Long seedGot;
     private static boolean seedDone;
     private static int i0;
+    private static int replantTries;
     private static float minHealth;
 
     private static String describe(List<net.minecraft.world.item.enchantment.EnchantmentInstance> list) {
@@ -469,7 +470,7 @@ final class NewTests {
             case 72 -> {
                 if (!after(20)) return;
                 arena(area, 6, 4);
-                cmd("fill " + blk(area.offset(1, -1, -1)) + " " + blk(area.offset(3, -1, 1)) + " minecraft:farmland");
+                cmd("fill " + blk(area.offset(1, -1, -1)) + " " + blk(area.offset(3, -1, 1)) + " minecraft:farmland[moisture=7]");
                 cmd("setblock " + blk(area.offset(2, -1, 0)) + " minecraft:water");
                 for (int dx = 1; dx <= 3; dx++) for (int dz = -1; dz <= 1; dz++) {
                     if (dx == 2 && dz == 0) continue;
@@ -482,6 +483,18 @@ final class NewTests {
             case 73 -> {
                 if (!after(30)) return;
                 n0 = wheat(true);
+                // Aufbau manchmal unvollständig (Server noch beschäftigt) -> fehlende Felder nochmal setzen
+                if (n0 < 8 && replantTries++ < 4) {
+                    log("AutoReplant-Aufbau: erst " + n0 + "/8 reif, setze nochmal");
+                    cmd("fill " + blk(area.offset(1, -1, -1)) + " " + blk(area.offset(3, -1, 1)) + " minecraft:farmland[moisture=7]");
+                    cmd("setblock " + blk(area.offset(2, -1, 0)) + " minecraft:water");
+                    for (int dx = 1; dx <= 3; dx++) for (int dz = -1; dz <= 1; dz++) {
+                        if (dx == 2 && dz == 0) continue;
+                        cmd("setblock " + blk(area.offset(dx, 0, dz)) + " minecraft:wheat[age=7]");
+                    }
+                    SelfTest.jump(73);
+                    return;
+                }
                 t("///autoreplant");
                 next();
             }
