@@ -1,5 +1,29 @@
 # Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
-net.minecraft.util.Util
-net.minecraft.util.Util$OS
-net.minecraft.server.MinecraftServer
-net.minecraft.client.multiplayer.PlayerInfo
+c net.minecraft.client.ClientClockManager
+c net.minecraft.client.ClientClockManager$ClockInstance
+net.minecraft.world.clock.ClockManager
+net.minecraft.world.clock.WorldClocks
+net.minecraft.world.clock.WorldClock
+net.minecraft.world.attribute.EnvironmentAttributeSystem
+net.minecraft.world.attribute.WeatherAttributes
+net.minecraft.world.attribute.WeatherAttributes$WeatherAccess
+net.minecraft.world.level.Level
+net.minecraft.client.multiplayer.ClientLevel
+net.minecraft.client.multiplayer.ClientLevel$ClientLevelData
+net.minecraft.network.protocol.game.ClientboundSetTimePacket
+c net.minecraft.util.StringDecomposer
+net.minecraft.client.player.AbstractClientPlayer
+net.minecraft.client.resources.SkinManager
+net.minecraft.client.resources.DefaultPlayerSkin
+net.minecraft.world.entity.player.PlayerSkin
+net.minecraft.world.entity.vehicle.boat.AbstractBoat
+net.minecraft.client.multiplayer.MultiPlayerGameMode
+net.minecraft.world.item.component.AttackRange
+net.minecraft.world.item.component.PiercingWeapon
+net.minecraft.world.entity.LivingEntity
+net.minecraft.world.entity.Entity
+net.minecraft.client.player.LocalPlayer
+net.minecraft.world.entity.player.Inventory
+c net.minecraft.client.Minecraft
+c net.minecraft.server.network.ServerGamePacketListenerImpl
+c net.minecraft.client.multiplayer.ClientPacketListener

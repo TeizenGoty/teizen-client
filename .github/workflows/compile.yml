@@ -44,6 +44,17 @@ jobs:
               else javap -p -cp "$CP" "$a" >> api-dump.txt 2>&1; fi
             done
           fi
+      - name: Extra-Listen
+        if: always()
+        run: |
+          set +e
+          MC=$(head -1 api-dump.txt | sed 's/MC jar: //')
+          echo "== Items mit SPEAR/MACE" >> api-dump.txt
+          javap -p -cp "$MC" net.minecraft.world.item.Items | grep -E "SPEAR|MACE|_AXE " >> api-dump.txt
+          echo "== DataComponents (Waffen)" >> api-dump.txt
+          javap -p -cp "$MC" net.minecraft.core.component.DataComponents | grep -iE "ATTACK|PIERC|KINETIC|WEAPON|BLOCKS_ATTACKS|PIERCING" >> api-dump.txt
+          echo "== ItemTags AXES" >> api-dump.txt
+          javap -p -cp "$MC" net.minecraft.tags.ItemTags | grep -E "AXE|SPEAR|SWORD" >> api-dump.txt
       - name: Publish
         if: always()
         run: |
