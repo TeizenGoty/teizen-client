@@ -34,7 +34,8 @@ public abstract class MinecraftMixin {
     @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
     private void teizen$freecamUse(CallbackInfo ci) {
         if (Freecam.blocksInteract()) { ci.cancel(); return; }
-        if (dev.teizen.client.modules.ClickTP.onUse()) ci.cancel();
+        if (dev.teizen.client.modules.ClickTP.onUse()) { ci.cancel(); return; }
+        if (dev.teizen.client.modules.AirPlace.onUse()) ci.cancel();
     }
 
     @Inject(method = "pickBlockOrEntity", at = @At("HEAD"), cancellable = true)

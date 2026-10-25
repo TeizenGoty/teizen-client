@@ -80,6 +80,7 @@ public final class ModuleManager {
         add(new StructureFinder());
         add(new Fullbright());
         add(new TargetESP());
+        add(new Trajectories());
         add(new HoleESP());
         add(new LowHealthWarning());
         add(new ChunkFinder());
@@ -89,6 +90,7 @@ public final class ModuleManager {
         add(new AutoBuild());
         add(new Scaffold());
         add(new FastPlace());
+        add(new AirPlace());
         // Sonstiges
         add(new AutoEat());
         add(new FastEat());
@@ -103,6 +105,8 @@ public final class ModuleManager {
         add(new FakeLag());
         add(new AutoReplenish());
         add(new FastUse());
+        add(new AutoClicker());
+        add(new AutoMend());
         add(new NameProtect());
         add(new SkinChanger());
         add(new PanicButton());

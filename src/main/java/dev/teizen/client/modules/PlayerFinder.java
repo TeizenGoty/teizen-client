@@ -18,6 +18,8 @@ import java.util.List;
 /**
  * Pfeile zu allen Spielern (wie beim PortalFinder): um das Fadenkreuz zeigt ein Pfeil in die Richtung jedes Spielers,
  * mit Name, Entfernung und Höhe. Auch weit entfernte Spieler (eigene Welt direkt, auf Servern per /data mit OP).
+ * Dazu: LogoutSpots (wo jemand offline ging), VisualRange (Meldung, wenn jemand in Sichtweite kommt/geht) und
+ * unten links ein Zähler, wie viele Spieler im Blick sind.
  */
 public final class PlayerFinder extends Module {
     private final Setting arrows = add(Setting.bool("pfeile", "Pfeile, die zu den Spielern zeigen", true));
@@ -29,6 +31,23 @@ public final class PlayerFinder extends Module {
     private final Setting tracers = add(Setting.bool("linien", "Linien zu den Spielern (die nächste ist kräftiger)", false));
     private final Setting far = add(Setting.bool("weit", "Auch weit entfernte Spieler (eigene Welt direkt, Server: OP)", true));
     private final Setting ring = add(Setting.number("kreis", "Größe des Pfeil-Kreises (Pixel)", 60, 20, 200));
+    private final Setting logout = add(Setting.bool("logout", "LogoutSpots: zeigt, wo ein Spieler offline gegangen ist", true));
+    private final Setting visual = add(Setting.bool("meldung", "VisualRange: Meldung (mit Ton), wenn ein Spieler in deine Sichtweite kommt oder sie verlässt", true));
+    private final Setting counter = add(Setting.bool("zaehler", "Unten links: wie viele Spieler im Blick und in der Nähe sind", true));
+
+    /** Wo jemand offline gegangen ist. */
+    public record Spot(java.util.UUID id, String name, double x, double y, double z, String dim, long time) {}
+
+    public final java.util.Map<java.util.UUID, Spot> logoutSpots = new java.util.LinkedHashMap<>();
+    /** Wer gerade in Sichtweite ist (UUID -> letzter Stand). */
+    private final java.util.Map<java.util.UUID, Spot> inRange = new java.util.HashMap<>();
+    /** Gerade aus der Sichtweite verschwunden: warten, ob er auch aus der Tab-Liste geht (= offline). */
+    private final java.util.Map<java.util.UUID, Integer> leaving = new java.util.HashMap<>();
+    private int presenceTick;
+    private Object lastLevel;
+    /** Zähler für Anzeige und Selbsttest. */
+    public int entered, left, loggedOut, cameBack;
+    public int inView, nearby;
 
     public record Target(String name, double x, double y, double z, String dim, boolean sameDim, boolean near, boolean friend) {}
 
@@ -41,11 +60,90 @@ public final class PlayerFinder extends Module {
     }
 
     @Override
-    protected void onDisable() { targets.clear(); }
+    protected void onDisable() {
+        targets.clear();
+        inRange.clear();
+        leaving.clear();
+    }
+
+    /**
+     * LogoutSpots + VisualRange: wer ist in Sichtweite, wer ist gegangen, wer ist offline gegangen.
+     * @param visible Spieler, die man gerade sieht (UUID -> Stand)
+     * @param online  alle Spieler in der Tab-Liste
+     */
+    public void presence(java.util.Map<java.util.UUID, Spot> visible, java.util.Set<java.util.UUID> online, int now) {
+        // neu in Sichtweite
+        for (var e : visible.entrySet()) {
+            if (inRange.containsKey(e.getKey())) continue;
+            leaving.remove(e.getKey());
+            entered++;
+            if (visual.on() && now > 40) {
+                double d = mc.player == null ? 0 : Math.sqrt(Math.pow(e.getValue().x() - mc.player.getX(), 2) + Math.pow(e.getValue().z() - mc.player.getZ(), 2));
+                dev.teizen.client.util.Chat.info("§e" + e.getValue().name() + " §7kommt in deine Sichtweite (" + Math.round(d) + " m).");
+                if (mc.player != null) mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(), 0.5f, 1.8f);
+            }
+        }
+        // nicht mehr zu sehen -> kurz warten, ob er offline gegangen ist
+        for (var e : inRange.entrySet()) if (!visible.containsKey(e.getKey())) leaving.putIfAbsent(e.getKey(), now);
+        java.util.Map<java.util.UUID, Spot> last = new java.util.HashMap<>(inRange);
+        inRange.clear();
+        inRange.putAll(visible);
+        for (var it = leaving.entrySet().iterator(); it.hasNext(); ) {
+            var e = it.next();
+            Spot sp = last.getOrDefault(e.getKey(), lastSeen.get(e.getKey()));
+            if (sp != null) lastSeen.put(e.getKey(), sp);
+            if (!online.contains(e.getKey())) {
+                it.remove();
+                if (sp == null) continue;
+                loggedOut++;
+                if (logout.on()) {
+                    logoutSpots.put(e.getKey(), new Spot(sp.id(), sp.name(), sp.x(), sp.y(), sp.z(), sp.dim(), System.currentTimeMillis()));
+                    dev.teizen.client.util.Chat.info("§c" + sp.name() + " §7ist bei §f" + Math.round(sp.x()) + " " + Math.round(sp.y()) + " " + Math.round(sp.z()) + " §7offline gegangen.");
+                }
+            } else if (now - e.getValue() >= 10) {
+                it.remove();
+                left++;
+                if (visual.on() && sp != null) dev.teizen.client.util.Chat.info("§7" + sp.name() + " hat deine Sichtweite verlassen.");
+            }
+        }
+        // wieder online -> Logout-Stelle weg
+        for (var it = logoutSpots.entrySet().iterator(); it.hasNext(); ) {
+            var e = it.next();
+            if (online.contains(e.getKey())) {
+                it.remove();
+                cameBack++;
+                if (logout.on()) dev.teizen.client.util.Chat.info("§a" + e.getValue().name() + " §7ist wieder online.");
+            }
+        }
+    }
+
+    private final java.util.Map<java.util.UUID, Spot> lastSeen = new java.util.HashMap<>();
+
+    /** Wie viele dieser Punkte gerade im Bild sind (für den Zähler unten links). */
+    public static int countInView(java.util.List<Vec3> points, int w, int h) {
+        int n = 0;
+        for (Vec3 p : points) {
+            double[] s = dev.teizen.client.util.Projector.project(p.x, p.y, p.z);
+            if (s != null && s[0] >= 0 && s[0] <= w && s[1] >= 0 && s[1] <= h) n++;
+        }
+        return n;
+    }
 
     @Override
     public void onTick() {
         if (!inGame()) return;
+        // LogoutSpots / VisualRange (neue Welt/Dimension: von vorne anfangen, keine Meldungs-Flut)
+        if (mc.level != lastLevel) { lastLevel = mc.level; presenceTick = 0; inRange.clear(); leaving.clear(); }
+        presenceTick++;
+        java.util.Map<java.util.UUID, Spot> vis = new java.util.HashMap<>();
+        String dimName = FarPlayers.dimName(mc.level.dimension());
+        for (Player p : mc.level.players()) {
+            if (p == mc.player || p.isSpectator()) continue;
+            vis.put(p.getUUID(), new Spot(p.getUUID(), p.getGameProfile().name(), p.getX(), p.getY(), p.getZ(), dimName, 0));
+        }
+        java.util.Set<java.util.UUID> online = new java.util.HashSet<>();
+        if (mc.getConnection() != null) for (var info : mc.getConnection().getOnlinePlayers()) online.add(info.getProfile().id());
+        presence(vis, online, presenceTick);
         if (far.on()) FarPlayers.want();
         List<Target> out = new ArrayList<>();
         for (Player p : mc.level.players()) {
@@ -79,6 +177,41 @@ public final class PlayerFinder extends Module {
     @Override
     public void onHud(GuiGraphicsExtractor g, float partial) {
         if (!inGame()) return;
+        drawLogoutSpots(g);
+        drawCounter(g, partial);
+        drawTargets(g, partial);
+    }
+
+    private void drawLogoutSpots(GuiGraphicsExtractor g) {
+        if (!logout.on() || logoutSpots.isEmpty()) return;
+        String dim = FarPlayers.dimName(mc.level.dimension());
+        long now = System.currentTimeMillis();
+        for (Spot sp : logoutSpots.values()) {
+            if (!dim.equals(sp.dim())) continue;
+            double[] r = Draw.worldBox(g, new AABB(sp.x() - 0.3, sp.y(), sp.z() - 0.3, sp.x() + 0.3, sp.y() + 1.8, sp.z() + 0.3), 0xFFB0B0B0, true);
+            if (r == null) continue;
+            long min = (now - sp.time()) / 60000;
+            String t = "§7" + sp.name() + " §8(offline " + (min < 1 ? "gerade eben" : min + " min") + ")";
+            g.text(mc.font, t, (int) ((r[0] + r[2]) / 2) - mc.font.width(t) / 2, (int) r[1] - 10, 0xFFFFFFFF, true);
+        }
+    }
+
+    private void drawCounter(GuiGraphicsExtractor g, float partial) {
+        if (!counter.on()) return;
+        java.util.List<Vec3> pts = new java.util.ArrayList<>();
+        for (Player p : mc.level.players()) {
+            if (p == mc.player || p.isSpectator()) continue;
+            pts.add(p.getPosition(partial).add(0, 1.0, 0));
+        }
+        nearby = pts.size();
+        inView = countInView(pts, g.guiWidth(), g.guiHeight());
+        String t = "§d👁 §f" + inView + " §7im Blick §8· §f" + nearby + " §7in der Nähe";
+        int w = mc.font.width(t);
+        g.fill(1, g.guiHeight() - 12, w + 5, g.guiHeight() - 1, 0x80140A26);
+        g.text(mc.font, t, 3, g.guiHeight() - 10, 0xFFFFFFFF, true);
+    }
+
+    private void drawTargets(GuiGraphicsExtractor g, float partial) {
         if (targets.isEmpty()) {
             // sonst denkt man, es geht nicht
             if (list.on()) {

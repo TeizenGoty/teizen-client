@@ -24,7 +24,7 @@ public final class WeaponSwap {
     private static int restore = -1;
     /** Für Selbsttest/Anzeige: womit zuletzt gewechselt geschlagen wurde. */
     public static Item lastWeapon;
-    public static int swaps;
+    public static int swaps, weaponSwitches;
 
     private WeaponSwap() {}
 
@@ -41,6 +41,12 @@ public final class WeaponSwap {
     public static boolean before(Entity target) {
         if (mc.player == null || mc.gameMode == null || restore >= 0 || TeizenClient.modules() == null) return false;
         var mm = TeizenClient.modules();
+        // AutoWeapon (AutoTool): zuerst die beste Waffe in die Hand (bleibt danach drin)
+        var at = mm.get(dev.teizen.client.modules.AutoTool.class);
+        if (at != null) {
+            int w = at.bestWeaponSlot();
+            if (w >= 0 && w != Inv.selected()) { Inv.select(w); weaponSwitches++; }
+        }
         ItemStack held = mc.player.getMainHandItem();
 
         ShieldBreaker sb = mm.get(ShieldBreaker.class);

@@ -31,6 +31,8 @@ public final class AimAssist extends Module {
     private final Setting bow = add(Setting.bool("bogen", "Bogen/Armbrust/Dreizack: Flugbahn vorausberechnen", true));
     private final Setting bowRange = add(Setting.number("bogenreichweite", "Wie weit mit dem Bogen gezielt wird (Blöcke)", 60, 5, 150));
     private final Setting autoShoot = add(Setting.bool("autoschuss", "Mit Bogen/Armbrust automatisch spannen und schießen, wenn ein Gegner da ist", true));
+    private final Setting fastBow = add(Setting.bool("schnellbogen", "FastBow: Bogen schon nach kurzem Spannen loslassen = viel mehr Pfeile (dafür schwächer)", false));
+    private final Setting fastCharge = add(Setting.number("spannung", "FastBow: nach wie vielen Ticks geschossen wird (20 = voll gespannt)", 10, 3, 20));
 
     public LivingEntity target;
     private long lastNanos;
@@ -187,6 +189,22 @@ public final class AimAssist extends Module {
         }
         target = best;
         if (auto) autoShootTick(w); else releaseAuto();
+        fastBowTick();
+    }
+
+    /** Wie viele Pfeile FastBow schon geschossen hat (Selbsttest). */
+    public int fastShots;
+
+    /** FastBow: hältst du selbst den Bogen gespannt, wird nach kurzer Spannung geschossen und sofort neu gespannt. */
+    private void fastBowTick() {
+        if (!fastBow.on() || autoHeld || !mc.player.isUsingItem()) return;
+        if (!mc.player.getUseItem().is(net.minecraft.world.item.Items.BOW)) return;
+        if (mc.player.getTicksUsingItem() < fastCharge.integer()) return;
+        if (target != null && autoShoot.on()) return; // Auto-Schuss zielt erst und schießt dann selbst
+        mc.gameMode.releaseUsingItem(mc.player);
+        ((dev.teizen.client.mixin.MinecraftAccessor) mc).teizen$setRightClickDelay(0);
+        fastShots++;
+        shots++;
     }
 
     private void autoShootTick(Weapon w) {
@@ -201,7 +219,7 @@ public final class AimAssist extends Module {
         ItemStack stack = mc.player.getMainHandItem();
         switch (w) {
             case BOW, TRIDENT -> {
-                int need = w == Weapon.BOW ? 20 : 11;
+                int need = w == Weapon.BOW ? (fastBow.on() ? fastCharge.integer() : 20) : 11;
                 if (!mc.player.isUsingItem()) {
                     mc.options.keyUse.setDown(true);
                     autoHeld = true;

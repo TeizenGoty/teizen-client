@@ -29,6 +29,7 @@ import net.minecraft.world.phys.Vec3;
  * Modus "ziel": setzt End-Kristalle neben Gegner und zerschlägt sie sofort (Explosion).
  * Ohne Kristalle (oder als Ergänzung) auch mit Respawn-Ankern: setzen, mit Glowstone laden, zünden
  * (Anker explodieren in der Oberwelt und im End, nicht im Nether).
+ * Dazu (einstellbar): Surround = Obsidian um die eigenen Füße, AutoTrap = Gegner mit Obsidian einbauen.
  */
 public final class AutoCrystal extends Module {
     private final Setting mode = add(Setting.choice("modus", "einfach = wie die Crystal-Aura-Mod (nächster Obsidian), ziel = neben Gegner", "einfach", "einfach", "ziel"));
@@ -46,6 +47,10 @@ public final class AutoCrystal extends Module {
     private final Setting monsters = add(Setting.bool("monster", "Monster angreifen", false));
     private final Setting rotate = add(Setting.bool("drehen", "Unsichtbar zum Ziel drehen", true));
     private final Setting switchSlot = add(Setting.bool("wechseln", "Kristalle/Anker automatisch in die Hand nehmen", true));
+    private final Setting surround = add(Setting.bool("surround", "Surround: Obsidian rund um deine Füße setzen (schützt vor Kristallen)", false));
+    private final Setting trap = add(Setting.bool("autotrap", "AutoTrap: Gegner in deiner Nähe mit Obsidian einbauen", false));
+    private final Setting trapWho = add(Setting.choice("trapziel", "Wen AutoTrap einbaut", "spieler", "spieler", "alle"));
+    private final Setting trapRange = add(Setting.number("trapweite", "Wie weit AutoTrap Gegner sucht (Blöcke)", 4, 1, 5));
 
     public LivingEntity target;
     /** Zähler (Anzeige + Selbsttest). */
@@ -94,6 +99,8 @@ public final class AutoCrystal extends Module {
             BlockState st = mc.level.getBlockState(p);
             if (!st.is(Blocks.OBSIDIAN) && !st.is(Blocks.BEDROCK)) continue;
             if (!mc.level.getBlockState(p.above()).isAir()) continue;
+            // nie direkt neben deine Füße (eigener Surround) – das würde dir selbst schaden
+            if (p.getY() >= c.getY() - 1 && Math.abs(p.getX() - c.getX()) <= 1 && Math.abs(p.getZ() - c.getZ()) <= 1) continue;
             double d = eye.distanceToSqr(p.getX() + 0.5, p.getY() + 1.0, p.getZ() + 0.5);
             if (d > r * r || d >= bestD) continue;
             if (recent.containsKey(p)) continue;
@@ -124,9 +131,55 @@ public final class AutoCrystal extends Module {
         return selfDamage < mc.player.getHealth() + mc.player.getAbsorptionAmount() - 1.0;
     }
 
+    /** Zähler für Surround / AutoTrap (Selbsttest). */
+    public int surroundPlaced, trapPlaced;
+    public LivingEntity trapTarget;
+
+    private static boolean obsidian(net.minecraft.world.item.ItemStack s) {
+        return s.is(Items.OBSIDIAN) || s.is(Items.CRYING_OBSIDIAN);
+    }
+
+    /** Surround: die 4 Blöcke um die Füße (und darunter, falls Luft) mit Obsidian füllen. */
+    private int surroundTick(int budget) {
+        if (!surround.on() || !mc.player.onGround() || budget <= 0) return 0;
+        BlockPos feet = BlockPos.containing(mc.player.getX(), mc.player.getY() + 0.2, mc.player.getZ());
+        int n = 0;
+        BlockPos[] spots = {feet.below(), feet.north(), feet.south(), feet.east(), feet.west()};
+        for (BlockPos p : spots) {
+            if (n >= budget) break;
+            if (!Placer.replaceable(p)) continue;
+            if (dev.teizen.client.util.BlockSwap.place(p, AutoCrystal::obsidian)) { n++; surroundPlaced++; }
+        }
+        return n;
+    }
+
+    /** AutoTrap: Gegner mit Obsidian einbauen (Füße + Kopf rundherum, dann oben drauf). */
+    private int trapTick(int budget) {
+        if (!trap.on() || budget <= 0) { trapTarget = null; return 0; }
+        trapTarget = Targets.nearest(trapRange.num(), true, trapWho.is("alle"), false, true);
+        if (trapTarget == null) return 0;
+        BlockPos f = trapTarget.blockPosition();
+        AABB me = mc.player.getBoundingBox().inflate(0.1);
+        java.util.List<BlockPos> spots = new java.util.ArrayList<>();
+        for (Direction d : Direction.Plane.HORIZONTAL) spots.add(f.relative(d));
+        for (Direction d : Direction.Plane.HORIZONTAL) spots.add(f.above().relative(d));
+        spots.add(f.above(2));
+        int n = 0;
+        for (BlockPos p : spots) {
+            if (n >= budget) break;
+            if (!Placer.replaceable(p) || me.intersects(new AABB(p))) continue;
+            if (Vec3.atCenterOf(p).distanceTo(mc.player.getEyePosition()) > 5.0) continue;
+            if (dev.teizen.client.util.BlockSwap.place(p, AutoCrystal::obsidian)) { n++; trapPlaced++; }
+        }
+        return n;
+    }
+
     @Override
     public void onTick() {
         if (!inGame() || mc.gui.screen() != null) { target = null; return; }
+        // erst schützen / einbauen (höchstens 2 Blöcke pro Tick), dann Kristalle
+        int used = surroundTick(2);
+        trapTick(2 - used);
         if (mode.is("einfach")) { target = null; simpleTick(); return; }
         target = Targets.nearest(targetRange.num(), players.on(), monsters.on(), false, true);
         if (target == null) {

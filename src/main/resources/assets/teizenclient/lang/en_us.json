@@ -87,5 +87,9 @@
   "key.teizenclient.module.autoreplenish": "AutoReplenish toggle",
   "key.teizenclient.module.fastuse": "FastUse toggle",
   "key.teizenclient.module.nameprotect": "NameProtect toggle",
-  "key.teizenclient.module.skinchanger": "SkinChanger toggle"
+  "key.teizenclient.module.skinchanger": "SkinChanger toggle",
+  "key.teizenclient.module.trajectories": "Trajectories toggle",
+  "key.teizenclient.module.airplace": "AirPlace toggle",
+  "key.teizenclient.module.autoclicker": "AutoClicker toggle",
+  "key.teizenclient.module.automend": "AutoMend toggle"
 }

@@ -87,5 +87,9 @@
   "key.teizenclient.module.autoreplenish": "AutoReplenish an/aus",
   "key.teizenclient.module.fastuse": "FastUse an/aus",
   "key.teizenclient.module.nameprotect": "NameProtect an/aus",
-  "key.teizenclient.module.skinchanger": "SkinChanger an/aus"
+  "key.teizenclient.module.skinchanger": "SkinChanger an/aus",
+  "key.teizenclient.module.trajectories": "Trajectories an/aus",
+  "key.teizenclient.module.airplace": "AirPlace an/aus",
+  "key.teizenclient.module.autoclicker": "AutoClicker an/aus",
+  "key.teizenclient.module.automend": "AutoMend an/aus"
 }
