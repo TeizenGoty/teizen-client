@@ -71,6 +71,7 @@ public final class AutoMine extends Module {
         hasWant = false;
         collected = 0;
         ignoredItems.clear();
+        retryLater.clear();
         failed.clear();
         if (blocks.isEmpty()) Chat.error("Keine gültigen Erze in: " + ores.str());
         else Chat.info("AutoMine sucht: §f" + ores.str());
@@ -119,10 +120,8 @@ public final class AutoMine extends Module {
             Breaker.stop();
             reset();
         }
-        // erst die Erze einsammeln, die herumliegen
-        if (target == null || pickup != null) {
-            if (collectTick()) return;
-        }
+        // erst die Erze einsammeln, die herumliegen (auch wenn schon das nächste Erz ausgesucht ist)
+        if (collectTick()) return;
         if (target == null) {
             if (!pickTarget()) {
                 releaseKeys();
@@ -355,10 +354,16 @@ public final class AutoMine extends Module {
         return false;
     }
 
+    /** Drops, zu denen gerade kein Weg gefunden wurde: Entity-ID -> ab welchem Tick wieder versuchen. */
+    private final java.util.Map<Integer, Integer> retryLater = new java.util.HashMap<>();
+    /** Läuft gerade ohne Weg direkt auf den Drop zu (dann kürzer probieren). */
+    private boolean pickupDirect;
+
     /** Liegt ein Erz-Drop in der Nähe? Dann hinlaufen. @return true wenn gerade eingesammelt wird */
     private boolean collectTick() {
         if (!collect.on()) return false;
-        if (pickup != null && (!pickup.isAlive() || ++pickupTicks > 220)) {
+        int now = mc.player.tickCount;
+        if (pickup != null && (!pickup.isAlive() || ++pickupTicks > (pickupDirect ? 80 : 220))) {
             if (!pickup.isAlive()) collected++;
             else ignoredItems.add(pickup.getId()); // kommt nicht ran -> weiter abbauen
             pickup = null;
@@ -366,49 +371,62 @@ public final class AutoMine extends Module {
             releaseKeys();
         }
         if (pickup == null) {
+            retryLater.values().removeIf(t -> t <= now);
             double best = 64;
             for (var e : mc.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, mc.player.getBoundingBox().inflate(7, 3, 7))) {
-                if (!isOreDrop(e.getItem()) || ignoredItems.contains(e.getId())) continue;
+                if (!isOreDrop(e.getItem()) || ignoredItems.contains(e.getId()) || retryLater.containsKey(e.getId())) continue;
                 double d = e.distanceToSqr(mc.player);
                 if (d < best) { best = d; pickup = e; }
             }
             if (pickup == null) return false;
             pickupTicks = 0;
+            pickupDirect = false;
             path = null;
+            if (target != null) Breaker.stop();
         }
         Vec3 me = mc.player.position();
         Vec3 it = pickup.position();
         double dx = it.x - me.x, dz = it.z - me.z;
         double horiz = Math.sqrt(dx * dx + dz * dz);
         status = "sammelt " + pickup.getItem().getHoverName().getString();
-        if (horiz < 1.6 && Math.abs(it.y - me.y) < 2.2) {
-            // Liegt der Drop in einem niedrigen Loch (wo das Erz war)? Dann den Block darüber abbauen, damit man hineinkommt
-            BlockPos ib = pickup.blockPosition();
-            BlockPos above = ib.above();
-            if (it.y < me.y - 0.4 && !MinePath.passable(mc.level, above) && Breaker.canBreak(above) && safeToDig(above)) {
-                releaseKeys();
-                lookAt(Vec3.atCenterOf(above));
-                if (aimed()) Breaker.tick(above, false, true);
-                return true;
-            }
-            // direkt hinlaufen
-            float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
-            aim(yaw, 30f);
-            mc.options.keyUp.setDown(horiz > 0.25);
-            mc.options.keyJump.setDown(false);
-            return true;
-        }
+        if (horiz < 1.6 && Math.abs(it.y - me.y) < 2.2) return walkToDrop(it, me, dx, dz, horiz);
         if (path == null || index >= path.size()) {
             path = MinePath.find(mc.player.blockPosition(), pickup.blockPosition().above(), 2.2, Math.min(3000, nodes.integer()));
             index = 0;
             if (path == null || path.isEmpty()) {
-                // nicht erreichbar -> vergessen
-                pickup = null;
+                boolean alreadyThere = path != null;
                 path = null;
+                // schon ganz nah (Weg leer) oder kein Weg, aber nah dran -> direkt hinlaufen
+                if ((alreadyThere || horiz < 3.5) && Math.abs(it.y - me.y) < 3) {
+                    pickupDirect = true;
+                    return walkToDrop(it, me, dx, dz, horiz);
+                }
+                // weiter weg und kein Weg -> erst weiter abbauen, später nochmal versuchen
+                retryLater.put(pickup.getId(), now + 100);
+                pickup = null;
                 return false;
             }
         }
         follow();
+        return true;
+    }
+
+    /** Ohne Weg direkt zum Drop laufen; liegt er in einem Loch, den Block darüber wegmachen. */
+    private boolean walkToDrop(Vec3 it, Vec3 me, double dx, double dz, double horiz) {
+        BlockPos ib = pickup.blockPosition();
+        BlockPos above = ib.above();
+        if (it.y < me.y - 0.4 && !MinePath.passable(mc.level, above) && Breaker.canBreak(above) && safeToDig(above)) {
+            releaseKeys();
+            lookAt(Vec3.atCenterOf(above));
+            if (aimed()) Breaker.tick(above, false, true);
+            return true;
+        }
+        // Drop höher als man selbst (auf einer Stufe) -> hochspringen
+        boolean jump = it.y > me.y + 0.6 && mc.player.onGround();
+        float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
+        aim(yaw, 30f);
+        mc.options.keyUp.setDown(horiz > 0.25);
+        mc.options.keyJump.setDown(jump);
         return true;
     }
 

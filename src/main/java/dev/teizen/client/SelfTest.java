@@ -65,6 +65,8 @@ public final class SelfTest {
         }
     }
 
+    private static int mineDone = -1;
+
     private static int countDiamondOre() {
         int n = 0;
         for (BlockPos p : BlockPos.betweenClosed(origin.offset(-12, -12, -12), origin.offset(12, 4, 12))) {
@@ -185,10 +187,14 @@ public final class SelfTest {
                 if (local % 40 == 0) log("AutoMine " + local + ": " + TeizenClient.modules().get(AutoMine.class).debugState());
                 if (local == 200) shot("05a-automine");
                 AutoMine am = TeizenClient.modules().get(AutoMine.class);
-                if (!after(900) && countDiamondOre() > 0) return;
+                if (!after(900) && countDiamondOre() > 0) { mineDone = -1; return; }
                 int now = countDiamondOre();
                 int dias = 0;
                 for (int i = 0; i < 36; i++) if (mc.player.getInventory().getItem(i).is(net.minecraft.world.item.Items.DIAMOND)) dias += mc.player.getInventory().getItem(i).getCount();
+                // nach dem letzten Erz noch kurz Zeit zum Einsammeln lassen
+                if (mineDone < 0) mineDone = local;
+                if (dias < 1 && local - mineDone < 160) return;
+                log("AutoMine fertig: " + am.debugState());
                 results.add("AutoMine: Diamant-Erz vorher " + diamondsBefore + ", nachher " + now + ", eingesammelt " + am.collected + " (Diamanten im Inventar " + dias
                         + ", nach " + local + " Ticks) " + (now < diamondsBefore && dias >= 1 ? "OK" : "FEHLER"));
                 shot("05-automine");

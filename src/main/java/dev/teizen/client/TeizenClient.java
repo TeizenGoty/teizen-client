@@ -79,6 +79,7 @@ public final class TeizenClient implements ClientModInitializer {
             Config.save();
             // SeedCrackerX lässt beim Beenden Threads offen -> Minecraft hängt und schreibt einen Crash-Report
             dev.teizen.client.core.Seed.stopCracker();
+            dev.teizen.client.util.CleanExit.arm();
         });
         LOG.info("Teizen Client geladen ({} Funktionen)", modules.all().size());
     }
