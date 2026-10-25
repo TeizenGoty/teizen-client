@@ -148,14 +148,32 @@ public final class Seed {
 
     /** Beim Beenden: die Thread-Pools von SeedCrackerX schließen, sonst bleibt Minecraft hängen (Crash-Report beim Schließen). */
     public static void stopCracker() {
-        if (!crackerInstalled()) return;
-        for (String c : new String[]{"kaptainwutax.seedcrackerX.finder.FinderQueue", "kaptainwutax.seedcrackerX.cracker.storage.TimeMachine"}) {
+        // SeedCrackerX: FinderQueue.SERVICE + TimeMachine.SERVICE; SeedMapper: LocatorThreadHelper.locatingExecutor
+        String[][] pools = {
+                {"seedcrackerx", "kaptainwutax.seedcrackerX.finder.FinderQueue", "SERVICE"},
+                {"seedcrackerx", "kaptainwutax.seedcrackerX.cracker.storage.TimeMachine", "SERVICE"},
+                {"seedmapper", "dev.xpple.seedmapper.thread.LocatorThreadHelper", "locatingExecutor"}};
+        for (String[] p : pools) {
+            if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded(p[0])) continue;
             try {
-                Object s = Class.forName(c).getField("SERVICE").get(null);
-                if (s instanceof java.util.concurrent.ExecutorService es) es.shutdownNow();
+                java.lang.reflect.Field f = Class.forName(p[1]).getDeclaredField(p[2]);
+                f.setAccessible(true);
+                if (f.get(null) instanceof java.util.concurrent.ExecutorService es) es.shutdownNow();
             } catch (Throwable ignored) {
                 // andere Version
             }
+        }
+        if (dev.teizen.client.SelfTest.ACTIVE) {
+            // Selbsttest: nach 3 s zeigen, welche Threads das Beenden noch aufhalten
+            Thread t = new Thread(() -> {
+                try { Thread.sleep(3000); } catch (InterruptedException ignored) { }
+                StringBuilder sb = new StringBuilder();
+                for (Thread th : Thread.getAllStackTraces().keySet())
+                    if (!th.isDaemon() && th.isAlive() && th != Thread.currentThread()) sb.append(th.getName()).append(", ");
+                dev.teizen.client.TeizenClient.LOG.info("Beenden: offene Threads: " + sb);
+            }, "teizen-shutdown-check");
+            t.setDaemon(true);
+            t.start();
         }
     }
 
