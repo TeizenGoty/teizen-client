@@ -635,7 +635,7 @@ final class Round9Tests {
                 next();
             }
             case 381 -> {
-                if (!after(20)) return;
+                if (!after(80)) return;
                 arena(area, 7, 5);
                 cmd("kill @e[type=minecraft:husk]");
                 cmd("clear @s");
@@ -652,14 +652,14 @@ final class Round9Tests {
                 Inv.select(0);
                 mc.player.setYRot(-90); mc.player.setXRot(0);
                 LivingEntity h = huskAt(area.offset(4, 0, 1));
-                if (h == null) { cmd("kill @e[type=minecraft:husk]"); husk(area.offset(4, 0, 1)); return; }
+                if (h == null) { if (SelfTest.local() % 40 == 30) { arena(area, 7, 5); husk(area.offset(4, 0, 1)); tp(area, 0.5, 0, 0.5, -90, 0); } return; }
                 hp0 = h.getHealth();
                 i0 = h.getId();
                 next();
             }
             case 383 -> {
                 var e = mc.level.getEntity(i0);
-                if (e == null) { next(); return; }
+                if (e == null) { SelfTest.jump(382); return; }
                 int lt = SelfTest.local();
                 float[] r = dev.teizen.client.util.Rot.to(e.getBoundingBox().getCenter());
                 int stabAt = n0 == 0 ? 1 : n0 == 1 ? 3 : 2;
