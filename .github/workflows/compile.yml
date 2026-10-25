@@ -44,6 +44,22 @@ jobs:
               else javap -p -cp "$CP" "$a" >> api-dump.txt 2>&1; fi
             done
           fi
+      - name: Seed-Mods ansehen
+        if: always()
+        run: |
+          set +e
+          mkdir -p /tmp/seedmods && cd /tmp/seedmods
+          for proj in seedmapper seed-atlas; do
+            curl -sL "https://api.modrinth.com/v2/project/$proj/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%2226.2%22%5D" -o v.json
+            echo "== $proj: $(jq -r '.[0].version_number' v.json) $(jq -r '.[0].files[0].url' v.json)" >> $GITHUB_WORKSPACE/api-dump.txt
+            jq -c '.[0].dependencies' v.json >> $GITHUB_WORKSPACE/api-dump.txt
+            curl -sL "$(jq -r '.[0].files[0].url' v.json)" -o $proj.jar
+            unzip -p $proj.jar fabric.mod.json >> $GITHUB_WORKSPACE/api-dump.txt
+            echo >> $GITHUB_WORKSPACE/api-dump.txt
+            unzip -Z1 $proj.jar | grep -i -E 'command|META-INF/jars' | head -40 >> $GITHUB_WORKSPACE/api-dump.txt
+          done
+          curl -sL "https://api.modrinth.com/v2/project/seedmapper/version" -o all.json
+          jq -r '.[] | .version_number + " " + (.game_versions|join(","))' all.json | head -8 >> $GITHUB_WORKSPACE/api-dump.txt
       - name: Publish
         if: always()
         run: |
