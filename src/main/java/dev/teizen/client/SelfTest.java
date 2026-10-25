@@ -258,7 +258,8 @@ public final class SelfTest {
                 } else if (local == 25 && m.isEnabled() && moduleIndex % 6 == 0) {
                     shot("06-modul-" + m.name);
                 } else if (local >= 30) {
-                    results.add(m.name + (m.isEnabled() ? " ok" : " FEHLER (wurde abgeschaltet)"));
+                    results.add(m.name + (m.isEnabled() ? " ok"
+                            : TeizenClient.modules().crashed.contains(m.name) ? " FEHLER (Absturz, wurde abgeschaltet)" : " ok (schaltet sich ohne Aufgabe selbst aus)"));
                     m.setEnabled(false);
                     moduleIndex++;
                     stepStart = ticks;

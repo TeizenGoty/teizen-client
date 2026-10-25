@@ -203,10 +203,14 @@ public final class VillagerRoller extends Module {
         MerchantOffer hit = null;
         for (MerchantOffer o : menu.getOffers()) {
             ItemStack r = o.getResult();
-            String line = o.getCostA().getCount() + "x " + o.getCostA().getHoverName().getString() + " -> " + r.getCount() + "x " + describe(r).split(" \\| ")[1];
-            String ench = describe(r);
-            int i = ench.indexOf(" | ", ench.indexOf(" | ") + 3);
-            if (i > 0) line += " (" + ench.substring(i + 3).replace(" | ", ", ") + ")";
+            String line = o.getCostA().getCount() + "x " + o.getCostA().getHoverName().getString() + " -> " + r.getCount() + "x " + r.getHoverName().getString();
+            List<String> names = new ArrayList<>();
+            for (var comp : new ItemEnchantments[]{r.get(DataComponents.STORED_ENCHANTMENTS), r.get(DataComponents.ENCHANTMENTS)}) {
+                if (comp == null) continue;
+                for (var e : comp.entrySet())
+                    names.add(EnchantPreview.name(new net.minecraft.world.item.enchantment.EnchantmentInstance(e.getKey(), e.getIntValue())));
+            }
+            if (!names.isEmpty()) line += " (" + String.join(", ", names) + ")";
             lastOffers.add(line);
             lastOfferIds.add(BuiltInRegistries.ITEM.getKey(r.getItem()).getPath());
             if (hit == null && matches(o)) hit = o;

@@ -120,6 +120,9 @@ public final class ModuleManager {
         return out;
     }
 
+    /** Cheats, die wegen eines Fehlers ausgeschaltet wurden (Selbsttest). */
+    public final java.util.Set<String> crashed = new java.util.HashSet<>();
+
     public void tick() {
         for (Module m : all) {
             if (!m.isEnabled()) continue;
@@ -127,6 +130,7 @@ public final class ModuleManager {
                 m.onTick();
             } catch (Throwable t) {
                 dev.teizen.client.TeizenClient.LOG.error("Fehler in " + m.name, t);
+                crashed.add(m.name);
                 m.setEnabled(false);
                 dev.teizen.client.util.Chat.error(m.name + " wurde wegen eines Fehlers ausgeschaltet: " + t);
             }
