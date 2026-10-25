@@ -32,4 +32,10 @@ public abstract class PlayerMixin {
         NoSlowdown n = NoSlowdown.active();
         if (n != null && n.blocks.on()) ci.cancel();
     }
+
+    /** ElytraReset: dieselbe Leertaste, die die Elytra geschlossen hat, öffnet sie nicht sofort wieder. */
+    @Inject(method = "tryToStartFallFlying", at = @At("HEAD"), cancellable = true)
+    private void teizen$elytraReset(CallbackInfoReturnable<Boolean> cir) {
+        if ((Object) this == Minecraft.getInstance().player && dev.teizen.client.modules.ElytraReset.blockRedeploy()) cir.setReturnValue(false);
+    }
 }

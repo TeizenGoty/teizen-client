@@ -12,12 +12,19 @@ public final class ElytraReset extends Module {
     private final Setting reopen = add(Setting.number("wiederauf", "Nach so vielen Ticks automatisch wieder öffnen (0 = nur mit Leertaste)", 0, 0, 100));
 
     public int resets;
+    /** Nach einem Reset: Elytra nicht wieder öffnen, bis die Leertaste losgelassen wurde. */
+    private static boolean holdBlock;
+
+    public static boolean blockRedeploy() { return holdBlock; }
     private boolean wasJump;
     private int reopenIn = -1;
 
     public ElytraReset() {
         super("ElytraReset", Category.BEWEGUNG, "Leertaste im Elytra-Flug: Elytra zu, nochmal: wieder auf.");
     }
+
+    @Override
+    protected void onDisable() { holdBlock = false; }
 
     @Override
     protected void onEnable() {
@@ -31,10 +38,12 @@ public final class ElytraReset extends Module {
         boolean jump = mc.options.keyJump.isDown();
         boolean pressed = jump && !wasJump;
         wasJump = jump;
+        if (!jump) holdBlock = false;
         if (pressed && mc.player.isFallFlying() && mc.gui.screen() == null) {
             // Minecraft-Server: "Elytra öffnen" während man schon fliegt = Flug beenden
             mc.player.connection.send(new ServerboundPlayerCommandPacket(mc.player, ServerboundPlayerCommandPacket.Action.START_FALL_FLYING));
             mc.player.stopFallFlying();
+            holdBlock = true;
             resets++;
             reopenIn = reopen.integer() > 0 ? reopen.integer() : -1;
             return;

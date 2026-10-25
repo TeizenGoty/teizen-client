@@ -344,6 +344,8 @@ public final class Commands {
         Chat.raw("§d///velocity <seitlich%> [hoch%] §7· §d///god <Herzen> §7· §d///aimassist <Stärke> §7· §d///nametags <Größe>");
         Chat.raw("§d///freecam <Tempo> §7(Reichweite: §f///set freecam reichweite 50§7) · §d///itemesp <Items...>");
         Chat.raw("§d///chatspammer <Text> §7· §d///villagerroller mending §7· §d///moredurability 10 §7| §funzerstoerbar §7| §freparieren");
+        Chat.raw("§7Menü/Übersicht: §ftippen = suchen (Lupe)§7, §fRechtsklick in der Übersicht = Cheat bearbeiten§7, §fZahlen anklicken und eintippen");
+        Chat.raw("§d///enchantpreview §7– Zaubertisch zeigt alle Verzauberungen (Server: braucht OP)");
         Chat.raw("§d///combatlog <Herzen> §7· §d///projectiledodge §7· §d///inventorywalk §7· §d///seeinvisible §7· §d///elytrareset §7· §d///hitmarker");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
         Chat.raw("§d///autobuild laden <Datei> §7– Schematic aus dem schematics-Ordner genau bei dir platzieren");

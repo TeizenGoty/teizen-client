@@ -85,9 +85,9 @@ public final class Overview extends Screen {
         g.text(font, "§5§lTEIZEN §7Übersicht", 6, 6, 0xFFFFFFFF, true);
         int sw = Math.max(80, Math.min(220, width - 2 * (font.width("TEIZEN Übersicht") + 16)));
         search.render(g, font, width / 2 - sw / 2, 4, sw, mouseX, mouseY);
-        String sub = "§a" + on + "§7 von §f" + TeizenClient.modules().all().size() + "§7 an  §8|  §7Links: an/aus · Rechts: bearbeiten · Mitte/Shift: §6★ Favorit";
-        if (font.width(sub) > width - 8) sub = "§a" + on + "§7 an §8| §7L: an/aus · R: bearbeiten · Mitte: §6★";
-        g.centeredText(font, sub, width / 2, 22, 0xFFFFFFFF);
+        String head = "§a" + on + "§7 von §f" + TeizenClient.modules().all().size() + "§7 an  §8|  §7Links: an/aus · Rechts: bearbeiten · Mitte/Shift: §6★ Favorit";
+        if (font.width(head) > width - 8) head = "§a" + on + "§7 an §8| §7L: an/aus · R: bearbeiten · Mitte: §6★";
+        g.centeredText(font, head, width / 2, 22, 0xFFFFFFFF);
         if (search.active() && mods.isEmpty()) g.centeredText(font, "§7Kein Cheat gefunden für \"" + search.query + "\"", width / 2, TOP + 10, 0xFFFFFFFF);
 
         Layout l = layout();

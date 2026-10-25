@@ -972,16 +972,15 @@ final class NewTests {
                 arena(area, 6, 5);
                 BlockPos v = area.offset(1, 0, 0);
                 // Käfig, damit der Dorfbewohner nicht wegläuft; Lesepult direkt daneben
-                // Lesepult auf einem Block in Kopfhöhe: der Dorfbewohner kann nicht auf seinen Platz laufen
+                // wie in einer Handelshalle: Lesepult auf Fußhöhe, Block darüber (Dorfbewohner kann nicht hinlaufen)
                 for (int dy = 0; dy <= 1; dy++) {
                     cmd("setblock " + blk(v.offset(0, dy, 1)) + " minecraft:stone");
                     cmd("setblock " + blk(v.offset(0, dy, -1)) + " minecraft:stone");
                     cmd("setblock " + blk(v.offset(-1, dy, 0)) + " minecraft:stone");
                 }
                 cmd("setblock " + blk(v.offset(0, 2, 0)) + " minecraft:stone");
-                cmd("setblock " + blk(v.offset(1, 0, 0)) + " minecraft:stone");
-                cmd("setblock " + blk(v.offset(1, 2, 0)) + " minecraft:stone");
-                cmd("setblock " + blk(v.offset(1, 1, 0)) + " minecraft:lectern[facing=east]");
+                cmd("setblock " + blk(v.offset(1, 1, 0)) + " minecraft:stone");
+                cmd("setblock " + blk(v.offset(1, 0, 0)) + " minecraft:lectern[facing=east]");
                 cmd("summon minecraft:villager " + xyz(v, 0.5, 0, 0.5) + " {PersistenceRequired:1b}");
                 cmd("give @s minecraft:lectern 4");
                 cmd("give @s minecraft:iron_axe");
@@ -1261,7 +1260,7 @@ final class NewTests {
             case 174 -> {
                 if (!after(3)) return;
                 d1 = mc.player.getHealth();
-                minHealth = d1;
+                minHealth = (float) d1;
                 t("///fly");
                 next();
             }
