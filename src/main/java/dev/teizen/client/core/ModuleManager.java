@@ -57,6 +57,7 @@ public final class ModuleManager {
         // Sicht
         add(new PlayerESP());
         add(new SeeInvisible());
+        add(new AntiVanish());
         add(new EnchantPreview());
         add(new Nametags());
         add(new ArmorESP());

@@ -315,7 +315,7 @@ public final class Overview extends Screen {
         g.fill(opX, opY, opX + opW, opY + 13, oh ? 0xFF5A3A10 : 0xFF3A2408);
         g.fill(opX, opY + 12, opX + opW, opY + 13, 0xFFE8A030);
         g.text(font, opLabel, opX + 5, opY + 3, 0xFFFFFFFF, false);
-        if (oh) g.setTooltipForNextFrame(font, Component.literal("Cheats, die OP-Rechte brauchen (z.B. God, GodPvP, NoClip), ein-/ausblenden"), mouseX, mouseY);
+        if (oh) g.setTooltipForNextFrame(font, Component.literal("Cheats, die OP-Rechte brauchen (z.B. God, NoClip, NoCooldown), ein-/ausblenden"), mouseX, mouseY);
         String head = "§a" + on + "§7 von §f" + TeizenClient.modules().all().size() + "§7 an  §8|  §7Links: an/aus · Rechts: Einstellungen · Mitte/Shift: §6★ · §7Mausrad: scrollen";
         int room = width - 2 * (opW + 12);
         if (font.width(head) > room) head = "§a" + on + "§7 an §8| §7L: an/aus · R: Einst. · Mitte: §6★ §7· Mausrad";

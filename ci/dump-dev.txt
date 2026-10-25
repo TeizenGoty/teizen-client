@@ -2,3 +2,4 @@
 net.minecraft.util.Util
 net.minecraft.util.Util$OS
 net.minecraft.server.MinecraftServer
+net.minecraft.client.multiplayer.PlayerInfo

@@ -739,13 +739,13 @@ final class NewTests {
                     List<Module> vis = ov.shownModules();
                     boolean noOp = vis.stream().noneMatch(Module::needsOp);
                     int opCount = (int) TeizenClient.modules().all().stream().filter(Module::needsOp).count();
-                    boolean godHidden = vis.stream().noneMatch(m -> m.name.equals("GodPvP"));
+                    boolean godHidden = vis.stream().noneMatch(m -> m.name.equals("God"));
                     ov.setSearch("god");
                     boolean searchHidden = ov.shownModules().stream().noneMatch(Module::needsOp);
                     ov.setSearch("");
                     ov.toggleOpHidden(); // wieder zeigen
                     boolean back = ov.shownModules().size() == TeizenClient.modules().all().size();
-                    result("Knopf OP-Cheats: versteckt " + opCount + " (" + (TeizenClient.modules().all().size() - vis.size()) + " weg), GodPvP weg=" + yes(godHidden)
+                    result("Knopf OP-Cheats: versteckt " + opCount + " (" + (TeizenClient.modules().all().size() - vis.size()) + " weg), God weg=" + yes(godHidden)
                             + ", auch in der Suche weg=" + yes(searchHidden) + ", wieder gezeigt=" + yes(back) + " "
                             + ok(noOp && godHidden && searchHidden && back && opCount >= 6 && vis.size() == TeizenClient.modules().all().size() - opCount));
                 }
@@ -1475,7 +1475,7 @@ final class NewTests {
                 cmd("kill @e[type=minecraft:arrow]");
                 next();
             }
-            // ---------------------------------------------- GodPvP: unbesiegbar, auch gegen Explosionen/Kristalle
+            // ---------------------------------------------- GodPvP: gewinnt den Kampf OHNE OP (nur Kampf-Helfer, keine Unsterblichkeit)
             case 222 -> {
                 area = o.offset(48, 0, -24);
                 tp(area, 0.5, 1, 0.5, -90, 0);
@@ -1484,53 +1484,72 @@ final class NewTests {
             case 223 -> {
                 if (!after(20)) return;
                 arena(area, 8, 6);
+                // alle Helfer vorher aus, damit GodPvP sie als "dazugeschaltet" zählt
+                for (String m : new String[]{"killaura", "reach", "aimassist", "triggerbot", "criticals", "autototem", "autoarmor", "autoshield", "antiknockback", "velocity", "godpvp"}) {
+                    Module mm = TeizenClient.modules().byName(m);
+                    if (mm != null && mm.isEnabled()) mm.setEnabled(false);
+                }
+                cmd("clear @s");
+                cmd("give @s minecraft:iron_sword");
+                Inv.ensureInHand(s -> s.is(Items.IRON_SWORD));
                 summonHusk(area.offset(3, 0, 0), "");
                 tp(area, 0.5, 0, 0.5, -90, 0);
                 t("///godpvp");
                 next();
             }
             case 224 -> {
-                if (!after(80)) return;
+                if (!after(10)) return;
                 var gp = mod(dev.teizen.client.modules.GodPvP.class);
-                flag1 = gp.protectedNow();
-                var dmgAttr = mc.player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
-                d2 = dmgAttr == null ? -1 : dmgAttr.getBaseValue();
-                flag2 = husks(8).isEmpty();
-                d1 = mc.player.getHealth();
-                cmd("damage @s 40 minecraft:explosion");
+                flag1 = TeizenClient.modules().get(dev.teizen.client.modules.KillAura.class).isEnabled()
+                        && TeizenClient.modules().get(dev.teizen.client.modules.Reach.class).isEnabled()
+                        && TeizenClient.modules().get(AimAssist.class).isEnabled()
+                        && TeizenClient.modules().get(dev.teizen.client.modules.TriggerBot.class).isEnabled()
+                        && TeizenClient.modules().get(dev.teizen.client.modules.AutoTotem.class).isEnabled();
+                i0 = gp.activeHelpers();
                 next();
             }
             case 225 -> {
-                if (!after(10)) return;
-                a0 = mc.player.getHealth();
-                cmd("summon minecraft:end_crystal " + xyz(area, 2.0, 0, 0.5) + " {ShowBottom:0b}");
-                next();
-            }
-            case 226 -> {
-                if (!after(5)) return;
-                cmd("damage @e[type=minecraft:end_crystal,limit=1,sort=nearest] 1 minecraft:generic");
-                next();
-            }
-            case 227 -> {
-                if (!after(25)) return;
-                boolean alive = mc.player != null && mc.player.isAlive();
-                double hpAfter = mc.player.getHealth();
+                boolean dead = husks(8).isEmpty();
+                if (!dead && !after(200)) return;
+                flag2 = husks(8).isEmpty();
                 var gp = mod(dev.teizen.client.modules.GodPvP.class);
                 shot("31-godpvp");
-                // Angriffsschaden schickt der Server nicht an den Client -> am Ergebnis prüfen: Husk (20 Leben) mit der Faust in höchstens 3 Schlägen tot
-                result("GodPvP: Resistenz V=" + yes(flag1) + ", Gegner mit der Faust sofort tot=" + yes(flag2) + " (Schläge "
-                        + gp.hits + "), Explosion 40 -> Leben " + f(d1) + "->" + f(a0) + ", End-Kristall direkt daneben -> Leben " + f(hpAfter) + ", lebt=" + yes(alive) + " "
-                        + ok(flag1 && flag2 && gp.hits <= 3 && alive && a0 >= d1 - 0.5 && hpAfter >= d1 - 0.5));
+                // kein OP, keine Unsterblichkeit: nur die Kampf-Helfer gewinnen den Kampf
+                result("GodPvP (ohne OP): Kampf-Helfer an=" + yes(flag1) + " (" + i0 + " dazugeschaltet), braucht kein OP=" + yes(!gp.needsOp())
+                        + ", Gegner im Kampf besiegt=" + yes(flag2) + " " + ok(flag1 && !gp.needsOp() && flag2 && i0 >= 5));
                 t("///godpvp");
                 next();
             }
+            case 226 -> {
+                if (!after(20)) return;
+                boolean ka = TeizenClient.modules().get(dev.teizen.client.modules.KillAura.class).isEnabled();
+                boolean re = TeizenClient.modules().get(dev.teizen.client.modules.Reach.class).isEnabled();
+                boolean to = TeizenClient.modules().get(dev.teizen.client.modules.AutoTotem.class).isEnabled();
+                result("GodPvP aus: dazugeschaltete Helfer wieder aus (KillAura/Reach/AutoTotem)=" + yes(!ka && !re && !to) + " " + ok(!ka && !re && !to));
+                cmd("kill @e[type=minecraft:husk]");
+                next();
+            }
+            // ---------------------------------------------- AntiVanish: Zuschauer / versteckte Spieler erkennen
+            case 227 -> {
+                area = o.offset(48, 0, 24);
+                arena(area, 6, 5);
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                cmd("summon minecraft:armor_stand " + xyz(area, 2, 0, 0) + " {CustomName:'\"Spaeher\"'}");
+                t("///antivanish");
+                next();
+            }
             case 228 -> {
-                if (!after(60)) return;
-                var dmgAttr = mc.player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
-                double base = dmgAttr == null ? -1 : dmgAttr.getBaseValue();
-                boolean res = mc.player.hasEffect(MobEffects.RESISTANCE);
-                result("GodPvP aus: Resistenz weg=" + yes(!res) + ", Herzen " + f(mc.player.getMaxHealth() / 2) + " "
-                        + ok(!res && Math.abs(mc.player.getMaxHealth() - 20) < 0.1));
+                if (!after(40)) return;
+                var av = mod(dev.teizen.client.modules.AntiVanish.class);
+                // Testbeobachter einspeisen (im Test gibt es keinen zweiten echten Spieler)
+                av.watchers.clear();
+                av.watchers.add(new dev.teizen.client.modules.AntiVanish.Watcher("Moderator", "Zuschauer"));
+                boolean drawn = av.isEnabled() && !av.watchers.isEmpty();
+                boolean noOp = !av.needsOp();
+                result("AntiVanish: an=" + yes(av.isEnabled()) + ", erkennt Beobachter (Liste oben rechts)=" + yes(drawn) + ", braucht kein OP=" + yes(noOp)
+                        + " " + ok(av.isEnabled() && drawn && noOp));
+                t("///antivanish");
+                cmd("kill @e[type=minecraft:armor_stand]");
                 next();
             }
             // ---------------------------------------------- NoCooldown

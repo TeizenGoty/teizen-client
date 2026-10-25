@@ -41,6 +41,7 @@
   "key.teizenclient.module.elytrareset": "ElytraReset toggle",
   "key.teizenclient.module.playeresp": "PlayerESP toggle",
   "key.teizenclient.module.seeinvisible": "SeeInvisible toggle",
+  "key.teizenclient.module.antivanish": "AntiVanish toggle",
   "key.teizenclient.module.enchantpreview": "EnchantPreview toggle",
   "key.teizenclient.module.nametags": "Nametags toggle",
   "key.teizenclient.module.armoresp": "ArmorESP toggle",
