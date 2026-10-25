@@ -1982,9 +1982,9 @@ final class NewTests {
                     dev.teizen.client.core.Seed.set(seedGot);
                     dev.teizen.client.compat.SeedMapCompat.giveSeed(seedGot, true);
                 }
-                SelfTest.jump(152);
+                SelfTest.jump(300); // Runde 9: die neuen Funktionen
             }
-            default -> {}
+            default -> { if (step >= 300) Round9Tests.step(step, o); }
         }
     }
 
