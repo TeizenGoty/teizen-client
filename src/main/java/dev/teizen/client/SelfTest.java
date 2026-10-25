@@ -32,6 +32,7 @@ public final class SelfTest {
     private static int ticks;
     private static int worldTicks;
     private static int step;
+    private static int lastRespawn = -1000, deaths;
     private static int stepStart;
     private static int moduleIndex;
     private static final List<String> results = new ArrayList<>();
@@ -109,6 +110,18 @@ public final class SelfTest {
         if (step == RECONNECT_STEP) { reconnectTick(); return; }
         if (step == COMBATLOG_STEP) { combatLogTick(); return; }
         if (mc.player == null || mc.level == null) return;
+        // Sicherheitsnetz: stirbt der Testspieler (z.B. Monster in der Testwelt), sofort wiederbeleben und weitermachen
+        if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.DeathScreen || (mc.player.isDeadOrDying() && mc.player.deathTime > 10)) {
+            if (ticks - lastRespawn > 40) {
+                lastRespawn = ticks;
+                deaths++;
+                log("Testspieler gestorben (Schritt " + step + ") – wiederbeleben");
+                mc.player.respawn();
+                mc.gui.setScreen(null);
+            }
+            return;
+        }
+        if (deaths > 0 && ticks - lastRespawn == 40) cmd("effect give @s minecraft:instant_health 1 5");
         worldTicks++;
         if (worldTicks < 140) return;
         List<Module> mods = TeizenClient.modules().all();
@@ -120,6 +133,14 @@ public final class SelfTest {
                 cmd("time set day");
                 cmd("weather clear");
                 cmd("difficulty easy");
+                // keine natürlichen Monster in der Testwelt (sonst greifen Husks/Zombies den Testspieler an)
+                cmd("gamerule spawn_mobs false");
+                cmd("gamerule doMobSpawning false");
+                cmd("kill @e[type=minecraft:husk]");
+                cmd("kill @e[type=minecraft:zombie]");
+                cmd("kill @e[type=minecraft:skeleton]");
+                cmd("kill @e[type=minecraft:creeper]");
+                cmd("kill @e[type=minecraft:spider]");
                 cmd("give @s minecraft:diamond_pickaxe");
                 cmd("give @s minecraft:stone 64");
                 cmd("give @s minecraft:totem_of_undying");
