@@ -96,7 +96,8 @@ public final class WeaponSwap {
     public static void tickPending() {
         if (pendingId < 0 || mc.player == null || mc.level == null) return;
         int now = mc.player.tickCount;
-        if (now - pendingTick != 1) { pendingId = -1; return; }
+        if (now - pendingTick < 1) return;           // erst im nächsten Tick
+        if (now - pendingTick > 1) { pendingId = -1; return; }
         Entity e = mc.level.getEntity(pendingId);
         if (e == null || !e.isAlive()) { pendingId = -1; return; }
         mc.gameMode.attack(mc.player, e);
