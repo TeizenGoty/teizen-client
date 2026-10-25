@@ -184,9 +184,13 @@ public final class SelfTest {
                 int local = ticks - stepStart;
                 if (local % 40 == 0) log("AutoMine " + local + ": " + TeizenClient.modules().get(AutoMine.class).debugState());
                 if (local == 200) shot("05a-automine");
-                if (!after(700) && countDiamondOre() > 0) return;
+                AutoMine am = TeizenClient.modules().get(AutoMine.class);
+                if (!after(900) && countDiamondOre() > 0) return;
                 int now = countDiamondOre();
-                results.add("AutoMine: Diamant-Erz vorher " + diamondsBefore + ", nachher " + now + " (nach " + local + " Ticks)");
+                int dias = 0;
+                for (int i = 0; i < 36; i++) if (mc.player.getInventory().getItem(i).is(net.minecraft.world.item.Items.DIAMOND)) dias += mc.player.getInventory().getItem(i).getCount();
+                results.add("AutoMine: Diamant-Erz vorher " + diamondsBefore + ", nachher " + now + ", eingesammelt " + am.collected + " (Diamanten im Inventar " + dias
+                        + ", nach " + local + " Ticks) " + (now < diamondsBefore && dias >= 1 ? "OK" : "FEHLER"));
                 shot("05-automine");
                 Commands.handle("///mine stop");
                 next();

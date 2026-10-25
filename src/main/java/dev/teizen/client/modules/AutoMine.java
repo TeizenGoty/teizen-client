@@ -70,6 +70,7 @@ public final class AutoMine extends Module {
         reset();
         hasWant = false;
         collected = 0;
+        ignoredItems.clear();
         failed.clear();
         if (blocks.isEmpty()) Chat.error("Keine gültigen Erze in: " + ores.str());
         else Chat.info("AutoMine sucht: §f" + ores.str());
@@ -329,6 +330,7 @@ public final class AutoMine extends Module {
     // ------------------------------------------------------------ Erze einsammeln
     private net.minecraft.world.entity.item.ItemEntity pickup;
     private int pickupTicks;
+    private final java.util.Set<Integer> ignoredItems = new java.util.HashSet<>();
     public int collected;
 
     /** Ist das ein Erz-Drop (Diamant, Rohes Eisen, Kohle, ...) von den gewählten Erzen? */
@@ -356,15 +358,17 @@ public final class AutoMine extends Module {
     /** Liegt ein Erz-Drop in der Nähe? Dann hinlaufen. @return true wenn gerade eingesammelt wird */
     private boolean collectTick() {
         if (!collect.on()) return false;
-        if (pickup != null && (!pickup.isAlive() || ++pickupTicks > 160)) {
+        if (pickup != null && (!pickup.isAlive() || ++pickupTicks > 220)) {
             if (!pickup.isAlive()) collected++;
+            else ignoredItems.add(pickup.getId()); // kommt nicht ran -> weiter abbauen
             pickup = null;
             path = null;
+            releaseKeys();
         }
         if (pickup == null) {
             double best = 64;
             for (var e : mc.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, mc.player.getBoundingBox().inflate(7, 3, 7))) {
-                if (!isOreDrop(e.getItem())) continue;
+                if (!isOreDrop(e.getItem()) || ignoredItems.contains(e.getId())) continue;
                 double d = e.distanceToSqr(mc.player);
                 if (d < best) { best = d; pickup = e; }
             }
@@ -377,7 +381,16 @@ public final class AutoMine extends Module {
         double dx = it.x - me.x, dz = it.z - me.z;
         double horiz = Math.sqrt(dx * dx + dz * dz);
         status = "sammelt " + pickup.getItem().getHoverName().getString();
-        if (horiz < 1.6 && Math.abs(it.y - me.y) < 1.5) {
+        if (horiz < 1.6 && Math.abs(it.y - me.y) < 2.2) {
+            // Liegt der Drop in einem niedrigen Loch (wo das Erz war)? Dann den Block darüber abbauen, damit man hineinkommt
+            BlockPos ib = pickup.blockPosition();
+            BlockPos above = ib.above();
+            if (it.y < me.y - 0.4 && !MinePath.passable(mc.level, above) && Breaker.canBreak(above) && safeToDig(above)) {
+                releaseKeys();
+                lookAt(Vec3.atCenterOf(above));
+                if (aimed()) Breaker.tick(above, false, true);
+                return true;
+            }
             // direkt hinlaufen
             float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
             aim(yaw, 30f);
