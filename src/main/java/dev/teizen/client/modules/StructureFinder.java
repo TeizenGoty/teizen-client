@@ -62,7 +62,7 @@ public final class StructureFinder extends Module {
             if (autoSeed.on()) {
                 dev.teizen.client.core.Seed.fetch(sd -> {
                     if (sd == null) return;
-                    dev.teizen.client.compat.SeedMapCompat.giveSeed(sd, false);
+                    dev.teizen.client.compat.SeedMapCompat.giveSeed(sd, false, structures.selected());
                     if (dev.teizen.client.compat.SeedMapCompat.seedMapper() || dev.teizen.client.compat.SeedMapCompat.seedAtlas())
                         Chat.info("Seed §f" + sd + "§7 an die Seed-Karte gegeben. §f///seedmap§7 öffnet sie.");
                 });
@@ -78,7 +78,7 @@ public final class StructureFinder extends Module {
                 Chat.error("Seed unbekannt: auf diesem Server braucht /seed OP. Seed von Hand: ///seed <Zahl>");
                 return;
             }
-            String what = dev.teizen.client.compat.SeedMapCompat.open(sd, mapMode.str());
+            String what = dev.teizen.client.compat.SeedMapCompat.open(sd, mapMode.str(), structures.selected());
             Chat.ok("Seed §f" + sd + "§a → " + what);
             if (what.startsWith("Chunkbase")) Chat.raw("§7" + dev.teizen.client.compat.SeedMapCompat.lastUrl);
         });

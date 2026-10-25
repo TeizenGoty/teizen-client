@@ -1904,8 +1904,23 @@ final class NewTests {
                 result("Seedmap: SeedMapper installiert=" + yes(mapper) + " Karte offen=" + yes(mapOpen) + " (" + name + "), Seed Atlas installiert=" + yes(atlas)
                         + ", Seed an beide gegeben=" + yes(givenOk) + ", Chunkbase-Adresse ok=" + yes(urlOk) + " " + ok(flag1 && mapOpen && givenOk && urlOk));
                 log("Chunkbase: " + url);
-                if (atlas) dev.teizen.client.compat.SeedMapCompat.clientCommand("seedatlas status");
+                log("Xaero-Tasten: " + dev.teizen.client.compat.SeedMapCompat.xaeroKeys());
                 mc.gui.setScreen(null);
+                t("///seedmap seedatlas"); // Strukturen auf Xaero's Weltkarte
+                next();
+            }
+            case 273 -> {
+                if (!after(40)) return;
+                var scr = mc.gui.screen();
+                String name = scr == null ? "-" : scr.getClass().getName();
+                boolean atlas = dev.teizen.client.compat.SeedMapCompat.seedAtlas();
+                boolean structOn = !atlas || dev.teizen.client.compat.SeedMapCompat.atlasStructuresOn();
+                boolean mapOpen = name.contains("xaero");
+                shot("35-seedatlas");
+                result("Seed Atlas: Strukturen auf Xaero's Weltkarte an=" + yes(structOn) + ", Weltkarte geöffnet=" + yes(mapOpen) + " (" + name + ") " + ok(structOn));
+                dev.teizen.client.compat.SeedMapCompat.clientCommand("seedatlas status");
+                mc.gui.setScreen(null);
+                t("///set structurefinder seedmap auto");
                 SelfTest.jump(152);
             }
             default -> {}

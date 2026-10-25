@@ -17,8 +17,6 @@ import java.util.Locale;
  */
 public final class SeedMapCompat {
     private static final Minecraft mc = Minecraft.getInstance();
-    private static Method execute;
-    private static boolean lookedUp;
     /** Welcher Seed zuletzt an die Mods gegeben wurde. */
     private static Long givenSeedMapper, givenAtlas;
     /** Für den Selbsttest: zuletzt gebaute Chunkbase-Adresse. */
@@ -30,34 +28,115 @@ public final class SeedMapCompat {
 
     public static boolean seedAtlas() { return FabricLoader.getInstance().isModLoaded("seedatlas_xaero"); }
 
-    /** Befehl eines Client-Mods ausführen (ohne "/"). @return true wenn ein Client-Befehl das übernommen hat */
+    /** Befehl eines Client-Mods ausführen (ohne "/"); Fabric fängt Client-Befehle beim Senden selbst ab. */
     public static boolean clientCommand(String command) {
-        if (!lookedUp) {
-            lookedUp = true;
-            try {
-                Class<?> c = Class.forName("net.fabricmc.fabric.impl.command.client.ClientCommandInternals");
-                execute = c.getMethod("executeCommand", String.class);
-            } catch (Throwable t) {
-                TeizenClient.LOG.warn("Client-Befehle: Fabric-Schnittstelle nicht gefunden, nehme den Chat-Weg", t);
-            }
-        }
+        if (mc.player == null) return false;
+        mc.player.connection.sendCommand(command);
+        return true;
+    }
+
+    /** Unsere Struktur-Namen -> Seed-Atlas-Markierungen. */
+    private static String atlasMarker(String name) {
+        return switch (name) {
+            case "village" -> "VILLAGE";
+            case "stronghold" -> "STRONGHOLD";
+            case "fortress" -> "NETHER_FORTRESS";
+            case "bastion" -> "BASTION";
+            case "monument" -> "OCEAN_MONUMENT";
+            case "mansion" -> "WOODLAND_MANSION";
+            case "ancient_city" -> "ANCIENT_CITY";
+            case "end_city" -> "END_CITY";
+            case "trial_chambers" -> "TRIAL_CHAMBERS";
+            case "desert_pyramid" -> "DESERT_PYRAMID";
+            case "jungle_pyramid" -> "JUNGLE_TEMPLE";
+            case "igloo" -> "IGLOO";
+            case "swamp_hut" -> "SWAMP_HUT";
+            case "pillager_outpost" -> "PILLAGER_OUTPOST";
+            case "ruined_portal" -> "RUINED_PORTAL";
+            case "shipwreck" -> "SHIPWRECK";
+            case "ocean_ruin" -> "OCEAN_RUINS";
+            case "mineshaft" -> "MINESHAFT";
+            case "buried_treasure" -> "BURIED_TREASURE";
+            case "trail_ruins" -> "TRAIL_RUINS";
+            default -> null;
+        };
+    }
+
+    /** Seed Atlas: Karten-Ebene und Struktur-Markierungen einschalten (die gewählten Strukturen auf jeden Fall). */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static boolean atlasShowStructures(java.util.List<String> selected) {
+        if (!seedAtlas()) return false;
         try {
-            if (execute != null) return (Boolean) execute.invoke(null, command);
+            Class<?> st = Class.forName("org.seedatlas.xaero.config.SeedAtlasClientState");
+            st.getMethod("setLayerEnabled", boolean.class).invoke(null, true);
+            st.getMethod("setStructuresEnabled", boolean.class).invoke(null, true);
+            Class mt = Class.forName("org.seedatlas.xaero.config.MarkerType");
+            Method setMarker = st.getMethod("setMarkerEnabled", String.class, boolean.class);
+            for (String n : selected) {
+                String e = atlasMarker(n);
+                if (e == null) continue;
+                Object m = Enum.valueOf(mt, e);
+                String id = (String) mt.getMethod("id").invoke(m);
+                setMarker.invoke(null, id, true);
+            }
+            return true;
         } catch (Throwable t) {
-            TeizenClient.LOG.warn("Client-Befehl fehlgeschlagen: " + command, t);
+            TeizenClient.LOG.warn("Seed Atlas: Strukturen einschalten ging nicht", t);
+            return false;
         }
-        if (mc.player != null) mc.player.connection.sendCommand(command);
+    }
+
+    /** Sind bei Seed Atlas die Strukturen an? (Selbsttest) */
+    public static boolean atlasStructuresOn() {
+        try {
+            Class<?> st = Class.forName("org.seedatlas.xaero.config.SeedAtlasClientState");
+            Object cfg = st.getMethod("config").invoke(null);
+            return (Boolean) cfg.getClass().getMethod("structuresEnabled").invoke(cfg);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** Xaero's Weltkarte öffnen (wie ein Druck auf ihre Taste). @return true wenn die Taste gefunden wurde */
+    public static boolean openXaeroWorldMap() {
+        try {
+            for (net.minecraft.client.KeyMapping k : mc.options.keyMappings) {
+                String n = k.getName().toLowerCase(Locale.ROOT);
+                if (n.contains("xaero") && n.contains("map") && !n.contains("minimap") && (n.contains("open") || n.endsWith("world_map") || n.endsWith("worldmap"))) {
+                    java.lang.reflect.Field f = net.minecraft.client.KeyMapping.class.getDeclaredField("clickCount");
+                    f.setAccessible(true);
+                    f.setInt(k, f.getInt(k) + 1);
+                    TeizenClient.LOG.info("Xaero-Weltkarte über Taste " + k.getName() + " geöffnet");
+                    return true;
+                }
+            }
+        } catch (Throwable t) {
+            TeizenClient.LOG.warn("Xaero-Weltkarte öffnen ging nicht", t);
+        }
         return false;
+    }
+
+    /** Namen aller Xaero-Tasten (Selbsttest-Log). */
+    public static String xaeroKeys() {
+        StringBuilder sb = new StringBuilder();
+        for (net.minecraft.client.KeyMapping k : mc.options.keyMappings) if (k.getName().toLowerCase(Locale.ROOT).contains("xaero")) sb.append(k.getName()).append(' ');
+        return sb.toString();
     }
 
     /** Seed an alle installierten Karten-Mods geben (nur wenn er sich geändert hat, außer force). */
     public static void giveSeed(long seed, boolean force) {
+        giveSeed(seed, force, java.util.List.of());
+    }
+
+    /** Seed geben; bei Seed Atlas auch gleich die Strukturen einschalten. */
+    public static void giveSeed(long seed, boolean force, java.util.List<String> structures) {
         if (seedMapper() && (force || givenSeedMapper == null || givenSeedMapper != seed)) {
             if (clientCommand("sm:config Seed set " + seed)) givenSeedMapper = seed;
         }
         if (seedAtlas() && (force || givenAtlas == null || givenAtlas != seed)) {
             if (clientCommand("seedatlas seed " + seed)) givenAtlas = seed;
         }
+        if (seedAtlas()) atlasShowStructures(structures);
     }
 
     public static Long givenSeedMapper() { return givenSeedMapper; }
@@ -81,14 +160,15 @@ public final class SeedMapCompat {
      * Karte öffnen. modus: auto / seedmapper / seedatlas / chunkbase.
      * @return was geöffnet wurde (für die Chat-Meldung)
      */
-    public static String open(long seed, String mode) {
-        giveSeed(seed, false);
+    public static String open(long seed, String mode, java.util.List<String> structures) {
+        giveSeed(seed, false, structures);
         boolean auto = mode.equals("auto");
         if ((auto || mode.equals("seedmapper")) && seedMapper()) {
             clientCommand("sm:seedmap");
             return "SeedMapper-Karte";
         }
         if ((auto || mode.equals("seedatlas")) && seedAtlas()) {
+            if (openXaeroWorldMap()) return "Xaero's Weltkarte mit allen Strukturen (Seed Atlas)";
             return "Xaero's Weltkarte (Seed Atlas) – drück die Karten-Taste (Standard M)";
         }
         String url = chunkbaseUrl(seed);
