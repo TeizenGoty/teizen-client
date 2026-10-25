@@ -59,9 +59,18 @@ jobs:
           unzip -p scx.jar fabric.mod.json >> $GITHUB_WORKSPACE/api-dump.txt
           echo >> $GITHUB_WORKSPACE/api-dump.txt
           for f in $(unzip -Z1 scx.jar | grep -E 'lang/en_us.json'); do unzip -p scx.jar "$f" | grep -i -E 'seed' | head -40 >> $GITHUB_WORKSPACE/api-dump.txt; done
+          for j in 2.16.1 prerelease; do
+            curl -sL "https://github.com/19MisterX98/SeedcrackerX/releases/download/$j/seedcrackerX-$( [ $j = prerelease ] && echo 2.16.2 || echo $j ).jar" -o v$j.jar
+            echo "== $j: $(unzip -p v$j.jar fabric.mod.json | jq -c '.depends')" >> $GITHUB_WORKSPACE/api-dump.txt
+          done
+          unzip -Z1 scx.jar | grep -E 'lang/' >> $GITHUB_WORKSPACE/api-dump.txt
+          for c in kaptainwutax.seedcrackerX.cracker.storage.TimeMachine kaptainwutax.seedcrackerX.cracker.storage.DataStorage kaptainwutax.seedcrackerX.SeedCracker kaptainwutax.seedcrackerX.util.Log; do
+            javap -p -cp scx.jar "$c" >> $GITHUB_WORKSPACE/api-dump.txt 2>&1
+          done
+          javap -c -p -cp scx.jar kaptainwutax.seedcrackerX.util.Log | grep -E 'invoke|ldc' | head -40 >> $GITHUB_WORKSPACE/api-dump.txt
           mkdir -p x && cd x && unzip -q -o ../scx.jar
           echo "== Texte mit seed" >> $GITHUB_WORKSPACE/api-dump.txt
-          for c in $(grep -rl -a -i -E 'world seed|found.*seed|seed.*found' --include=*.class . | head -20); do echo "-- $c" >> $GITHUB_WORKSPACE/api-dump.txt; strings -a "$c" | grep -i -E 'seed' | head -15 >> $GITHUB_WORKSPACE/api-dump.txt; done
+
       - name: Publish
         if: always()
         run: |
