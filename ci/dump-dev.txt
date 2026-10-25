@@ -1,12 +1,11 @@
 # Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
-net.minecraft.world.inventory.EnchantmentMenu
-net.minecraft.client.gui.screens.inventory.EnchantmentScreen
-net.minecraft.world.item.enchantment.EnchantmentInstance
-net.minecraft.world.item.enchantment.Enchantment
-net.minecraft.tags.EnchantmentTags
-net.minecraft.util.RandomSource
-net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
-net.minecraft.world.level.block.WebBlock
-c net.minecraft.world.level.block.WebBlock
-c net.minecraft.world.entity.LivingEntity
-c net.minecraft.world.inventory.EnchantmentMenu
+net.minecraft.world.item.BowItem
+net.minecraft.world.item.CrossbowItem
+net.minecraft.world.item.ProjectileWeaponItem
+net.minecraft.world.entity.projectile.arrow.AbstractArrow
+c net.minecraft.client.renderer.extract.LevelExtractor
+org.joml.Matrix3x2fStack
+net.minecraft.client.multiplayer.PlayerInfo
+net.minecraft.world.entity.decoration.ArmorStand
+net.minecraft.client.player.ClientInput
+net.minecraft.world.item.Items
