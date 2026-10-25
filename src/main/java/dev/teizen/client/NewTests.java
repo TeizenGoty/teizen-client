@@ -54,7 +54,7 @@ final class NewTests {
     private static Long seedGot;
     private static boolean seedDone;
     private static int i0;
-    private static int replantTries;
+    private static int replantTries, anchorTries;
     private static float minHealth;
 
     private static String describe(List<net.minecraft.world.item.enchantment.EnchantmentInstance> list) {
@@ -197,6 +197,7 @@ final class NewTests {
             }
             case 36 -> {
                 if (!after(20)) return;
+                mod(AutoCrystal.class).setEnabled(false); // sicher aus, bevor die Anker ins Inventar kommen
                 arena(area, 7, 6);
                 summonHusk(area.offset(3, 0, 0), "");
                 cmd("clear @s minecraft:end_crystal");
@@ -208,9 +209,10 @@ final class NewTests {
             case 37 -> {
                 if (!after(40)) return;
                 n0 = husks(10).size();
+                if (n0 == 0 && anchorTries++ < 3) { summonHusk(area.offset(3, 0, 0), ""); SelfTest.jump(37); return; }
                 mod(AutoCrystal.class).anchors = 0;
                 mod(AutoCrystal.class).anchorsPlaced = 0;
-                t("///autocrystal");
+                mod(AutoCrystal.class).setEnabled(true);
                 next();
             }
             case 38 -> {
@@ -221,7 +223,7 @@ final class NewTests {
                 for (int i = 0; i < 36; i++) if (mc.player.getInventory().getItem(i).is(Items.RESPAWN_ANCHOR)) left += mc.player.getInventory().getItem(i).getCount();
                 result("AutoCrystal (Respawn-Anker): Husk tot=" + yes(dead) + " (vorher " + n0 + ", Anker gesetzt " + ac.anchorsPlaced + ", gezündet "
                         + ac.anchors + ", übrig " + left + "/4, " + SelfTest.local() + " Ticks) " + ok(dead && n0 == 1 && ac.anchors >= 1 && left < 4));
-                t("///autocrystal");
+                ac.setEnabled(false);
                 next();
             }
             // ---------------------------------------------- Velocity
