@@ -44,6 +44,24 @@ jobs:
               else javap -p -cp "$CP" "$a" >> api-dump.txt 2>&1; fi
             done
           fi
+      - name: SeedCrackerX ansehen
+        if: always()
+        run: |
+          set +e
+          mkdir -p /tmp/scx && cd /tmp/scx
+          curl -sL "https://api.github.com/repos/19MisterX98/SeedcrackerX/releases?per_page=8" -o rel.json
+          echo "== SeedCrackerX releases" >> $GITHUB_WORKSPACE/api-dump.txt
+          jq -r '.[] | .tag_name + " pre=" + (.prerelease|tostring) + " " + ([.assets[] | .name + "=" + .browser_download_url] | join(" "))' rel.json | head -8 >> $GITHUB_WORKSPACE/api-dump.txt
+          URL=$(jq -r '[.[] | .assets[] | select(.name | test("26\\.2")) | .browser_download_url][0]' rel.json)
+          if [ "$URL" = "null" ] || [ -z "$URL" ]; then URL=$(jq -r '.[0].assets[0].browser_download_url' rel.json); fi
+          echo "JAR: $URL" >> $GITHUB_WORKSPACE/api-dump.txt
+          curl -sL "$URL" -o scx.jar
+          unzip -p scx.jar fabric.mod.json >> $GITHUB_WORKSPACE/api-dump.txt
+          echo >> $GITHUB_WORKSPACE/api-dump.txt
+          for f in $(unzip -Z1 scx.jar | grep -E 'lang/en_us.json'); do unzip -p scx.jar "$f" | grep -i -E 'seed' | head -40 >> $GITHUB_WORKSPACE/api-dump.txt; done
+          mkdir -p x && cd x && unzip -q -o ../scx.jar
+          echo "== Texte mit seed" >> $GITHUB_WORKSPACE/api-dump.txt
+          for c in $(grep -rl -a -i -E 'world seed|found.*seed|seed.*found' --include=*.class . | head -20); do echo "-- $c" >> $GITHUB_WORKSPACE/api-dump.txt; strings -a "$c" | grep -i -E 'seed' | head -15 >> $GITHUB_WORKSPACE/api-dump.txt; done
       - name: Publish
         if: always()
         run: |
