@@ -42,9 +42,15 @@ public final class ClickTP extends Module {
             Chat.error("ClickTP: kein Block in " + range.integer() + " Blöcken.");
             return true;
         }
-        BlockPos t = bh.getBlockPos().relative(bh.getDirection());
-        // einen Platz suchen, wo man stehen kann (2 Blöcke frei)
-        for (int i = 0; i < 6 && !(free(t) && free(t.above())); i++) t = t.above();
+        // am liebsten oben auf den angeklickten Block; geht das nicht (Decke drüber), vor die angeklickte Seite
+        BlockPos top = bh.getBlockPos().above();
+        BlockPos t;
+        if (free(top) && free(top.above())) {
+            t = top;
+        } else {
+            t = bh.getBlockPos().relative(bh.getDirection());
+            for (int i = 0; i < 6 && !(free(t) && free(t.above())); i++) t = t.above();
+        }
         double x = t.getX() + 0.5, y = t.getY(), z = t.getZ() + 0.5;
         double dist = mc.player.position().distanceTo(new net.minecraft.world.phys.Vec3(x, y, z));
         if (Op.available()) {

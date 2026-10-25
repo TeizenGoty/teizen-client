@@ -55,6 +55,9 @@ jobs:
           javap -p -cp "$MC" net.minecraft.core.component.DataComponents | grep -iE "ATTACK|PIERC|KINETIC|WEAPON|BLOCKS_ATTACKS|PIERCING" >> api-dump.txt
           echo "== ItemTags AXES" >> api-dump.txt
           javap -p -cp "$MC" net.minecraft.tags.ItemTags | grep -E "AXE|SPEAR|SWORD" >> api-dump.txt
+          echo "== Speer-Komponenten (Items.<clinit>)" >> api-dump.txt
+          javap -c -p -cp "$MC" net.minecraft.world.item.Items | grep -n -E "IRON_SPEAR|spear|Spear|spearAttack|ATTACK_RANGE|PiercingWeapon|KineticWeapon" | head -40 >> api-dump.txt
+          javap -c -p -cp "$MC" net.minecraft.world.item.Item\$Properties | grep -E "spear|Spear" -A3 | head -60 >> api-dump.txt
       - name: Publish
         if: always()
         run: |

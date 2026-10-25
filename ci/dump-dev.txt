@@ -34,3 +34,7 @@ net.minecraft.server.players.ProfileResolver
 net.minecraft.world.inventory.ContainerInput
 net.minecraft.client.multiplayer.ClientChunkCache
 net.minecraft.world.level.chunk.LevelChunk
+c net.minecraft.world.item.component.PiercingWeapon
+c net.minecraft.world.item.component.AttackRange
+c net.minecraft.client.multiplayer.MultiPlayerGameMode
+c net.minecraft.world.entity.player.Player

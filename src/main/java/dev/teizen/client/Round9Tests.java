@@ -546,7 +546,7 @@ final class Round9Tests {
             // ---------------------------------------------- FastUse
             case 350 -> {
                 cmd("clear @s");
-                cmd("item replace entity @s hotbar.0 with minecraft:snowball 64");
+                cmd("item replace entity @s hotbar.0 with minecraft:experience_bottle 64");
                 tp(area, 0.5, 0, 0.5, -90, -40);
                 t("///set fastuse protick 3");
                 t("///fastuse");
@@ -555,7 +555,7 @@ final class Round9Tests {
             case 351 -> {
                 if (!after(15)) return;
                 Inv.select(0);
-                n0 = count(Items.SNOWBALL);
+                n0 = count(Items.EXPERIENCE_BOTTLE);
                 mc.options.keyUse.setDown(true);
                 next();
             }
@@ -566,11 +566,12 @@ final class Round9Tests {
             }
             case 353 -> {
                 if (!after(10)) return;
-                int used = n0 - count(Items.SNOWBALL);
-                result("FastUse: Schneebälle in 20 Ticks geworfen: " + used + " (normal ca. 5) " + ok(used >= 25));
+                int used = n0 - count(Items.EXPERIENCE_BOTTLE);
+                result("FastUse: XP-Flaschen in 20 Ticks geworfen: " + used + " (normal ca. 5) " + ok(used >= 25));
                 t("///fastuse");
                 cmd("clear @s");
-                cmd("kill @e[type=minecraft:snowball]");
+                cmd("kill @e[type=minecraft:experience_bottle]");
+                cmd("kill @e[type=minecraft:experience_orb]");
                 next();
             }
             // ---------------------------------------------- NameProtect
