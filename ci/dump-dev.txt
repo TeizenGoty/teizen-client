@@ -40,3 +40,7 @@ c net.minecraft.client.multiplayer.MultiPlayerGameMode
 c net.minecraft.world.entity.player.Player
 c net.minecraft.world.entity.projectile.ProjectileUtil
 c net.minecraft.world.entity.LivingEntity
+c net.minecraft.world.entity.projectile.throwableitemprojectile.ThrowableItemProjectile
+c net.minecraft.world.entity.projectile.ThrowableProjectile
+c net.minecraft.world.entity.projectile.Projectile
+c net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl
