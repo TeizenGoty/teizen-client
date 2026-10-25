@@ -1498,9 +1498,10 @@ final class NewTests {
                 double hpAfter = mc.player.getHealth();
                 var gp = mod(dev.teizen.client.modules.GodPvP.class);
                 shot("31-godpvp");
-                result("GodPvP: Resistenz V=" + yes(flag1) + ", Schaden pro Schlag " + Math.round(d2) + ", Gegner sofort tot=" + yes(flag2) + " (Schläge "
+                // Angriffsschaden schickt der Server nicht an den Client -> am Ergebnis prüfen: Husk (20 Leben) mit der Faust in höchstens 3 Schlägen tot
+                result("GodPvP: Resistenz V=" + yes(flag1) + ", Gegner mit der Faust sofort tot=" + yes(flag2) + " (Schläge "
                         + gp.hits + "), Explosion 40 -> Leben " + f(d1) + "->" + f(a0) + ", End-Kristall direkt daneben -> Leben " + f(hpAfter) + ", lebt=" + yes(alive) + " "
-                        + ok(flag1 && d2 >= 2048 && flag2 && alive && a0 >= d1 - 0.5 && hpAfter >= d1 - 0.5));
+                        + ok(flag1 && flag2 && gp.hits <= 3 && alive && a0 >= d1 - 0.5 && hpAfter >= d1 - 0.5));
                 t("///godpvp");
                 next();
             }
@@ -1509,8 +1510,8 @@ final class NewTests {
                 var dmgAttr = mc.player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
                 double base = dmgAttr == null ? -1 : dmgAttr.getBaseValue();
                 boolean res = mc.player.hasEffect(MobEffects.RESISTANCE);
-                result("GodPvP aus: Resistenz weg=" + yes(!res) + ", Schaden wieder " + f(base) + ", Herzen " + f(mc.player.getMaxHealth() / 2) + " "
-                        + ok(!res && base < 5 && Math.abs(mc.player.getMaxHealth() - 20) < 0.1));
+                result("GodPvP aus: Resistenz weg=" + yes(!res) + ", Herzen " + f(mc.player.getMaxHealth() / 2) + " "
+                        + ok(!res && Math.abs(mc.player.getMaxHealth() - 20) < 0.1));
                 next();
             }
             // ---------------------------------------------- NoCooldown
@@ -1558,12 +1559,16 @@ final class NewTests {
                 if (!mc.level.getBlockState(b).isAir() && i0 < 240) return;
                 d1 = i0;
                 dev.teizen.client.util.Breaker.stop();
-                cmd("setblock " + blk(b) + " minecraft:oak_planks");
                 t("///fastbreak");
                 next();
             }
             case 235 -> {
-                if (!after(60)) return;
+                // erst warten, bis der Server den Abbau fertig hat, dann das Brett wieder hinstellen
+                if (SelfTest.local() == 20) cmd("setblock " + blk(area.offset(2, 0, 0)) + " minecraft:oak_planks");
+                if (!after(70)) return;
+                if (mc.level.getBlockState(area.offset(2, 0, 0)).isAir()) {
+                    if (!after(200)) { if (SelfTest.local() % 40 == 0) cmd("setblock " + blk(area.offset(2, 0, 0)) + " minecraft:oak_planks"); return; }
+                }
                 i0 = 0;
                 next();
             }

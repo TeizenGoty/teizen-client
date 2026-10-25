@@ -76,6 +76,8 @@ public final class PlayerFinder extends Module {
         Vec3 eye = mc.player.getEyePosition();
         int line = 0;
         boolean first = true;
+        // Liste links oben – mit Xaero's Minimap weiter unten, damit sie nicht unter der Karte liegt
+        int listY = dev.teizen.client.compat.XaeroCompat.minimapInstalled() ? Math.max(14, g.guiHeight() / 3) : 14;
         for (Target t : targets) {
             int c = color(t);
             double cy = t.y() + 1.0;
@@ -115,7 +117,7 @@ public final class PlayerFinder extends Module {
                 } else {
                     s = "§f" + t.name() + " §8im " + t.dim() + " §7(" + Math.round(t.x()) + " " + Math.round(t.z()) + ")";
                 }
-                g.text(mc.font, s, 4, 14 + line * 10, c, true);
+                g.text(mc.font, s, 4, listY + line * 10, c, true);
                 line++;
             }
         }

@@ -41,7 +41,8 @@ public final class Hud {
         on.sort(Comparator.comparingInt((Module m) -> -mc.font.width(label(m))));
         int y = 2;
         int w = g.guiWidth();
-        g.text(mc.font, "§5§lTeizen §7Client", 3, 3, 0xFFFFFFFF, true);
+        // mit Xaero's Minimap ist oben links die Karte -> Schriftzug weglassen
+        if (!dev.teizen.client.compat.XaeroCompat.minimapInstalled()) g.text(mc.font, "§5§lTeizen §7Client", 3, 3, 0xFFFFFFFF, true);
         for (Module m : on) {
             String t = label(m);
             int tw = mc.font.width(t);

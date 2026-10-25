@@ -176,13 +176,27 @@ public final class Overview extends Screen {
         List<SettingRows.Row> list = SettingRows.rows(expanded);
         int k = Math.max(1, Math.min(3, gridW / 180));
         if (list.size() <= 4) k = Math.min(k, Math.max(1, list.size()));
-        int per = Math.max(1, (list.size() + k - 1) / k);
-        int colW = (gridW - 8 - (k - 1) * 6) / k;
-        for (int i = 0; i < list.size(); i++) {
-            int c = i / per, r = i % per;
-            panelRows.add(new PanelRow(list.get(i), gridX + 4 + c * (colW + 6), y + 18 + r * ROW_H, colW));
+        // Blöcke: eine Einstellung mit ihrer aufgeklappten Liste bleibt zusammen in einer Spalte
+        List<List<SettingRows.Row>> blocks = new ArrayList<>();
+        for (SettingRows.Row r : list) {
+            if (r.kind() == SettingRows.Kind.SETTING || blocks.isEmpty()) blocks.add(new ArrayList<>());
+            blocks.get(blocks.size() - 1).add(r);
         }
-        int body = list.isEmpty() ? ROW_H : per * ROW_H;
+        int target = Math.max(1, (list.size() + k - 1) / k);
+        int colW = (gridW - 8 - (k - 1) * 6) / k;
+        int col = 0, row = 0, maxRows = 1;
+        for (List<SettingRows.Row> b : blocks) {
+            if (row > 0 && row + b.size() > target && col < k - 1) {
+                col++;
+                row = 0;
+            }
+            for (SettingRows.Row r : b) {
+                panelRows.add(new PanelRow(r, gridX + 4 + col * (colW + 6), y + 18 + row * ROW_H, colW));
+                row++;
+            }
+            maxRows = Math.max(maxRows, row);
+        }
+        int body = list.isEmpty() ? ROW_H : maxRows * ROW_H;
         return 18 + body + 6;
     }
 

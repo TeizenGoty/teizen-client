@@ -372,7 +372,8 @@ public final class SelfTest {
                 if (!after(10)) return;
                 int teizen = 0;
                 for (net.minecraft.client.KeyMapping k : mc.options.keyMappings) if (k.getName().startsWith("key.teizenclient.")) teizen++;
-                results.add("Tasten in Minecraft-Steuerung: " + (teizen == mods.size() + 2 ? "ok" : "FEHLER") + " (" + teizen + " Stück, erwartet " + (mods.size() + 2) + ")");
+                // Menü + Übersicht + Elytra-Taste + eine je Funktion
+                results.add("Tasten in Minecraft-Steuerung: " + (teizen == mods.size() + 3 ? "ok" : "FEHLER") + " (" + teizen + " Stück, erwartet " + (mods.size() + 3) + ")");
                 log("Tasten-Kategorie: " + net.minecraft.client.resources.language.I18n.get("key.category.teizenclient.main")
                         + " / " + net.minecraft.client.resources.language.I18n.get("key.teizenclient.overview"));
                 // im Client ändern -> muss in Minecraft ankommen

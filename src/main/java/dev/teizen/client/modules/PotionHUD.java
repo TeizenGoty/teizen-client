@@ -144,21 +144,42 @@ public final class PotionHUD extends Module {
         }
     }
 
-    /** Antwort von "/data get entity <Name> active_effects" auswerten. */
+    /** Antwort von "/data get entity <Name> active_effects" auswerten: [{amplifier: 1b, duration: 2400, id: "minecraft:speed", ...}, ...] */
     static List<Eff> parse(String txt) {
         List<Eff> out = new ArrayList<>();
-        String[] parts = txt.split("(?=id:\\s*\")");
-        for (String part : parts) {
-            Matcher m = ID.matcher(part);
+        for (String entry : entries(txt)) {
+            // versteckte Unter-Effekte ({...} im Eintrag) ignorieren
+            String flat = entry.replaceAll("\\{[^{}]*\\}", "");
+            Matcher m = ID.matcher(flat);
             if (!m.find()) continue;
             Identifier id = Identifier.tryParse(m.group(1));
             if (id == null) continue;
             var ref = BuiltInRegistries.MOB_EFFECT.get(id);
             if (ref.isEmpty()) continue;
-            Matcher a = AMP.matcher(part), d = DUR.matcher(part);
+            Matcher a = AMP.matcher(flat), d = DUR.matcher(flat);
             int amp = a.find() ? Integer.parseInt(a.group(1)) : 0;
             int dur = d.find() ? Integer.parseInt(d.group(1)) : -2;
             out.add(eff(ref.get(), amp, dur));
+        }
+        return out;
+    }
+
+    /** Die einzelnen {...}-Einträge der obersten Liste. */
+    private static List<String> entries(String txt) {
+        List<String> out = new ArrayList<>();
+        int depth = 0, start = -1;
+        for (int i = 0; i < txt.length(); i++) {
+            char c = txt.charAt(i);
+            if (c == '{') {
+                if (depth == 0) start = i;
+                depth++;
+            } else if (c == '}') {
+                depth--;
+                if (depth == 0 && start >= 0) {
+                    out.add(txt.substring(start + 1, i));
+                    start = -1;
+                }
+            }
         }
         return out;
     }
