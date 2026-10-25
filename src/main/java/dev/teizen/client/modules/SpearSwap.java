@@ -8,8 +8,9 @@ import net.minecraft.world.entity.Entity;
 
 /**
  * SpearSwap: ist der Gegner weiter weg als dein Schwert reicht, wird für den Schlag kurz zum Speer gewechselt und
- * zugestochen (der Speer reicht weiter und trifft alle Gegner in einer Linie). Danach ist sofort wieder das Schwert
- * in der Hand. Du brauchst einen Speer in der Hotbar.
+ * zugestochen (der Speer reicht bis 4,5 Blöcke und trifft alle Gegner in einer Linie). Danach ist sofort wieder das
+ * Schwert in der Hand. Schaust du nicht genau hin, dreht es dich unsichtbar zum Gegner und sticht einen Tick später.
+ * Du brauchst einen Speer in der Hotbar.
  */
 public final class SpearSwap extends Module {
     private final Setting distance = add(Setting.number("abstand", "Ab welcher Entfernung zum Speer gewechselt wird (Blöcke)", 3, 0, 6));
@@ -25,6 +26,9 @@ public final class SpearSwap extends Module {
         if (target == null || mc.player == null) return false;
         return always.on() || Targets.distanceToBox(target) > distance.num();
     }
+
+    @Override
+    public void onTick() { WeaponSwap.tickPending(); }
 
     @Override
     public String info() { return mc.player != null && Inv.findHotbar(WeaponSwap::isSpear) < 0 ? "§ckein Speer" : ""; }

@@ -165,8 +165,7 @@ final class Round9Tests {
                 n0 = h == null ? -1 : h.getId();
                 if (h != null) {
                     WeaponSwap.lastWeapon = null;
-                    mc.gameMode.attack(mc.player, h);
-                    flag1 = WeaponSwap.lastWeapon != null && WeaponSwap.isSpear(WeaponSwap.lastWeapon.getDefaultInstance()) && Inv.selected() == 0;
+                    mc.gameMode.attack(mc.player, h); // schaut nicht hin -> erst drehen, nächster Tick zustechen
                 }
                 text = h == null ? "-" : f(Targets.distanceToBox(h));
                 next();
@@ -174,6 +173,7 @@ final class Round9Tests {
             case 305 -> {
                 if (!after(20)) return;
                 var e = mc.level.getEntity(n0);
+                flag1 = WeaponSwap.lastWeapon != null && WeaponSwap.isSpear(WeaponSwap.lastWeapon.getDefaultInstance()) && Inv.selected() == 0;
                 double hp = e instanceof LivingEntity le && le.isAlive() ? le.getHealth() : 0;
                 boolean hit = hp0 > 0 && hp < hp0;
                 log("SpearSwap Detail: hurtTime=" + (e instanceof LivingEntity le2 ? le2.hurtTime : -1) + " Stärke=" + f(mc.player.getAttackStrengthScale(0f)));
@@ -625,103 +625,8 @@ final class Round9Tests {
                 if (!after(5)) return;
                 boolean back = !mc.player.getSkin().body().id().getPath().endsWith("/" + text);
                 result("SkinChanger: Skin \"" + text + "\" bei dir=" + yes(flag1) + ", aus -> wieder dein Skin=" + yes(back) + " " + ok(flag1 && back));
-                next();
-            }
-            // ---------------------------------------------- Speer-Kontrolle (nur Log: wie weit sticht ein Speer normal?)
-            case 361 -> {
-                arena(area, 6, 4);
-                cmd("kill @e[type=minecraft:husk]");
                 cmd("clear @s");
-                cmd("item replace entity @s hotbar.0 with minecraft:iron_spear");
-                husk(area.offset(4, 0, 1));
-                husk(area.offset(2, 0, -3));
-                tp(area, 0.5, 0, 0.5, -90, 0);
-                next();
-            }
-            case 362 -> {
-                if (!after(40)) return;
-                Inv.select(0);
-                var st = mc.player.getMainHandItem();
-                log("Speer: " + st.getItem() + " range=" + st.get(net.minecraft.core.component.DataComponents.ATTACK_RANGE)
-                        + " minCharge=" + st.get(net.minecraft.core.component.DataComponents.MINIMUM_ATTACK_CHARGE)
-                        + " pierce=" + st.get(net.minecraft.core.component.DataComponents.PIERCING_WEAPON));
-                next();
-            }
-            case 363, 366 -> {
-                if (!after(30)) return;
-                LivingEntity h = huskAt(step == 363 ? area.offset(4, 0, 1) : area.offset(2, 0, -3));
-                if (h == null) { log("Speer-Kontrolle: kein Husk"); next(); return; }
-                float[] r = dev.teizen.client.util.Rot.to(h.getBoundingBox().getCenter());
-                dev.teizen.client.util.Rot.look(r[0], r[1]);
-                hp0 = h.getHealth();
-                n0 = h.getId();
-                text = f(Targets.distanceToBox(h));
-                next();
-            }
-            case 364, 367 -> {
-                if (!after(5)) return;
-                log("Speer-Kontrolle: Stärke " + f(mc.player.getAttackStrengthScale(0f)) + ", Abstand " + text);
-                var pw = mc.player.getMainHandItem().get(net.minecraft.core.component.DataComponents.PIERCING_WEAPON);
-                if (pw != null) mc.gameMode.piercingAttack(pw);
-                mc.player.swing(InteractionHand.MAIN_HAND);
-                next();
-            }
-            case 365, 368 -> {
-                if (!after(15)) return;
-                var e = mc.level.getEntity(n0);
-                double hp = e instanceof LivingEntity le && le.isAlive() ? le.getHealth() : 0;
-                log("Speer-Kontrolle (" + text + " Blöcke): Leben " + f(hp0) + " -> " + f(hp));
-                if (step == 368) next();
-                else next();
-            }
-            // ---------------------------------------------- Speer-Wechsel-Varianten (nur Log)
-            case 369 -> {
-                cmd("kill @e[type=minecraft:husk]");
-                cmd("clear @s");
-                cmd("item replace entity @s hotbar.0 with minecraft:iron_sword");
-                cmd("item replace entity @s hotbar.3 with minecraft:iron_spear");
-                husk(area.offset(4, 0, 1));
-                husk(area.offset(2, 0, -3));
-                tp(area, 0.5, 0, 0.5, -90, 0);
-                next();
-            }
-            case 370, 373 -> {
-                if (!after(40)) return;
-                Inv.select(0);
-                LivingEntity h = huskAt(step == 370 ? area.offset(4, 0, 1) : area.offset(2, 0, -3));
-                if (h == null) { log("Variante: kein Husk"); next(); return; }
-                float[] r = dev.teizen.client.util.Rot.to(h.getBoundingBox().getCenter());
-                dev.teizen.client.util.Rot.look(r[0], r[1]);
-                hp0 = h.getHealth();
-                n0 = h.getId();
-                next();
-            }
-            case 371, 374 -> {
-                if (!after(6)) return;
-                var e = mc.level.getEntity(n0);
-                if (step == 371) {
-                    // V2: sichtbar gezielt, dann normaler Schlag -> Haken wechselt zum Speer
-                    if (!mod(SpearSwap.class).isEnabled()) t("///spearswap");
-                    if (e != null) mc.gameMode.attack(mc.player, e);
-                } else {
-                    // V3: sichtbar gezielt, von Hand: Speer, senden, stechen, zurück (ohne extra Drehpaket)
-                    if (mod(SpearSwap.class).isEnabled()) t("///spearswap");
-                    Inv.select(3);
-                    ((dev.teizen.client.mixin.MultiPlayerGameModeAccessor) mc.gameMode).teizen$sendCarriedItem();
-                    var pw = mc.player.getMainHandItem().get(net.minecraft.core.component.DataComponents.PIERCING_WEAPON);
-                    if (pw != null) mc.gameMode.piercingAttack(pw);
-                    mc.player.swing(InteractionHand.MAIN_HAND);
-                    Inv.select(0);
-                }
-                next();
-            }
-            case 372, 375 -> {
-                if (!after(15)) return;
-                var e = mc.level.getEntity(n0);
-                double hp = e instanceof LivingEntity le && le.isAlive() ? le.getHealth() : 0;
-                log("Speer-Variante " + (step == 372 ? "V2 (gezielt + Haken)" : "V3 (gezielt + von Hand gewechselt)") + ": Leben " + f(hp0) + " -> " + f(hp));
-                if (step == 375) { cmd("kill @e[type=minecraft:husk]"); cmd("clear @s"); SelfTest.jump(152); }
-                else next();
+                SelfTest.jump(152);
             }
             default -> {}
         }

@@ -57,6 +57,19 @@ public final class WeaponSwap {
         if (sp != null && sp.isEnabled() && sp.wants(target) && !isSpear(held)) {
             int s = Inv.findHotbar(WeaponSwap::isSpear);
             if (s >= 0) {
+                // Der Server sticht in Richtung der Kopf-Drehung, und die zieht er erst im nächsten Tick nach.
+                // Schaust du den Gegner nicht schon an: jetzt unsichtbar hindrehen, im nächsten Tick zustechen.
+                int now = mc.player.tickCount;
+                boolean looking = mc.crosshairPickEntity == target;
+                boolean prepared = pendingId == target.getId() && now - pendingTick == 1;
+                if (!looking && !prepared) {
+                    float[] r = Rot.to(target.getBoundingBox().getCenter());
+                    Rot.sendSilent(r[0], r[1]);
+                    pendingId = target.getId();
+                    pendingTick = now;
+                    return true;
+                }
+                pendingId = -1;
                 int prev = Inv.selected();
                 Inv.select(s);
                 ItemStack spear = mc.player.getMainHandItem();
@@ -75,6 +88,19 @@ public final class WeaponSwap {
             }
         }
         return false;
+    }
+
+    private static int pendingId = -1, pendingTick;
+
+    /** Jeden Tick (SpearSwap): vorbereiteten Speer-Stich ausführen. */
+    public static void tickPending() {
+        if (pendingId < 0 || mc.player == null || mc.level == null) return;
+        int now = mc.player.tickCount;
+        if (now - pendingTick != 1) { pendingId = -1; return; }
+        Entity e = mc.level.getEntity(pendingId);
+        if (e == null || !e.isAlive()) { pendingId = -1; return; }
+        mc.gameMode.attack(mc.player, e);
+        mc.player.swing(InteractionHand.MAIN_HAND);
     }
 
     private static void swapFor(int slot) {
