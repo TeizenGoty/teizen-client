@@ -1698,11 +1698,26 @@ final class NewTests {
                 if (!open && i0 >= 0 && n0 < 0) n0 = SelfTest.local();
                 if (n0 < 0 && !after(100)) return;
                 if (!after(Math.max(10, n0 + 10))) return;
+                // nur die Kisten-Sachen zählen; alles andere (z.B. vom Boden aufgehoben) extra anzeigen
+                java.util.Map<net.minecraft.world.item.Item, Integer> want = java.util.Map.of(Items.DIRT, 64, Items.COBBLESTONE, 64, Items.OAK_LOG, 32, Items.SAND, 64, Items.GRAVEL, 10);
+                java.util.Map<net.minecraft.world.item.Item, Integer> have = new java.util.HashMap<>();
+                for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
+                    var st = mc.player.getInventory().getItem(i);
+                    if (!st.isEmpty()) have.merge(st.getItem(), st.getCount(), Integer::sum);
+                }
+                if (!mc.player.containerMenu.getCarried().isEmpty()) have.merge(mc.player.containerMenu.getCarried().getItem(), mc.player.containerMenu.getCarried().getCount(), Integer::sum);
                 int got = 0;
-                for (int i = 0; i < 36; i++) got += mc.player.getInventory().getItem(i).getCount();
+                boolean exact = true;
+                for (var e : want.entrySet()) {
+                    int h = have.getOrDefault(e.getKey(), 0);
+                    got += h;
+                    if (h != e.getValue()) exact = false;
+                }
+                StringBuilder extra = new StringBuilder();
+                for (var e : have.entrySet()) if (!want.containsKey(e.getKey())) extra.append(e.getValue()).append("x ").append(e.getKey()).append(' ');
                 int took = n0 < 0 || i0 < 0 ? -1 : n0 - i0;
-                result("ChestStealer: " + got + "/234 Items genommen, Kiste nach " + took + " Tick(s) zu (soll höchstens 2) "
-                        + ok(got == 234 && took >= 0 && took <= 2));
+                result("ChestStealer: " + got + "/234 Kisten-Items genommen" + (exact ? "" : " (nicht genau: " + have + ")") + (extra.isEmpty() ? "" : ", sonst noch: " + extra)
+                        + ", Kiste nach " + took + " Tick(s) zu (soll höchstens 2) " + ok(got == 234 && exact && took >= 0 && took <= 2));
                 t("///cheststealer");
                 cmd("clear @s");
                 next();
@@ -1781,6 +1796,9 @@ final class NewTests {
                 cmd("effect give @s minecraft:resistance 60 4 true");
                 tp(area, 0.5, 0, 0.5, -90, 30);
                 t("///set autocrystal modus einfach");
+                // wie beim echten Kristall-PvP: ohne Rückstoß bleibt man an den Kristallen dran
+                flag1 = mod(dev.teizen.client.modules.AntiKnockback.class).isEnabled();
+                if (!flag1) t("///antiknockback");
                 next();
             }
             case 254 -> {
@@ -1799,6 +1817,7 @@ final class NewTests {
                 result("AutoCrystal einfach (wie Crystal-Aura): gesetzt " + ac.placed + ", zerschlagen " + ac.broken + ", Taste=" + dev.teizen.client.util.Keys.name(key)
                         + " " + ok(ac.placed >= 2 && ac.broken >= 2 && key == org.lwjgl.glfw.GLFW.GLFW_KEY_J));
                 t("///autocrystal");
+                if (!flag1) t("///antiknockback");
                 cmd("effect clear @s minecraft:resistance");
                 cmd("kill @e[type=minecraft:husk]");
                 next();
