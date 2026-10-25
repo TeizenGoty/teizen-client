@@ -70,6 +70,7 @@ public final class GodPvP extends Module {
     @Override
     protected void onDisable() {
         target = null;
+        lastHit.clear();
         for (Module m : turnedOn) m.setEnabled(false);
         turnedOn.clear();
         if (!inGame()) return;
@@ -113,7 +114,7 @@ public final class GodPvP extends Module {
             } else apply(false);
         }
         if (mc.gui.screen() != null) { target = null; return; }
-        target = Targets.nearest(range.num(), players.on(), monsters.on(), false, walls.on());
+        target = pick(now);
         if (target == null) return;
         // mit Angriffsgeschwindigkeit 1024 ist jeder Schlag voll
         if (mc.player.getAttackStrengthScale(0.5f) >= 0.9f || now % 2 == 0) {
@@ -121,6 +122,7 @@ public final class GodPvP extends Module {
             Rot.sendSilent(r[0], r[1]);
             mc.gameMode.attack(mc.player, target);
             mc.player.swing(InteractionHand.MAIN_HAND);
+            lastHit.put(target.getId(), now);
             hits++;
         }
         if (kill.on() && target instanceof Player p && Op.available()) {
@@ -131,6 +133,36 @@ public final class GodPvP extends Module {
                 kills++;
             }
         }
+    }
+
+    /** Wann welches Ziel zuletzt geschlagen wurde (Entity-ID -> Tick). */
+    private final Map<Integer, Integer> lastHit = new HashMap<>();
+
+    /**
+     * Nächstes Ziel, das einen Schlag gerade auch spürt: Nach einem Treffer ist ein Gegner 10 Ticks lang
+     * unverwundbar – dann lieber einen anderen schlagen statt ins Leere. Kurz nach einem Schlag (Antwort vom
+     * Server noch unterwegs) auch nicht nochmal.
+     */
+    private LivingEntity pick(int now) {
+        var self = mc.player;
+        double r = range.num();
+        List<LivingEntity> list = new ArrayList<>();
+        for (var e : mc.level.getEntities(self, self.getBoundingBox().inflate(r + 1),
+                e -> Targets.valid(e, players.on(), monsters.on(), false))) {
+            LivingEntity le = (LivingEntity) e;
+            if (Targets.distanceToBox(le) <= r && (walls.on() || self.hasLineOfSight(le))) list.add(le);
+        }
+        list.sort(java.util.Comparator.comparingDouble(Targets::distanceToBox));
+        lastHit.values().removeIf(t -> now - t > 40 || now < t);
+        for (LivingEntity le : list) {
+            Integer t = lastHit.get(le.getId());
+            if (t == null) return le;
+            int since = now - t;
+            if (since < 4) continue;
+            if (le.hurtTime > 0 && since < 11) continue;
+            return le;
+        }
+        return null;
     }
 
     @Override
