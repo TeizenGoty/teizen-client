@@ -265,7 +265,7 @@ public final class Commands {
                 Chat.ok(hide ? "OP-Cheats sind im Menü versteckt (" + mm.hiddenCount() + "). Wieder zeigen: ///opcheats an"
                         : "OP-Cheats werden im Menü wieder gezeigt.");
             }
-            case "hud", "liste" -> {
+            case "hud" -> {
                 if (a.length < 2) { Chat.info("Liste oben rechts: Größe §f" + dev.teizen.client.gui.Hud.scale + "§7. Ändern: ///hud 0.5 (0 = aus, 1 = normal)"); return; }
                 try {
                     float v = Float.parseFloat(a[1].replace(',', '.'));
