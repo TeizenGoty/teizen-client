@@ -176,6 +176,7 @@ final class Round9Tests {
                 var e = mc.level.getEntity(n0);
                 double hp = e instanceof LivingEntity le && le.isAlive() ? le.getHealth() : 0;
                 boolean hit = hp0 > 0 && hp < hp0;
+                log("SpearSwap Detail: hurtTime=" + (e instanceof LivingEntity le2 ? le2.hurtTime : -1) + " Stärke=" + f(mc.player.getAttackStrengthScale(0f)));
                 result("SpearSwap: Gegner " + text + " Blöcke weg -> zum Speer + zugestochen=" + yes(flag1) + ", getroffen=" + yes(hit) + " (Leben " + f(hp0) + "->" + f(hp)
                         + "), danach wieder Schwert " + ok(flag1 && hit));
                 t("///spearswap");
@@ -624,7 +625,54 @@ final class Round9Tests {
                 if (!after(5)) return;
                 boolean back = !mc.player.getSkin().body().id().getPath().endsWith("/" + text);
                 result("SkinChanger: Skin \"" + text + "\" bei dir=" + yes(flag1) + ", aus -> wieder dein Skin=" + yes(back) + " " + ok(flag1 && back));
-                SelfTest.jump(152);
+                next();
+            }
+            // ---------------------------------------------- Speer-Kontrolle (nur Log: wie weit sticht ein Speer normal?)
+            case 361 -> {
+                arena(area, 6, 4);
+                cmd("kill @e[type=minecraft:husk]");
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:iron_spear");
+                husk(area.offset(4, 0, 1));
+                husk(area.offset(2, 0, -3));
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                next();
+            }
+            case 362 -> {
+                if (!after(40)) return;
+                Inv.select(0);
+                var st = mc.player.getMainHandItem();
+                log("Speer: " + st.getItem() + " range=" + st.get(net.minecraft.core.component.DataComponents.ATTACK_RANGE)
+                        + " minCharge=" + st.get(net.minecraft.core.component.DataComponents.MINIMUM_ATTACK_CHARGE)
+                        + " pierce=" + st.get(net.minecraft.core.component.DataComponents.PIERCING_WEAPON));
+                next();
+            }
+            case 363, 366 -> {
+                if (!after(30)) return;
+                LivingEntity h = huskAt(step == 363 ? area.offset(4, 0, 1) : area.offset(2, 0, -3));
+                if (h == null) { log("Speer-Kontrolle: kein Husk"); next(); return; }
+                float[] r = dev.teizen.client.util.Rot.to(h.getBoundingBox().getCenter());
+                dev.teizen.client.util.Rot.look(r[0], r[1]);
+                hp0 = h.getHealth();
+                n0 = h.getId();
+                text = f(Targets.distanceToBox(h));
+                next();
+            }
+            case 364, 367 -> {
+                if (!after(5)) return;
+                log("Speer-Kontrolle: Stärke " + f(mc.player.getAttackStrengthScale(0f)) + ", Abstand " + text);
+                var pw = mc.player.getMainHandItem().get(net.minecraft.core.component.DataComponents.PIERCING_WEAPON);
+                if (pw != null) mc.gameMode.piercingAttack(pw);
+                mc.player.swing(InteractionHand.MAIN_HAND);
+                next();
+            }
+            case 365, 368 -> {
+                if (!after(15)) return;
+                var e = mc.level.getEntity(n0);
+                double hp = e instanceof LivingEntity le && le.isAlive() ? le.getHealth() : 0;
+                log("Speer-Kontrolle (" + text + " Blöcke): Leben " + f(hp0) + " -> " + f(hp));
+                if (step == 368) { cmd("kill @e[type=minecraft:husk]"); cmd("clear @s"); SelfTest.jump(152); }
+                else next();
             }
             default -> {}
         }
