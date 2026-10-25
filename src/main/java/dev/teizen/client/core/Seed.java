@@ -146,6 +146,19 @@ public final class Seed {
         }
     }
 
+    /** Beim Beenden: die Thread-Pools von SeedCrackerX schließen, sonst bleibt Minecraft hängen (Crash-Report beim Schließen). */
+    public static void stopCracker() {
+        if (!crackerInstalled()) return;
+        for (String c : new String[]{"kaptainwutax.seedcrackerX.finder.FinderQueue", "kaptainwutax.seedcrackerX.cracker.storage.TimeMachine"}) {
+            try {
+                Object s = Class.forName(c).getField("SERVICE").get(null);
+                if (s instanceof java.util.concurrent.ExecutorService es) es.shutdownNow();
+            } catch (Throwable ignored) {
+                // andere Version
+            }
+        }
+    }
+
     /** Warum der Seed (noch) unbekannt ist – als Hilfe-Text. */
     public static String whyUnknown() {
         if (crackerInstalled()) {

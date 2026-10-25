@@ -75,7 +75,11 @@ public final class TeizenClient implements ClientModInitializer {
 
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("teizenclient", "hud"), Hud::render);
 
-        ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> Config.save());
+        ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> {
+            Config.save();
+            // SeedCrackerX lässt beim Beenden Threads offen -> Minecraft hängt und schreibt einen Crash-Report
+            dev.teizen.client.core.Seed.stopCracker();
+        });
         LOG.info("Teizen Client geladen ({} Funktionen)", modules.all().size());
     }
 

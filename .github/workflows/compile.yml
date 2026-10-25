@@ -65,9 +65,12 @@ jobs:
               grep -rlE 'newFixedThreadPool|newCachedThreadPool|newSingleThreadExecutor|ThreadPoolExecutor' y --include=*.class | sed "s|^y/|  [$(basename $n)] |" | head -10 >> $GITHUB_WORKSPACE/api-dump.txt
             done
           done
-          cd /tmp/tp && rm -rf x && mkdir x && (cd x && unzip -q -o ../seedcrackerx.jar)
-          for c in $(grep -rlE 'newFixedThreadPool|newCachedThreadPool|newSingleThreadExecutor|ThreadPoolExecutor' x --include=*.class | sed 's|^x/||; s|\.class$||; s|/|.|g' | head -6); do
-            javap -c -p -cp seedcrackerx.jar "$c" | grep -E 'Executor|static|ThreadPool|^[a-z].*class' | head -25 >> $GITHUB_WORKSPACE/api-dump.txt
+          cd /tmp/tp
+          for jc in seedcrackerx.jar:kaptainwutax.seedcrackerX.finder.FinderQueue seedcrackerx.jar:kaptainwutax.seedcrackerX.cracker.storage.TimeMachine seedmapper.jar:dev.xpple.seedmapper.thread.SeedMapExecutor seedmapper.jar:dev.xpple.seedmapper.thread.LocatorThreadHelper seed-atlas.jar:org.seedatlas.xaero.integration.marker.SeedAtlasStructureMarkerSource; do
+            j=${jc%%:*}; c=${jc#*:}
+            echo "== $c" >> $GITHUB_WORKSPACE/api-dump.txt
+            javap -p -cp $j "$c" | grep -iE 'executor|thread|static' >> $GITHUB_WORKSPACE/api-dump.txt
+            javap -c -p -cp $j "$c" | grep -E 'Executors\.|ThreadFactory|setDaemon|newThread|Thread\.ofPlatform|Thread\.ofVirtual|daemon' | head -12 >> $GITHUB_WORKSPACE/api-dump.txt
           done
       - name: Publish
         if: always()
