@@ -9,7 +9,8 @@ import net.minecraft.world.entity.Entity;
 /**
  * SpearSwap: ist der Gegner weiter weg als dein Schwert reicht, wird für den Schlag kurz zum Speer gewechselt und
  * zugestochen (der Speer reicht bis 4,5 Blöcke und trifft alle Gegner in einer Linie). Danach ist sofort wieder das
- * Schwert in der Hand. Schaust du nicht genau hin, dreht es dich unsichtbar zum Gegner und sticht einen Tick später.
+ * Schwert in der Hand. Der Server sticht in Kopf-Richtung: darum wirst du unsichtbar zum Gegner gedreht und der erste
+ * Stich kommt 0,2 Sekunden später (danach beim selben Gegner sofort).
  * Du brauchst einen Speer in der Hotbar.
  */
 public final class SpearSwap extends Module {
@@ -28,7 +29,7 @@ public final class SpearSwap extends Module {
     }
 
     @Override
-    public void onTick() { WeaponSwap.tickPending(); }
+    public void onTick() { WeaponSwap.tickSpear(); }
 
     @Override
     public String info() { return mc.player != null && Inv.findHotbar(WeaponSwap::isSpear) < 0 ? "§ckein Speer" : ""; }

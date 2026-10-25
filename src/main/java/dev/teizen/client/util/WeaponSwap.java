@@ -57,19 +57,17 @@ public final class WeaponSwap {
         if (sp != null && sp.isEnabled() && sp.wants(target) && !isSpear(held)) {
             int s = Inv.findHotbar(WeaponSwap::isSpear);
             if (s >= 0) {
-                // Der Server sticht in Richtung der Kopf-Drehung, und die zieht er erst im nächsten Tick nach.
-                // Schaust du den Gegner nicht schon an: jetzt unsichtbar hindrehen, im nächsten Tick zustechen.
+                // Der Server sticht in Richtung der Kopf-Drehung – und die zieht er erst ein paar Ticks später nach.
+                // Darum: unsichtbar zum Gegner drehen und erst nach LEAD Ticks zustechen (danach beim selben Gegner sofort).
                 int now = mc.player.tickCount;
-                boolean looking = mc.crosshairPickEntity == target;
-                boolean prepared = pendingId == target.getId() && now - pendingTick == 1;
-                if (!looking && !prepared) {
-                    float[] r = Rot.to(target.getBoundingBox().getCenter());
-                    Rot.sendSilent(r[0], r[1]);
-                    pendingId = target.getId();
-                    pendingTick = now;
+                if (aimId != target.getId()) { aimId = target.getId(); aimSince = now; }
+                lastWanted = now;
+                if (now - aimSince < LEAD) {
+                    aimAt(target);
+                    stabWanted = true;
                     return true;
                 }
-                pendingId = -1;
+                stabWanted = false;
                 int prev = Inv.selected();
                 Inv.select(s);
                 ItemStack spear = mc.player.getMainHandItem();
@@ -90,18 +88,27 @@ public final class WeaponSwap {
         return false;
     }
 
-    private static int pendingId = -1, pendingTick;
+    /** So viele Ticks vorher muss der Server die Drehung zum Gegner kennen (gemessen: ab 4 Ticks trifft es sicher). */
+    public static final int LEAD = 4;
+    private static int aimId = -1, aimSince, lastWanted;
+    private static boolean stabWanted;
 
-    /** Jeden Tick (SpearSwap): vorbereiteten Speer-Stich ausführen. */
-    public static void tickPending() {
-        if (pendingId < 0 || mc.player == null || mc.level == null) return;
+    private static void aimAt(Entity e) {
+        float[] r = Rot.to(e.getBoundingBox().getCenter());
+        Rot.sendSilent(r[0], r[1]);
+    }
+
+    /** Jeden Tick (SpearSwap): Kopf beim Gegner halten und den vorbereiteten Stich ausführen. */
+    public static void tickSpear() {
+        if (aimId < 0 || mc.player == null || mc.level == null) return;
         int now = mc.player.tickCount;
-        if (now - pendingTick < 1) return;           // erst im nächsten Tick
-        if (now - pendingTick > 1) { pendingId = -1; return; }
-        Entity e = mc.level.getEntity(pendingId);
-        if (e == null || !e.isAlive()) { pendingId = -1; return; }
-        mc.gameMode.attack(mc.player, e);
-        mc.player.swing(InteractionHand.MAIN_HAND);
+        Entity e = mc.level.getEntity(aimId);
+        if (e == null || !e.isAlive() || now - lastWanted > 20 || now < aimSince) { aimId = -1; stabWanted = false; return; }
+        aimAt(e);
+        if (stabWanted && now - aimSince >= LEAD) {
+            mc.gameMode.attack(mc.player, e);
+            mc.player.swing(InteractionHand.MAIN_HAND);
+        }
     }
 
     private static void swapFor(int slot) {
