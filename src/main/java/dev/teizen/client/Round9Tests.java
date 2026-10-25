@@ -684,7 +684,7 @@ final class Round9Tests {
                 next();
             }
             case 366 -> {
-                if (!after(30)) return;
+                if (!after(60)) return;
                 arena(area, 7, 5);
                 cmd("kill @e[type=minecraft:husk]");
                 cmd("clear @s");
@@ -698,6 +698,11 @@ final class Round9Tests {
             }
             case 367 -> {
                 if (!after(20)) return;
+                if (!mc.player.onGround() && SelfTest.local() < 120) {
+                    // Gegend war noch nicht geladen -> nochmal aufbauen
+                    if (SelfTest.local() % 30 == 0) { arena(area, 7, 5); tp(area, 0.5, 0, 0.5, -90, 0); }
+                    return;
+                }
                 Inv.select(0);
                 mod(AutoCrystal.class).setEnabled(true);
                 next();

@@ -69,7 +69,7 @@ public final class Trajectories extends Module {
         return ItemStack.EMPTY;
     }
 
-    /** Flugbahn berechnen (wie Minecraft: erst fliegen, dann bremsen, dann Schwerkraft). */
+    /** Flugbahn berechnen (wie Minecraft 26.2: Schwerkraft, bremsen, fliegen). */
     public void simulate(float partial) {
         path.clear();
         landing = null;
@@ -89,6 +89,8 @@ public final class Trajectories extends Module {
         Vec3 pos = mc.player.getPosition(partial).add(0, mc.player.getEyeHeight() - 0.1, 0);
         path.add(pos);
         for (int i = 0; i < 300; i++) {
+            // wie Minecraft 26.2: erst Schwerkraft, dann bremsen, dann fliegen
+            vel = vel.add(0, -k.gravity(), 0).scale(k.drag());
             Vec3 next = pos.add(vel);
             BlockHitResult bh = mc.level.clip(new ClipContext(pos, next, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player));
             Vec3 end = bh.getType() == HitResult.Type.BLOCK ? bh.getLocation() : next;
@@ -111,7 +113,6 @@ public final class Trajectories extends Module {
             if (bh.getType() == HitResult.Type.BLOCK) { landing = end; return; }
             if (end.y < mc.level.getMinY() - 16) return;
             pos = next;
-            vel = vel.scale(k.drag()).add(0, -k.gravity(), 0);
         }
     }
 
