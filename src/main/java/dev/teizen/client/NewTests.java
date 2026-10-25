@@ -1235,17 +1235,19 @@ final class NewTests {
             case 170 -> {
                 area = o.offset(24, 0, 24);
                 n0 = 0;
+                cmd("fill " + blk(area.offset(-2, 0, -2)) + " " + blk(area.offset(2, 16, 2)) + " minecraft:air");
                 tp(area, 0.5, 12, 0.5, -90, 0);
                 next();
             }
             case 171 -> {
-                if (!after(3)) return;
+                if (!after(5)) return;
                 d1 = mc.player.getHealth();
                 t("///fly");
                 next();
             }
             case 172 -> {
                 if (!after(10)) return;
+                log("Fly-Test: Höhe über Boden " + f(mc.player.getY() - area.getY()) + ", fliegt=" + mc.player.getAbilities().flying);
                 minHealth = mc.player.getHealth();
                 t("///fly"); // in der Luft aus -> fällt 12 Blöcke
                 next();
