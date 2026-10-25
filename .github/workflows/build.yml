@@ -61,12 +61,17 @@ jobs:
           cp ci/teizentest.litematic run/schematics/
           # Xaero's Minimap + World Map mittesten (Radar zeigt Spieler dort an), SeedMapper + Seed Atlas (Seedmap)
           mkdir -p run/mods
-          for proj in xaeros-minimap xaeros-world-map seedmapper seed-atlas; do
+          for proj in xaeros-minimap xaeros-world-map seedmapper seed-atlas cloth-config; do
             curl -sL "https://api.modrinth.com/v2/project/$proj/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%2226.2%22%5D" -o /tmp/v.json
-            URL=$(jq -r '.[0].files[0].url' /tmp/v.json)
+            URL=$(jq -r '[.[0].files[] | select(.primary)][0].url // .[0].files[0].url' /tmp/v.json)
             echo "$proj: $URL"
-            curl -sL "$URL" -o "run/mods/$proj.jar"
+            if [ -n "$URL" ] && [ "$URL" != "null" ]; then curl -sL "$URL" -o "run/mods/$proj.jar"; fi
           done
+          # SeedCrackerX (knackt den Seed ohne OP) gibt es nur auf GitHub; braucht Cloth Config
+          if [ -s run/mods/cloth-config.jar ]; then
+            curl -sL "https://github.com/19MisterX98/SeedcrackerX/releases/download/2.16.1/seedcrackerX-2.16.1.jar" -o run/mods/seedcrackerx.jar
+            unzip -tq run/mods/seedcrackerx.jar > /dev/null || rm -f run/mods/seedcrackerx.jar
+          fi
           ls -la run/mods
           printf "onboardAccessibility:false\nskipMultiplayerWarning:true\njoinedFirstServer:true\ntutorialStep:none\nguiScale:2\nrenderDistance:5\nsimulationDistance:5\nsoundCategory_master:0.0\n" > run/options.txt
           export LIBGL_ALWAYS_SOFTWARE=1

@@ -53,6 +53,7 @@ public final class TeizenClient implements ClientModInitializer {
             modules.tick();
             dev.teizen.client.core.FarPlayers.tick();
             dev.teizen.client.util.ServerQuery.tick();
+            dev.teizen.client.core.Seed.tick();
             modules.get(dev.teizen.client.modules.Fly.class).fallGuard();
             Finder.tick();
             dev.teizen.client.core.Locator.tick();

@@ -241,7 +241,7 @@ public final class Commands {
                     return;
                 }
                 Seed.fetch(sd -> {
-                    if (sd == null) Chat.error("Seed unbekannt: auf diesem Server braucht /seed OP. Seed von Hand: ///seed <Zahl>");
+                    if (sd == null) Chat.error("Seed unbekannt. " + Seed.whyUnknown());
                     else {
                         dev.teizen.client.compat.SeedMapCompat.giveSeed(sd, false);
                         Chat.ok("Seed: §f" + sd + "§a (///seedmap öffnet die Karte)");

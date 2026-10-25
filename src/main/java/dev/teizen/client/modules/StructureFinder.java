@@ -75,7 +75,7 @@ public final class StructureFinder extends Module {
         if (!inGame()) return;
         dev.teizen.client.core.Seed.fetch(sd -> {
             if (sd == null) {
-                Chat.error("Seed unbekannt: auf diesem Server braucht /seed OP. Seed von Hand: ///seed <Zahl>");
+                Chat.error("Seed unbekannt. " + dev.teizen.client.core.Seed.whyUnknown());
                 return;
             }
             String what = dev.teizen.client.compat.SeedMapCompat.open(sd, mapMode.str(), structures.selected());

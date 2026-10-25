@@ -44,33 +44,6 @@ jobs:
               else javap -p -cp "$CP" "$a" >> api-dump.txt 2>&1; fi
             done
           fi
-      - name: SeedCrackerX ansehen
-        if: always()
-        run: |
-          set +e
-          mkdir -p /tmp/scx && cd /tmp/scx
-          curl -sL "https://api.github.com/repos/19MisterX98/SeedcrackerX/releases?per_page=8" -o rel.json
-          echo "== SeedCrackerX releases" >> $GITHUB_WORKSPACE/api-dump.txt
-          jq -r '.[] | .tag_name + " pre=" + (.prerelease|tostring) + " " + ([.assets[] | .name + "=" + .browser_download_url] | join(" "))' rel.json | head -8 >> $GITHUB_WORKSPACE/api-dump.txt
-          URL=$(jq -r '[.[] | .assets[] | select(.name | test("26\\.2")) | .browser_download_url][0]' rel.json)
-          if [ "$URL" = "null" ] || [ -z "$URL" ]; then URL=$(jq -r '.[0].assets[0].browser_download_url' rel.json); fi
-          echo "JAR: $URL" >> $GITHUB_WORKSPACE/api-dump.txt
-          curl -sL "$URL" -o scx.jar
-          unzip -p scx.jar fabric.mod.json >> $GITHUB_WORKSPACE/api-dump.txt
-          echo >> $GITHUB_WORKSPACE/api-dump.txt
-          for f in $(unzip -Z1 scx.jar | grep -E 'lang/en_us.json'); do unzip -p scx.jar "$f" | grep -i -E 'seed' | head -40 >> $GITHUB_WORKSPACE/api-dump.txt; done
-          for j in 2.16.1 prerelease; do
-            curl -sL "https://github.com/19MisterX98/SeedcrackerX/releases/download/$j/seedcrackerX-$( [ $j = prerelease ] && echo 2.16.2 || echo $j ).jar" -o v$j.jar
-            echo "== $j: $(unzip -p v$j.jar fabric.mod.json | jq -c '.depends')" >> $GITHUB_WORKSPACE/api-dump.txt
-          done
-          unzip -Z1 scx.jar | grep -E 'lang/' >> $GITHUB_WORKSPACE/api-dump.txt
-          for c in kaptainwutax.seedcrackerX.cracker.storage.TimeMachine kaptainwutax.seedcrackerX.cracker.storage.DataStorage kaptainwutax.seedcrackerX.SeedCracker kaptainwutax.seedcrackerX.util.Log; do
-            javap -p -cp scx.jar "$c" >> $GITHUB_WORKSPACE/api-dump.txt 2>&1
-          done
-          javap -c -p -cp scx.jar kaptainwutax.seedcrackerX.util.Log | grep -E 'invoke|ldc' | head -40 >> $GITHUB_WORKSPACE/api-dump.txt
-          mkdir -p x && cd x && unzip -q -o ../scx.jar
-          echo "== Texte mit seed" >> $GITHUB_WORKSPACE/api-dump.txt
-
       - name: Publish
         if: always()
         run: |

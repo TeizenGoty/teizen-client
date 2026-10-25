@@ -1921,6 +1921,29 @@ final class NewTests {
                 dev.teizen.client.compat.SeedMapCompat.clientCommand("seedatlas status");
                 mc.gui.setScreen(null);
                 t("///set structurefinder seedmap auto");
+                // SeedCrackerX: so tun, als hätte es den Seed beim Herumlaufen geknackt (Weg ohne OP)
+                flag2 = dev.teizen.client.core.Seed.crackerInstalled();
+                n0 = dev.teizen.client.core.Seed.crackerTaken;
+                log("SeedCrackerX vorher: " + dev.teizen.client.core.Seed.crackerSeeds() + " – " + dev.teizen.client.core.Seed.whyUnknown());
+                if (flag2) dev.teizen.client.core.Seed.crackerTestSeed(1234567890123L, true);
+                next();
+            }
+            case 274 -> {
+                if (!after(60)) return;
+                Long k = dev.teizen.client.core.Seed.known();
+                double[] bits = dev.teizen.client.core.Seed.crackerBits();
+                boolean taken = flag2 && k != null && k == 1234567890123L && dev.teizen.client.core.Seed.crackerTaken > n0;
+                Long ga = dev.teizen.client.compat.SeedMapCompat.givenAtlas(), gm = dev.teizen.client.compat.SeedMapCompat.givenSeedMapper();
+                boolean given = (!dev.teizen.client.compat.SeedMapCompat.seedAtlas() || (ga != null && ga == 1234567890123L))
+                        && (!dev.teizen.client.compat.SeedMapCompat.seedMapper() || (gm != null && gm == 1234567890123L));
+                result("SeedCrackerX (Seed ohne OP): installiert=" + yes(flag2) + ", geknackter Seed übernommen=" + yes(taken) + " (" + k + "), an die Seed-Karten gegeben="
+                        + yes(given) + ", Fortschritt " + (bits == null ? "?" : Math.round(bits[0]) + "/" + Math.round(bits[1]) + " Bits") + " "
+                        + ok(flag2 && taken && given && bits != null));
+                dev.teizen.client.core.Seed.crackerTestSeed(1234567890123L, false);
+                if (seedGot != null) {
+                    dev.teizen.client.core.Seed.set(seedGot);
+                    dev.teizen.client.compat.SeedMapCompat.giveSeed(seedGot, true);
+                }
                 SelfTest.jump(152);
             }
             default -> {}
