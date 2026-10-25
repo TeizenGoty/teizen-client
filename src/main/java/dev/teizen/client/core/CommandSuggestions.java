@@ -218,6 +218,11 @@ public final class CommandSuggestions {
         return switch (s.type) {
             case BOOL -> List.of("an", "aus");
             case CHOICE -> s.choices;
+            case MULTI -> {
+                List<String> out = new ArrayList<>(s.choices);
+                out.add(0, s.str());
+                yield out;
+            }
             case NUMBER -> {
                 Set<String> v = new LinkedHashSet<>();
                 v.add(s.display());

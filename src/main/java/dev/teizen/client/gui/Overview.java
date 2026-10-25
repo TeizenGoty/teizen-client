@@ -15,13 +15,24 @@ import java.util.List;
 
 /**
  * Übersicht: alle Cheats auf einen Blick, mit an/aus und Taste. Favoriten stehen ganz oben.
- * Linksklick = an/aus, Rechtsklick = Einstellungen (großes Menü), Mittelklick oder Shift+Klick = Favorit.
+ * Linksklick = an/aus, Rechtsklick = Cheat bearbeiten, Mittelklick oder Shift+Klick = Favorit.
+ * Lupe oben: einfach lostippen zum Suchen. Menü-Taste (Standard Rechte Shift) = großes Menü.
  */
 public final class Overview extends Screen {
     private static final int CELL_W = 124, CELL_H = 24, GAP = 4;
     private static final int BG = 0xD0100820, ON = 0xFF6A24D8, OFF = 0xC0201236, HOVER = 0xD0362060;
 
     private int scroll;
+    private final SearchBox search = new SearchBox();
+
+    private List<Module> shown() {
+        return search.active() ? SearchBox.search(search.query) : TeizenClient.modules().favoritesFirst();
+    }
+
+    /** Suche setzen (Selbsttest). */
+    public void setSearch(String q) { search.query = q; search.focused = !q.isEmpty(); }
+
+    public List<Module> shownModules() { return shown(); }
 
     public Overview() {
         super(Component.literal("Teizen Übersicht"));
@@ -47,7 +58,7 @@ public final class Overview extends Screen {
     private record Layout(int cols, int cellW, int cellH, int stepX, int stepY, boolean compact) {}
 
     private Layout layout() {
-        int n = TeizenClient.modules().all().size();
+        int n = Math.max(1, shown().size());
         int cols = Math.max(1, Math.min(6, (width - 16 + GAP) / (CELL_W + GAP)));
         int rows = (n + cols - 1) / cols;
         if (TOP + rows * (CELL_H + GAP) <= height - 18) return new Layout(cols, CELL_W, CELL_H, CELL_W + GAP, CELL_H + GAP, false);
@@ -66,13 +77,18 @@ public final class Overview extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
         var font = getFont();
-        List<Module> mods = TeizenClient.modules().favoritesFirst();
+        List<Module> mods = shown();
         int on = 0;
-        for (Module m : mods) if (m.isEnabled()) on++;
+        for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) on++;
 
         g.fill(0, 0, width, height, 0x80000000);
-        g.centeredText(font, "§5§lTEIZEN CLIENT §7– Übersicht", width / 2, 8, 0xFFFFFFFF);
-        g.centeredText(font, "§a" + on + "§7 von §f" + mods.size() + "§7 an   §8|   §7Links: an/aus · Rechts: Einstellungen · Mitte/Shift: §6★ Favorit", width / 2, 22, 0xFFFFFFFF);
+        g.text(font, "§5§lTEIZEN §7Übersicht", 6, 6, 0xFFFFFFFF, true);
+        int sw = Math.max(80, Math.min(220, width - 2 * (font.width("TEIZEN Übersicht") + 16)));
+        search.render(g, font, width / 2 - sw / 2, 4, sw, mouseX, mouseY);
+        String sub = "§a" + on + "§7 von §f" + TeizenClient.modules().all().size() + "§7 an  §8|  §7Links: an/aus · Rechts: bearbeiten · Mitte/Shift: §6★ Favorit";
+        if (font.width(sub) > width - 8) sub = "§a" + on + "§7 an §8| §7L: an/aus · R: bearbeiten · Mitte: §6★";
+        g.centeredText(font, sub, width / 2, 22, 0xFFFFFFFF);
+        if (search.active() && mods.isEmpty()) g.centeredText(font, "§7Kein Cheat gefunden für \"" + search.query + "\"", width / 2, TOP + 10, 0xFFFFFFFF);
 
         Layout l = layout();
         int cols = l.cols(), x0 = startX(l), ch = l.cellH(), cw = l.cellW();
@@ -101,12 +117,26 @@ public final class Overview extends Screen {
             if (font.width(sub) > cw - 10) sub = font.plainSubstrByWidth(sub, cw - 14) + "…";
             g.text(font, sub, x + 7, y + 13, 0xFFFFFFFF, false);
         }
-        g.centeredText(font, "§8Schließen: Esc oder " + KeyBinds.overviewName() + "  ·  Tasten ändern: Optionen → Steuerung → Teizen Client",
-                width / 2, height - 12, 0xFFFFFFFF);
+        String foot = "§8Schließen: Esc oder " + KeyBinds.overviewName() + "  ·  Großes Menü: " + SettingsScreen.keyName(TeizenClient.menuKey)
+                + "  ·  Tasten ändern: Optionen → Steuerung → Teizen Client";
+        if (font.width(foot) > width - 4) foot = "§8Esc/" + KeyBinds.overviewName() + " = zu · Menü: " + SettingsScreen.keyName(TeizenClient.menuKey);
+        g.centeredText(font, foot, width / 2, height - 12, 0xFFFFFFFF);
+    }
+
+    /** Mitte der Zelle eines Cheats (oder null, wenn nicht sichtbar). */
+    public double[] cellCenter(Module target) {
+        List<Module> mods = shown();
+        Layout l = layout();
+        int x0 = startX(l);
+        int i = mods.indexOf(target);
+        if (i < 0) return null;
+        int x = x0 + (i % l.cols()) * l.stepX();
+        int y = TOP + (i / l.cols()) * l.stepY() - scroll;
+        return new double[]{x + l.cellW() / 2.0, y + l.cellH() / 2.0};
     }
 
     private Module at(double mx, double my) {
-        List<Module> mods = TeizenClient.modules().favoritesFirst();
+        List<Module> mods = shown();
         Layout l = layout();
         int x0 = startX(l);
         for (int i = 0; i < mods.size(); i++) {
@@ -119,6 +149,8 @@ public final class Overview extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
+        if (search.click(e.x(), e.y())) return true;
+        if (e.y() < TOP - 4) return true;
         Module m = at(e.x(), e.y());
         if (m != null) {
             boolean shift = (e.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0;
@@ -129,7 +161,7 @@ public final class Overview extends Screen {
                 m.toggle();
                 Config.save();
             } else if (e.button() == 1) {
-                net.minecraft.client.Minecraft.getInstance().gui.setScreen(new ClickGui());
+                net.minecraft.client.Minecraft.getInstance().gui.setScreen(new ModuleScreen(m, this));
             }
             return true;
         }
@@ -139,14 +171,25 @@ public final class Overview extends Screen {
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         Layout l = layout();
-        int rows = (TeizenClient.modules().all().size() + l.cols() - 1) / l.cols();
+        int rows = (shown().size() + l.cols() - 1) / l.cols();
         int max = Math.max(0, TOP + rows * l.stepY() - (height - 18));
         scroll = Math.max(0, Math.min(max, scroll - (int) (sy * 12)));
         return true;
     }
 
     @Override
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent e) {
+        if (search.charTyped(e)) { scroll = 0; return true; }
+        return super.charTyped(e);
+    }
+
+    @Override
     public boolean keyPressed(KeyEvent e) {
+        if (search.keyPressed(e)) return true;
+        if (e.key() == TeizenClient.menuKey) {
+            net.minecraft.client.Minecraft.getInstance().gui.setScreen(new ClickGui());
+            return true;
+        }
         if (KeyBinds.overview() != null && KeyBinds.overview().matches(e)) {
             onClose();
             return true;

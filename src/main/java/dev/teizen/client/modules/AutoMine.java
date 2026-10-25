@@ -29,7 +29,8 @@ import java.util.Set;
  * Befehl: ///mine diamond iron gold   oder   ///mine stop
  */
 public final class AutoMine extends Module {
-    public final Setting ores = add(Setting.text("erze", "Welche Erze abgebaut werden", "diamond,emerald,gold,iron,redstone,lapis,ancient_debris"));
+    public final Setting ores = add(Setting.multi("erze", "Welche Erze abgebaut werden: \"alle\" = alle an/aus, dann einzeln wählen",
+            "diamond,emerald,gold,iron,redstone,lapis,ancient_debris", XRay.ALL_ORES));
     private final Setting radius = add(Setting.number("radius", "Suchradius in Chunks", 3, 1, 8));
     private final Setting minHealth = add(Setting.number("minleben", "Stoppt bei so wenig Leben", 8, 1, 19));
     private final Setting nodes = add(Setting.number("suchtiefe", "Wie weit der Weg gesucht wird", 6000, 500, 40000));

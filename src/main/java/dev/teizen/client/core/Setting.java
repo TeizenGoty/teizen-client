@@ -5,7 +5,7 @@ import java.util.Locale;
 
 /** Einfache Einstellung eines Moduls (Zahl, Schalter oder Text). */
 public final class Setting {
-    public enum Type { NUMBER, BOOL, TEXT, CHOICE }
+    public enum Type { NUMBER, BOOL, TEXT, CHOICE, MULTI }
 
     public final String name;
     public final String description;
@@ -45,6 +45,43 @@ public final class Setting {
         return new Setting(name, desc, Type.CHOICE, 0, false, value, 0, 0, List.of(options));
     }
 
+    /** Mehrfach-Auswahl (z.B. welche Erze): Wert = Komma-Liste. Eigene Einträge außerhalb der Liste bleiben erhalten. */
+    public static Setting multi(String name, String desc, String value, String... options) {
+        return new Setting(name, desc, Type.MULTI, 0, false, value, 0, 0, List.of(options));
+    }
+
+    /** Ausgewählte Einträge (MULTI/TEXT als Liste). */
+    public List<String> selected() {
+        List<String> out = new java.util.ArrayList<>();
+        if (text == null) return out;
+        for (String p : text.split(",")) if (!p.isBlank()) out.add(p.trim().toLowerCase(Locale.ROOT));
+        return out;
+    }
+
+    public boolean isSelected(String option) { return selected().contains(option.toLowerCase(Locale.ROOT)); }
+
+    /** Eintrag an/aus (MULTI). */
+    public void toggleOption(String option) {
+        List<String> sel = selected();
+        String o = option.toLowerCase(Locale.ROOT);
+        if (!sel.remove(o)) sel.add(o);
+        text = String.join(",", sel);
+    }
+
+    public boolean allSelected() {
+        List<String> sel = selected();
+        for (String c : choices) if (!sel.contains(c)) return false;
+        return true;
+    }
+
+    /** Alle an – oder, wenn schon alle an sind, alle aus. */
+    public void toggleAll() {
+        List<String> sel = selected();
+        if (allSelected()) sel.removeAll(choices);
+        else for (String c : choices) if (!sel.contains(c)) sel.add(c);
+        text = String.join(",", sel);
+    }
+
     public double num() { return number; }
     public int integer() { return (int) Math.round(number); }
     public float flt() { return (float) number; }
@@ -82,6 +119,7 @@ public final class Setting {
                 return "Möglich: " + String.join(", ", choices);
             }
             case TEXT -> setText(v);
+            case MULTI -> setText(v.replace(" ", ","));
         }
         return null;
     }
@@ -91,6 +129,11 @@ public final class Setting {
             case NUMBER -> fmt(number);
             case BOOL -> bool ? "an" : "aus";
             case TEXT, CHOICE -> text;
+            case MULTI -> {
+                List<String> sel = selected();
+                if (allSelected() && sel.size() == choices.size()) yield "alle";
+                yield sel.isEmpty() ? "keine" : sel.size() + " von " + choices.size();
+            }
         };
     }
 

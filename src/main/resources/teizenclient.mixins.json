@@ -10,7 +10,6 @@
     "ClientPacketListenerMixin",
     "MultiPlayerGameModeAccessor",
     "EntityMixin",
-    "LivingEntityMixin",
     "PlayerMixin",
     "LocalPlayerMixin",
     "FishingHookAccessor"

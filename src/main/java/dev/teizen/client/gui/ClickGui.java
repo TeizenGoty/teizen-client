@@ -2,6 +2,7 @@ package dev.teizen.client.gui;
 
 import dev.teizen.client.TeizenClient;
 import dev.teizen.client.core.Config;
+import dev.teizen.client.core.KeyBinds;
 import dev.teizen.client.core.Module;
 import dev.teizen.client.core.Setting;
 import dev.teizen.client.util.Keys;
@@ -21,25 +22,22 @@ import java.util.Set;
 /**
  * Menü: Linksklick = an/aus, Rechtsklick = Einstellungen auf-/zuklappen,
  * Mittelklick = Taste festlegen, Shift+Klick = Favorit (steht dann ganz vorne).
- * Klick auf eine Spalten-Überschrift klappt die Spalte zu/auf, Mausrad scrollt.
- * Zahlen und Texte: anklicken, Wert eintippen, Enter = übernehmen, Esc = abbrechen.
+ * Einstellungen: Zahl/Text anklicken und eintippen (Enter = übernehmen, Esc = abbrechen).
+ * Oben die Lupe: einfach lostippen, um einen Cheat zu suchen. Überschrift anklicken = Spalte zuklappen.
+ * Übersichts-Taste (Standard O) wechselt zur Übersicht.
  */
 public final class ClickGui extends Screen {
-    private static final int COL_W = 112, ROW_H = 13, HEAD_H = 16;
-    private static final int HEAD = 0xFF5B1FB8, FAV_HEAD = 0xFFB8861F, ON = 0xFF7A2CF0, OFF = 0xC0201236, SET = 0xD00E0718;
+    private static final int COL_W = 118, ROW_H = 13, HEAD_H = 16, TOP = 34;
+    private static final int HEAD = 0xFF5B1FB8, FAV_HEAD = 0xFFB8861F, SEARCH_HEAD = 0xFF1F8AB8, ON = 0xFF7A2CF0, OFF = 0xC0201236;
     private static final Set<String> expanded = new HashSet<>();
-    /** Zugeklappte Spalten (Klick auf die Überschrift). */
     private static final Set<String> collapsed = new HashSet<>();
 
     private record Panel(String title, List<Module> mods, int color) {}
 
+    private final SettingRows rows = new SettingRows();
+    private final SearchBox search = new SearchBox();
     private Module binding;
     private int scroll;
-    /** Einstellung, die gerade eingetippt wird (oder null). */
-    private Setting editing;
-    private Module editingModule;
-    private String buffer = "";
-    private String editError = "";
 
     public ClickGui() {
         super(Component.literal("Teizen Client"));
@@ -48,22 +46,29 @@ public final class ClickGui extends Screen {
     @Override
     public boolean isPauseScreen() { return false; }
 
-    private static List<Panel> panels() {
+    private List<Panel> panels() {
         List<Panel> out = new ArrayList<>();
+        if (search.active()) {
+            List<Module> hits = SearchBox.search(search.query);
+            out.add(new Panel("Suche: " + hits.size() + " Treffer", hits, SEARCH_HEAD));
+            return out;
+        }
         List<Module> fav = TeizenClient.modules().favorites();
         if (!fav.isEmpty()) out.add(new Panel("★ Favoriten", fav, FAV_HEAD));
         for (Module.Category c : Module.Category.values()) out.add(new Panel(c.title, TeizenClient.modules().inCategory(c), HEAD));
         return out;
     }
 
-    private static String key(Panel p, Module m) { return p.title() + "/" + m.name; }
+    private static String key(Panel p, Module m) { return (p.title().startsWith("Suche") ? "Suche" : p.title()) + "/" + m.name; }
 
-    private static int panelHeight(Panel p) {
+    private boolean isCollapsed(Panel p) { return !search.active() && collapsed.contains(p.title()); }
+
+    private int panelHeight(Panel p) {
         int h = HEAD_H + 2;
-        if (collapsed.contains(p.title())) return h;
+        if (isCollapsed(p)) return h;
         for (Module m : p.mods()) {
             h += ROW_H;
-            if (expanded.contains(key(p, m))) h += ROW_H * m.settings.size();
+            if (expanded.contains(key(p, m))) h += ROW_H * SettingRows.rows(m).size();
         }
         return h;
     }
@@ -74,7 +79,7 @@ public final class ClickGui extends Screen {
         int total = cols * (COL_W + 6) - 6;
         int startX = Math.max(4, (width - total) / 2);
         int[][] pos = new int[panels.size()][2];
-        int rowTop = 32 - scroll;
+        int rowTop = TOP - scroll;
         for (int row = 0; row * cols < panels.size(); row++) {
             int rowH = 0;
             for (int col = 0; col < cols && row * cols + col < panels.size(); col++) {
@@ -92,17 +97,6 @@ public final class ClickGui extends Screen {
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
         var font = getFont();
         g.fill(0, 0, width, height, 0x60000000);
-        String title = "§5§lTEIZEN CLIENT §7– Links: an/aus · Rechts: Einstellungen · Mitte: Taste · Shift+Klick: §6★ Favorit";
-        if (font.width(title) > width - 8) title = "§5§lTEIZEN §7– L: an/aus · R: Einst. · Mitte: Taste · Shift: §6★";
-        g.centeredText(font, title, width / 2, 6, 0xFFFFFFFF);
-        if (binding != null) g.centeredText(font, "§eDrück eine Taste für " + binding.name + " (Entf = keine)", width / 2, 18, 0xFFFFFFFF);
-        else if (editing != null) {
-            String hint = "§e" + editingModule.name + " " + editing.name + ": Wert eintippen, §fEnter§e = übernehmen, §fEsc§e = abbrechen"
-                    + (editing.type == Setting.Type.NUMBER ? " §7(" + Setting.fmt(editing.min) + " bis " + Setting.fmt(editing.max) + ")" : "");
-            if (!editError.isEmpty()) hint = "§c" + editError;
-            if (font.width(hint) > width - 4) hint = font.plainSubstrByWidth(hint, width - 8);
-            g.centeredText(font, hint, width / 2, 18, 0xFFFFFFFF);
-        }
 
         List<Panel> panels = panels();
         int[][] pos = layout(panels);
@@ -110,61 +104,58 @@ public final class ClickGui extends Screen {
             Panel p = panels.get(c);
             int x = pos[c][0], y = pos[c][1];
             g.fill(x, y, x + COL_W, y + HEAD_H, p.color());
-            boolean closed = collapsed.contains(p.title());
+            boolean closed = isCollapsed(p);
             g.centeredText(font, "§l" + p.title() + (closed ? " §7(" + p.mods().size() + ") ▸" : ""), x + COL_W / 2, y + 4, 0xFFFFFFFF);
             y += HEAD_H;
-            for (Module m : closed ? List.<Module>of() : p.mods()) {
-                boolean hover = mouseX >= x && mouseX < x + COL_W && mouseY >= y && mouseY < y + ROW_H;
-                g.fill(x, y, x + COL_W, y + ROW_H, m.isEnabled() ? ON : (hover ? 0xD0301A50 : OFF));
-                String name = (m.favorite ? "§6★ §r" : "") + m.name;
-                g.text(font, name, x + 4, y + 3, m.isEnabled() ? 0xFFFFFFFF : 0xFFB8A6D9, false);
-                String right = m.key >= 0 ? Keys.name(m.key) : (m.settings.isEmpty() ? "" : (expanded.contains(key(p, m)) ? "-" : "+"));
-                g.text(font, right, x + COL_W - 4 - font.width(right), y + 3, 0xFF9C88C8, false);
-                if (hover) g.setTooltipForNextFrame(font, Component.literal(m.description + (m.favorite ? " (★ Favorit)" : "")), mouseX, mouseY);
-                y += ROW_H;
-                if (expanded.contains(key(p, m))) {
-                    for (Setting s : m.settings.values()) {
-                        boolean isEditing = s == editing;
-                        g.fill(x, y, x + COL_W, y + ROW_H, isEditing ? 0xF0301060 : SET);
-                        String label;
-                        if (isEditing) {
-                            boolean blink = (System.currentTimeMillis() / 500) % 2 == 0;
-                            // bei langem Text nur das Ende zeigen
-                            String vis = buffer;
-                            boolean cut = false;
-                            while (!vis.isEmpty() && font.width("§7" + s.name + ": §e" + (cut ? "…" : "") + vis + "_") > COL_W - 10) {
-                                vis = vis.substring(1);
-                                cut = true;
-                            }
-                            label = "§7" + s.name + ": §e" + (cut ? "…" : "") + vis + (blink ? "_" : " ");
-                            g.fill(x + 1, y, x + COL_W - 1, y + 1, 0xFFFFD040);
-                            g.fill(x + 1, y + ROW_H - 1, x + COL_W - 1, y + ROW_H, 0xFFFFD040);
-                        } else {
-                            label = "§7" + s.name + ": " + (s.type == Setting.Type.BOOL ? (s.on() ? "§aan" : "§caus") : "§f" + s.display());
-                            if (font.width(label) > COL_W - 10) label = font.plainSubstrByWidth(label, COL_W - 14) + "…";
+            if (!closed) {
+                for (Module m : p.mods()) {
+                    boolean hover = mouseX >= x && mouseX < x + COL_W && mouseY >= y && mouseY < y + ROW_H && mouseY >= TOP;
+                    g.fill(x, y, x + COL_W, y + ROW_H, m.isEnabled() ? ON : (hover ? 0xD0301A50 : OFF));
+                    String name = (m.favorite ? "§6★ §r" : "") + m.name;
+                    g.text(font, name, x + 4, y + 3, m.isEnabled() ? 0xFFFFFFFF : 0xFFB8A6D9, false);
+                    String right = m.key >= 0 ? Keys.name(m.key) : (m.settings.isEmpty() ? "" : (expanded.contains(key(p, m)) ? "-" : "+"));
+                    g.text(font, right, x + COL_W - 4 - font.width(right), y + 3, 0xFF9C88C8, false);
+                    if (hover) g.setTooltipForNextFrame(font, Component.literal(m.description + (m.favorite ? " (★ Favorit)" : "")), mouseX, mouseY);
+                    y += ROW_H;
+                    if (expanded.contains(key(p, m))) {
+                        for (SettingRows.Row r : SettingRows.rows(m)) {
+                            rows.render(g, font, m, r, x, y, COL_W, ROW_H, mouseX, mouseY);
+                            y += ROW_H;
                         }
-                        g.text(font, label, x + 8, y + 3, 0xFFFFFFFF, false);
-                        boolean sh = mouseX >= x && mouseX < x + COL_W && mouseY >= y && mouseY < y + ROW_H;
-                        if (sh && !isEditing) g.setTooltipForNextFrame(font, Component.literal(s.description
-                                + (s.type == Setting.Type.NUMBER ? " (anklicken = Zahl eintippen, " + Setting.fmt(s.min) + " bis " + Setting.fmt(s.max) + ")"
-                                : s.type == Setting.Type.TEXT ? " (anklicken = Text eintippen)" : "")), mouseX, mouseY);
-                        y += ROW_H;
                     }
                 }
             }
             g.fill(x, y, x + COL_W, y + 2, p.color());
         }
-        g.fill(0, height - 14, width, height, 0xA0000000);
-        String foot = "§7Überschrift anklicken = zuklappen · Mausrad = scrollen · Befehle: ///help · Favorit: ///fav <Funktion>";
-        if (font.width(foot) > width - 4) foot = "§7Überschrift = zuklappen · Mausrad = scrollen · ///help";
+        if (search.active() && panels.get(0).mods().isEmpty())
+            g.centeredText(font, "§7Kein Cheat gefunden für \"" + search.query + "\"", width / 2, TOP + 26, 0xFFFFFFFF);
+
+        // Kopf: Titel + Lupe (über den Spalten, damit nichts überdeckt wird)
+        g.fill(0, 0, width, TOP - 3, 0xC0100820);
+        g.text(font, "§5§lTEIZEN CLIENT", 6, 6, 0xFFFFFFFF, true);
+        int sw = Math.max(80, Math.min(220, width - 2 * (font.width("TEIZEN CLIENT") + 16)));
+        search.render(g, font, width / 2 - sw / 2, 4, sw, mouseX, mouseY);
+        String sub = "§7Links: an/aus · Rechts: Einstellungen · Mitte: Taste · Shift+Klick: §6★ Favorit";
+        if (font.width(sub) > width - 8) sub = "§7L: an/aus · R: Einst. · Mitte: Taste · Shift: §6★";
+        g.centeredText(font, sub, width / 2, 20, 0xFFFFFFFF);
+
+        // Fuß: Hinweise
+        g.fill(0, height - 14, width, height, 0xC0000000);
+        String foot;
+        if (binding != null) foot = "§eDrück eine Taste für " + binding.name + " (Entf = keine)";
+        else if (rows.hint() != null) foot = rows.hint();
+        else foot = "§7Übersicht: Taste §f" + KeyBinds.overviewName() + " §7· Überschrift = zuklappen · Mausrad = scrollen · ///help";
+        if (font.width(foot) > width - 4) foot = font.plainSubstrByWidth(foot, width - 8);
         g.centeredText(font, foot, width / 2, height - 11, 0xFFFFFFFF);
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         // Klick woanders hin = Eingabe übernehmen
-        if (editing != null && !finishEdit(true)) return true;
+        if (rows.isEditing() && !rows.finish(true)) return true;
         double mx = e.x(), my = e.y();
+        if (search.click(mx, my)) return true;
+        if (my < TOP - 3) return true;
         int button = e.button();
         boolean shift = (e.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0;
         List<Panel> panels = panels();
@@ -174,11 +165,11 @@ public final class ClickGui extends Screen {
             int x = pos[c][0];
             if (mx < x || mx >= x + COL_W) continue;
             if (my >= pos[c][1] && my < pos[c][1] + HEAD_H && button == 0) {
-                if (!collapsed.remove(p.title())) collapsed.add(p.title());
+                if (!search.active() && !collapsed.remove(p.title())) collapsed.add(p.title());
                 return true;
             }
             int y = pos[c][1] + HEAD_H;
-            if (collapsed.contains(p.title())) continue;
+            if (isCollapsed(p)) continue;
             for (Module m : p.mods()) {
                 if (my >= y && my < y + ROW_H) {
                     if (shift && button == 0) m.favorite = !m.favorite;
@@ -191,10 +182,9 @@ public final class ClickGui extends Screen {
                 }
                 y += ROW_H;
                 if (expanded.contains(key(p, m))) {
-                    for (Setting s : m.settings.values()) {
+                    for (SettingRows.Row r : SettingRows.rows(m)) {
                         if (my >= y && my < y + ROW_H) {
-                            clickSetting(m, s, button);
-                            Config.save();
+                            rows.click(m, r, button);
                             return true;
                         }
                         y += ROW_H;
@@ -205,57 +195,26 @@ public final class ClickGui extends Screen {
         return super.mouseClicked(e, doubleClick);
     }
 
-    /** Klick auf eine Einstellung: Schalter umschalten, Auswahl weiterdrehen, Zahl/Text eintippen. */
+    /** Wie ein Klick auf eine Einstellung (auch für den Selbsttest). */
     public void clickSetting(Module m, Setting s, int button) {
-        switch (s.type) {
-            case BOOL -> s.setBool(!s.on());
-            case CHOICE -> {
-                List<String> c = s.choices;
-                int i = c.indexOf(s.str());
-                s.setText(c.get((i + (button == 1 ? c.size() - 1 : 1)) % c.size()));
-            }
-            case NUMBER, TEXT -> startEdit(m, s);
-        }
+        rows.click(m, new SettingRows.Row(SettingRows.Kind.SETTING, s, null), button);
     }
 
-    private void startEdit(Module m, Setting s) {
-        editing = s;
-        editingModule = m;
-        buffer = s.display();
-        editError = "";
+    public boolean isEditing() { return rows.isEditing(); }
+
+    /** Suche setzen (Selbsttest). */
+    public void setSearch(String q) { search.query = q; search.focused = !q.isEmpty(); }
+
+    /** Cheats, die gerade (mit Suche) angezeigt werden. */
+    public List<Module> shownModules() {
+        List<Module> out = new ArrayList<>();
+        for (Panel p : panels()) out.addAll(p.mods());
+        return out;
     }
 
-    public boolean isEditing() { return editing != null; }
-
-    /** @return false wenn der Wert ungültig war (Eingabe bleibt offen) */
-    private boolean finishEdit(boolean apply) {
-        if (editing == null) return true;
-        if (apply) {
-            String err = editing.parse(buffer.isBlank() && editing.type == Setting.Type.TEXT ? "" : buffer);
-            if (err != null) {
-                editError = err + " – nochmal eintippen oder Esc";
-                return false;
-            }
-            dev.teizen.client.util.Chat.ok(editingModule.name + " " + editing.name + " = " + editing.display());
-            Config.save();
-        }
-        editing = null;
-        editingModule = null;
-        editError = "";
-        return true;
-    }
-
-    @Override
-    public boolean charTyped(CharacterEvent e) {
-        if (editing == null) return super.charTyped(e);
-        String c = e.codepointAsString();
-        if (editing.type == Setting.Type.NUMBER) {
-            if (c.matches("[0-9.,-]")) buffer += c;
-        } else if (e.isAllowedChatCharacter() && buffer.length() < 256) {
-            buffer += c;
-        }
-        editError = "";
-        return true;
+    /** Einstellungen eines Cheats aufklappen (Selbsttest / XRay-Erze direkt zeigen). */
+    public void expand(Module m) {
+        for (Panel p : panels()) if (p.mods().contains(m)) expanded.add(key(p, m));
     }
 
     @Override
@@ -265,15 +224,15 @@ public final class ClickGui extends Screen {
     }
 
     @Override
+    public boolean charTyped(CharacterEvent e) {
+        if (rows.charTyped(e)) return true;
+        if (binding == null && search.charTyped(e)) { scroll = 0; return true; }
+        return super.charTyped(e);
+    }
+
+    @Override
     public boolean keyPressed(KeyEvent e) {
-        if (editing != null) {
-            int k = e.key();
-            if (k == GLFW.GLFW_KEY_ENTER || k == GLFW.GLFW_KEY_KP_ENTER) finishEdit(true);
-            else if (k == GLFW.GLFW_KEY_ESCAPE) finishEdit(false);
-            else if (k == GLFW.GLFW_KEY_BACKSPACE && !buffer.isEmpty()) { buffer = buffer.substring(0, buffer.length() - 1); editError = ""; }
-            else if (k == GLFW.GLFW_KEY_DELETE) { buffer = ""; editError = ""; }
-            return true; // Tasten gehen während der Eingabe nicht ans Spiel/Menü
-        }
+        if (rows.keyPressed(e)) return true; // während eine Zahl/ein Text eingetippt wird
         if (binding != null) {
             int k = e.key();
             binding.key = (k == GLFW.GLFW_KEY_DELETE || k == GLFW.GLFW_KEY_BACKSPACE || k == GLFW.GLFW_KEY_ESCAPE) ? -1 : k;
@@ -281,8 +240,13 @@ public final class ClickGui extends Screen {
             Config.save();
             return true;
         }
+        if (search.keyPressed(e)) return true;
         if (e.key() == TeizenClient.menuKey) {
             onClose();
+            return true;
+        }
+        if (KeyBinds.overview() != null && KeyBinds.overview().matches(e)) {
+            net.minecraft.client.Minecraft.getInstance().gui.setScreen(new Overview());
             return true;
         }
         return super.keyPressed(e);

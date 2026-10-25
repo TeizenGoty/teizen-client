@@ -132,8 +132,9 @@ public final class Commands {
                     if (!x.isEnabled()) x.setEnabled(true);
                     Chat.ok("X-Ray zeigt jetzt nur: §f" + x.ores.str());
                 } else if (sub.equals("alle") || sub.equals("all") || sub.equals("reset")) {
-                    x.ores.setText(XRay.DEFAULT_ORES);
-                    Chat.ok("X-Ray zeigt wieder alle Erze: §f" + x.ores.str());
+                    x.ores.setText(String.join(",", XRay.ALL_ORES));
+                    if (!x.isEnabled()) x.setEnabled(true);
+                    Chat.ok("X-Ray zeigt alle Erze: §f" + x.ores.str());
                 } else if (sub.equals("lava") || sub.equals("wasser") || sub.equals("water") || sub.equals("hoehlen") || sub.equals("höhlen") || sub.equals("caves")) {
                     Setting s = sub.equals("lava") ? x.lava : sub.startsWith("w") ? x.water : x.caves;
                     if (a.length >= 3) { String err = s.parse(a[2]); if (err != null) { Chat.error(err); return; } }
@@ -228,7 +229,7 @@ public final class Commands {
                 if (m != null) {
                     String quick = quickSetting(m);
                     Setting qs = quick == null ? null : m.setting(quick);
-                    if (qs != null && qs.type == Setting.Type.TEXT && a.length >= 2 && m.setting(a[1]) == null) {
+                    if (qs != null && (qs.type == Setting.Type.TEXT || qs.type == Setting.Type.MULTI) && a.length >= 2 && m.setting(a[1]) == null) {
                         // ///itemesp diamond totem  -> Text-Einstellung setzen und einschalten
                         // (Chat-Nachricht und Handels-Suche mit Leerzeichen, Listen mit Komma)
                         boolean spaces = m.name.equals("ChatSpammer") || m.name.equals("VillagerRoller");

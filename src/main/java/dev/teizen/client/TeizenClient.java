@@ -51,6 +51,7 @@ public final class TeizenClient implements ClientModInitializer {
                 Chat.info("geladen! §f" + dev.teizen.client.gui.SettingsScreen.keyName(menuKey) + "§7 = Menü, §f///help§7 = Befehle");
             }
             modules.tick();
+            modules.get(dev.teizen.client.modules.Fly.class).fallGuard();
             Finder.tick();
             dev.teizen.client.core.Locator.tick();
         });
@@ -65,6 +66,7 @@ public final class TeizenClient implements ClientModInitializer {
         // Countdown auf dem "Verbindung getrennt"-Bildschirm
         dev.teizen.client.modules.AutoReconnect.register();
         dev.teizen.client.modules.ChatSpammer.register();
+        dev.teizen.client.modules.EnchantPreview.register();
 
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("teizenclient", "hud"), Hud::render);
 

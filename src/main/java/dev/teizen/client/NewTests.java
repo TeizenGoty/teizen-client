@@ -49,6 +49,28 @@ final class NewTests {
     private static double d1, d2, a0;
     private static int n0, kb0;
     private static boolean flag1, flag2;
+    private static String predictedText = "";
+    private static float minHealth;
+
+    private static String describe(List<net.minecraft.world.item.enchantment.EnchantmentInstance> list) {
+        List<String> parts = new java.util.ArrayList<>();
+        for (var e : list) parts.add(e.enchantment().unwrapKey().map(k -> k.identifier().getPath()).orElse("?") + " " + e.level());
+        java.util.Collections.sort(parts);
+        return String.join(", ", parts);
+    }
+
+    /** Klicks in der Erz-Liste des Bearbeiten-Bildschirms. */
+    private static final class SettingRowsHelper {
+        static void clickAll(dev.teizen.client.gui.ModuleScreen ms, Module m) {
+            for (var r : dev.teizen.client.gui.SettingRows.rows(m))
+                if (r.kind() == dev.teizen.client.gui.SettingRows.Kind.MULTI_ALL) { ms.clickRow(r, 0); return; }
+        }
+
+        static void clickOption(dev.teizen.client.gui.ModuleScreen ms, Module m, String option) {
+            for (var r : dev.teizen.client.gui.SettingRows.rows(m))
+                if (r.kind() == dev.teizen.client.gui.SettingRows.Kind.MULTI_OPTION && option.equals(r.option())) { ms.clickRow(r, 0); return; }
+        }
+    }
 
     private NewTests() {}
 
@@ -673,7 +695,7 @@ final class NewTests {
                 boolean res = mc.player.hasEffect(MobEffects.RESISTANCE);
                 float hearts = mc.player.getMaxHealth() / 2f;
                 result("God aus: Resistenz weg=" + yes(!res) + ", Herzen wieder " + f(hearts) + " " + ok(!res && Math.abs(hearts - 10) < 0.1));
-                next();
+                SelfTest.jump(170); // Fly-Fallschaden testen (ohne God), danach AutoReconnect
             }
             // ---------------------------------------------- AutoReconnect (Rauswurf per /kick, danach von selbst wieder rein)
             case 152 -> {
@@ -1011,7 +1033,7 @@ final class NewTests {
             case 133 -> {
                 if (!after(20)) return;
                 if (mc.gui.screen() != null) mc.player.closeContainer();
-                SelfTest.jump(150);
+                next();
             }
             // ---------------------------------------------- CombatLog (nach AutoReconnect, ganz am Ende)
             case 160 -> {
@@ -1028,6 +1050,241 @@ final class NewTests {
                 log("CombatLog: Leben " + f(mc.player.getHealth()) + ", mit Totem noch da=" + stillIn);
                 cmd("clear @s minecraft:totem_of_undying");
                 SelfTest.startCombatLogWait(stillIn);
+            }
+
+            // ---------------------------------------------- Lupe: Cheats suchen (Menü + Übersicht)
+            case 134 -> {
+                ClickGui gui = new ClickGui();
+                mc.gui.setScreen(gui);
+                gui.setSearch("velo");
+                next();
+            }
+            case 135 -> {
+                if (!after(10)) return;
+                shot("26-suche");
+                ClickGui gui = (ClickGui) mc.gui.screen();
+                List<Module> a = gui.shownModules();
+                flag1 = !a.isEmpty() && a.get(0).name.equals("Velocity");
+                gui.setSearch("fall");
+                List<Module> b = gui.shownModules();
+                flag2 = b.stream().anyMatch(m -> m.name.equals("NoFall"));
+                Overview ov = new Overview();
+                mc.gui.setScreen(ov);
+                ov.setSearch("dolph");
+                next();
+            }
+            case 136 -> {
+                if (!after(10)) return;
+                Overview ov = (Overview) mc.gui.screen();
+                List<Module> c = ov.shownModules();
+                boolean ovOk = !c.isEmpty() && c.get(0).name.equals("DolphinMode");
+                result("Lupe/Suche: Menü \"velo\" -> Velocity=" + yes(flag1) + ", \"fall\" -> NoFall=" + yes(flag2) + ", Übersicht \"dolph\" -> DolphinMode="
+                        + yes(ovOk) + " " + ok(flag1 && flag2 && ovOk));
+                // Rechtsklick auf XRay in der Übersicht -> Bearbeiten-Bildschirm
+                ov.setSearch("");
+                Module xr = TeizenClient.modules().get(XRay.class);
+                double[] cc = ov.cellCenter(xr);
+                if (cc != null) ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(cc[0], cc[1], new net.minecraft.client.input.MouseButtonInfo(1, 0)), false);
+                next();
+            }
+            case 137 -> {
+                if (!after(10)) return;
+                Module xr = TeizenClient.modules().get(XRay.class);
+                XRay x = (XRay) xr;
+                boolean editor = mc.gui.screen() instanceof dev.teizen.client.gui.ModuleScreen ms && ms.module() == xr;
+                shot("27-cheat-bearbeiten");
+                if (editor) {
+                    dev.teizen.client.gui.ModuleScreen ms = (dev.teizen.client.gui.ModuleScreen) mc.gui.screen();
+                    x.ores.setText("diamond");
+                    SettingRowsHelper.clickAll(ms, xr);           // "alle" -> alle Erze an
+                    flag1 = x.ores.allSelected();
+                    SettingRowsHelper.clickOption(ms, xr, "coal"); // Kohle wieder ab
+                    flag2 = !x.ores.isSelected("coal") && x.ores.isSelected("diamond") && x.ores.selected().size() == XRay.ALL_ORES.length - 1;
+                    log("XRay-Erze nach Klicks: " + x.ores.str());
+                }
+                result("Rechtsklick in der Übersicht öffnet Cheat bearbeiten=" + yes(editor) + "; XRay-Erze: \"alle\"=alle an " + yes(flag1)
+                        + ", dann Kohle einzeln ab " + yes(flag2) + " " + ok(editor && flag1 && flag2));
+                x.ores.setText(XRay.DEFAULT_ORES);
+                // Menü-Taste im Bearbeiten-Bildschirm -> großes Menü
+                if (mc.gui.screen() != null) mc.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(TeizenClient.menuKey, 0, 0));
+                next();
+            }
+            case 138 -> {
+                if (!after(5)) return;
+                flag1 = mc.gui.screen() instanceof ClickGui;
+                int ovKey = net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.getBoundKeyOf(dev.teizen.client.core.KeyBinds.overview()).getValue();
+                if (mc.gui.screen() != null) mc.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(ovKey, 0, 0));
+                flag2 = mc.gui.screen() instanceof Overview;
+                if (mc.gui.screen() != null) mc.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(TeizenClient.menuKey, 0, 0));
+                boolean back = mc.gui.screen() instanceof ClickGui;
+                result("Tasten zwischen den Menüs: Menü-Taste -> großes Menü=" + yes(flag1) + ", Übersichts-Taste -> Übersicht=" + yes(flag2)
+                        + ", Menü-Taste in der Übersicht -> großes Menü=" + yes(back) + " " + ok(flag1 && flag2 && back));
+                mc.gui.setScreen(null);
+                next();
+            }
+            // ---------------------------------------------- NoSlowdown in Spinnennetzen
+            case 139 -> {
+                area = o.offset(24, 0, 24);
+                tp(area, -4.5, 0, 0.5, -90, 0);
+                cmd("fill " + blk(area.offset(-2, 0, -1)) + " " + blk(area.offset(3, 1, 1)) + " minecraft:cobweb");
+                next();
+            }
+            case 140 -> {
+                if (!after(20)) return;
+                keys(true, false);
+                p0 = mc.player.position();
+                next();
+            }
+            case 141 -> {
+                if (!after(30)) return;
+                d1 = mc.player.getX() - p0.x;
+                keys(false, false);
+                tp(area, -4.5, 0, 0.5, -90, 0);
+                t("///noslowdown");
+                next();
+            }
+            case 142 -> {
+                if (!after(20)) return;
+                keys(true, false);
+                p0 = mc.player.position();
+                next();
+            }
+            case 143 -> {
+                if (!after(30)) return;
+                d2 = mc.player.getX() - p0.x;
+                keys(false, false);
+                t("///noslowdown");
+                result("NoSlowdown Spinnennetz: ohne " + f(d1) + " Blöcke, mit NoSlowdown " + f(d2) + " Blöcke " + ok(d2 > d1 + 2 && d2 > 4));
+                cmd("fill " + blk(area.offset(-2, 0, -1)) + " " + blk(area.offset(3, 1, 1)) + " minecraft:air");
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                next();
+            }
+            // ---------------------------------------------- EnchantPreview am Zaubertisch
+            case 144 -> {
+                if (!after(10)) return;
+                cmd("setblock " + blk(area.offset(2, 0, 0)) + " minecraft:enchanting_table");
+                cmd("give @s minecraft:iron_pickaxe");
+                cmd("give @s minecraft:lapis_lazuli 16");
+                cmd("xp add @s 30 levels");
+                t("///enchantpreview");
+                next();
+            }
+            case 145 -> {
+                if (!after(20)) return;
+                BlockPos table = area.offset(2, 0, 0);
+                mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND,
+                        new net.minecraft.world.phys.BlockHitResult(new Vec3(table.getX() + 0.5, table.getY() + 0.75, table.getZ() + 0.5),
+                                net.minecraft.core.Direction.UP, table, false));
+                next();
+            }
+            case 146 -> {
+                if (!after(20)) return;
+                if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.EnchantmentScreen es)) {
+                    result("EnchantPreview: FEHLER (Zaubertisch nicht offen: " + mc.gui.screen() + ")");
+                    SelfTest.jump(150);
+                    return;
+                }
+                var menu = es.getMenu();
+                for (int i = 0; i < menu.slots.size(); i++) {
+                    var sl = menu.slots.get(i);
+                    if (sl.container != mc.player.getInventory()) continue;
+                    if (sl.getItem().is(Items.IRON_PICKAXE) && !menu.getSlot(0).hasItem()) {
+                        mc.gameMode.handleContainerInput(menu.containerId, i, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player);
+                    }
+                }
+                for (int i = 0; i < menu.slots.size(); i++) {
+                    var sl = menu.slots.get(i);
+                    if (sl.container == mc.player.getInventory() && sl.getItem().is(Items.LAPIS_LAZULI)) {
+                        mc.gameMode.handleContainerInput(menu.containerId, i, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player);
+                        break;
+                    }
+                }
+                next();
+            }
+            case 147 -> {
+                var ep = mod(dev.teizen.client.modules.EnchantPreview.class);
+                if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.EnchantmentScreen es)) { SelfTest.jump(150); return; }
+                var menu = es.getMenu();
+                if ((!ep.seedKnown || menu.costs[0] <= 0 || ep.predicted[0].isEmpty()) && !after(200)) return;
+                shot("28-zaubertisch");
+                flag1 = ep.clueMatches(menu, 0) && (menu.costs[1] <= 0 || ep.clueMatches(menu, 1)) && (menu.costs[2] <= 0 || ep.clueMatches(menu, 2));
+                predictedText = describe(ep.predicted[0]);
+                log("EnchantPreview: Kosten " + menu.costs[0] + "/" + menu.costs[1] + "/" + menu.costs[2] + ", Code bekannt=" + ep.seedKnown
+                        + ", vorhergesagt Möglichkeit 1: " + predictedText);
+                flag2 = ep.seedKnown;
+                mc.gameMode.handleInventoryButtonClick(menu.containerId, 0);
+                next();
+            }
+            case 148 -> {
+                if (!after(20)) return;
+                String got = "";
+                if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.EnchantmentScreen es) {
+                    var st = es.getMenu().getSlot(0).getItem();
+                    var ench = st.get(net.minecraft.core.component.DataComponents.ENCHANTMENTS);
+                    List<String> parts = new java.util.ArrayList<>();
+                    if (ench != null) for (var e : ench.entrySet()) parts.add(e.getKey().unwrapKey().map(k -> k.identifier().getPath()).orElse("?") + " " + e.getIntValue());
+                    java.util.Collections.sort(parts);
+                    got = String.join(", ", parts);
+                }
+                result("EnchantPreview: Code bekannt=" + yes(flag2) + ", Hinweise passen=" + yes(flag1) + ", vorhergesagt [" + predictedText + "], bekommen [" + got + "] "
+                        + ok(flag2 && flag1 && !got.isEmpty() && got.equals(predictedText)));
+                if (mc.gui.screen() != null) mc.player.closeContainer();
+                t("///enchantpreview");
+                SelfTest.jump(150);
+            }
+            // ---------------------------------------------- Fly: kein Fallschaden (nach God aus)
+            case 170 -> {
+                area = o.offset(24, 0, 24);
+                n0 = 0;
+                tp(area, 0.5, 12, 0.5, -90, 0);
+                next();
+            }
+            case 171 -> {
+                if (!after(3)) return;
+                d1 = mc.player.getHealth();
+                t("///fly");
+                next();
+            }
+            case 172 -> {
+                if (!after(10)) return;
+                minHealth = mc.player.getHealth();
+                t("///fly"); // in der Luft aus -> fällt 12 Blöcke
+                next();
+            }
+            case 173 -> {
+                minHealth = Math.min(minHealth, mc.player.getHealth());
+                if (!(mc.player.onGround() && after(25)) && !after(120)) return;
+                d2 = d1 - minHealth;
+                tp(area, 0.5, 12, 0.5, -90, 0);
+                next();
+            }
+            case 174 -> {
+                if (!after(3)) return;
+                d1 = mc.player.getHealth();
+                minHealth = d1;
+                t("///fly");
+                next();
+            }
+            case 175 -> {
+                if (!after(5)) return;
+                mc.options.keyShift.setDown(true); // runterfliegen bis zum Boden
+                next();
+            }
+            case 176 -> {
+                minHealth = Math.min(minHealth, mc.player.getHealth());
+                if (!mc.player.onGround() && !after(300)) return;
+                mc.options.keyShift.setDown(false);
+                next();
+            }
+            case 177 -> {
+                minHealth = Math.min(minHealth, mc.player.getHealth());
+                if (!after(10)) return;
+                double dmg2 = d1 - minHealth;
+                t("///fly");
+                var fly = mod(dev.teizen.client.modules.Fly.class);
+                result("Fly Fallschaden: in 12 Blöcken Höhe ausgeschaltet -> Schaden " + f(d2) + ", runtergeflogen und gelandet -> Schaden " + f(dmg2)
+                        + " (Schutz-Pakete " + fly.protectedPackets + ") " + ok(d2 < 0.5 && dmg2 < 0.5));
+                SelfTest.jump(152);
             }
             default -> {}
         }
