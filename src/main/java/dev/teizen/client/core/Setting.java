@@ -5,7 +5,10 @@ import java.util.Locale;
 
 /** Einfache Einstellung eines Moduls (Zahl, Schalter oder Text). */
 public final class Setting {
-    public enum Type { NUMBER, BOOL, TEXT, CHOICE, MULTI }
+    public enum Type { NUMBER, BOOL, TEXT, CHOICE, MULTI, ACTION }
+
+    /** Bei ACTION: was beim Anklicken passiert. */
+    public Runnable action;
 
     public final String name;
     public final String description;
@@ -45,6 +48,13 @@ public final class Setting {
 
     public static Setting choice(String name, String desc, String value, String... options) {
         return new Setting(name, desc, Type.CHOICE, 0, false, value, 0, 0, List.of(options));
+    }
+
+    /** Knopf im Menü (z.B. "Seedmap öffnen"): kein Wert, Anklicken führt {@code run} aus. */
+    public static Setting action(String name, String desc, String label, Runnable run) {
+        Setting s = new Setting(name, desc, Type.ACTION, 0, false, label, 0, 0, List.of());
+        s.action = run;
+        return s;
     }
 
     /** Mehrfach-Auswahl (z.B. welche Erze): Wert = Komma-Liste. Eigene Einträge außerhalb der Liste bleiben erhalten. */
@@ -134,6 +144,7 @@ public final class Setting {
             }
             case TEXT -> setText(v);
             case MULTI -> setText(v.replace(" ", ","));
+            case ACTION -> { if (action != null) action.run(); }
         }
         return null;
     }
@@ -142,7 +153,7 @@ public final class Setting {
         return switch (type) {
             case NUMBER -> fmt(number);
             case BOOL -> bool ? "an" : "aus";
-            case TEXT, CHOICE -> text;
+            case TEXT, CHOICE, ACTION -> text;
             case MULTI -> {
                 List<String> sel = selected();
                 if (allSelected() && sel.size() == choices.size()) yield "alle";

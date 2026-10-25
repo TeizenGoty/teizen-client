@@ -41,6 +41,7 @@ public final class Config {
                 JsonObject set = new JsonObject();
                 for (Map.Entry<String, Setting> e : m.settings.entrySet()) {
                     Setting s = e.getValue();
+                    if (s.type == Setting.Type.ACTION) continue;
                     switch (s.type) {
                         case NUMBER -> set.addProperty(e.getKey(), s.num());
                         case BOOL -> set.addProperty(e.getKey(), s.on());
@@ -90,6 +91,7 @@ public final class Config {
                     for (Map.Entry<String, Setting> e : m.settings.entrySet()) {
                         if (!set.has(e.getKey())) continue;
                         Setting s = e.getValue();
+                        if (s.type == Setting.Type.ACTION) continue;
                         switch (s.type) {
                             case NUMBER -> s.setNumber(set.get(e.getKey()).getAsDouble());
                             case BOOL -> s.setBool(set.get(e.getKey()).getAsBoolean());

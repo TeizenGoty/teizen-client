@@ -228,6 +228,35 @@ public final class Commands {
                 Config.save();
             }
             case "save", "speichern" -> { Config.save(); Chat.ok("Gespeichert."); }
+            case "seed" -> {
+                if (a.length >= 2) {
+                    try {
+                        long sd = Long.parseLong(a[1]);
+                        Seed.set(sd);
+                        dev.teizen.client.compat.SeedMapCompat.giveSeed(sd, true);
+                        Chat.ok("Seed gespeichert: §f" + sd + "§a. ///seedmap öffnet die Karte.");
+                    } catch (NumberFormatException e) {
+                        Chat.error("///seed <Zahl>  – z.B. ///seed -4172144997902289642");
+                    }
+                    return;
+                }
+                Seed.fetch(sd -> {
+                    if (sd == null) Chat.error("Seed unbekannt: auf diesem Server braucht /seed OP. Seed von Hand: ///seed <Zahl>");
+                    else {
+                        dev.teizen.client.compat.SeedMapCompat.giveSeed(sd, false);
+                        Chat.ok("Seed: §f" + sd + "§a (///seedmap öffnet die Karte)");
+                    }
+                });
+            }
+            case "seedmap", "seedkarte", "karte" -> {
+                if (a.length >= 2) {
+                    Setting ms = mm.byName("structurefinder").setting("seedmap");
+                    String err = ms.parse(a[1]);
+                    if (err != null) { Chat.error(err); return; }
+                    Config.save();
+                }
+                mm.get(dev.teizen.client.modules.StructureFinder.class).openSeedMap();
+            }
             case "opcheats", "op" -> {
                 boolean hide = a.length >= 2 ? (a[1].equalsIgnoreCase("aus") || a[1].equalsIgnoreCase("verstecken") || a[1].equalsIgnoreCase("weg"))
                         : !ModuleManager.hideOp;
@@ -374,6 +403,7 @@ public final class Commands {
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");
         Chat.raw("§d///find chest [Chunks] §7| §d///find biome <Name> §7| §d///find structure <Name> §7| §d///find clear");
         Chat.raw("§d///friend add <Name> §7– wird nicht angegriffen");
+        Chat.raw("§d///seedmap §7– Seed holen und Seed-Karte mit allen Strukturen öffnen (SeedMapper / Seed Atlas / Chunkbase) · §d///seed [Zahl]");
         Chat.raw("§d///opcheats §7– Cheats, die OP brauchen, im Menü verstecken/zeigen (auch Knopf oben rechts)");
         Chat.raw("§d///panic §7– alles aus   §d///save §7– speichern");
     }

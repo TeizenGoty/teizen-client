@@ -90,6 +90,16 @@ public final class SettingRows {
             }
             default -> { }
         }
+        if (s.type == Setting.Type.ACTION) {
+            // Knopf
+            g.fill(x, y, x + w, y + h, hover ? 0xF05A2CB0 : 0xE03A1A70);
+            g.fill(x, y + h - 1, x + w, y + h, 0xFFB088F0);
+            String l = "§f▶ " + s.str();
+            if (font.width(l) > w - 10) l = font.plainSubstrByWidth(l, w - 14) + "…";
+            g.text(font, l, x + 8, ty, 0xFFFFFFFF, false);
+            if (hover) g.setTooltipForNextFrame(font, Component.literal(s.description), mouseX, mouseY);
+            return;
+        }
         boolean isEditing = s == editing;
         g.fill(x, y, x + w, y + h, isEditing ? 0xF0301060 : (hover ? 0xE0221238 : 0xD00E0718));
         String label;
@@ -145,6 +155,7 @@ public final class SettingRows {
                         if (button == 1) startEdit(m, s);
                         else if (!openMulti.remove(key(m, s))) openMulti.add(key(m, s));
                     }
+                    case ACTION -> { if (s.action != null) s.action.run(); }
                 }
             }
         }

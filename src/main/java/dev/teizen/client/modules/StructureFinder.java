@@ -28,6 +28,11 @@ public final class StructureFinder extends Module {
     private final Setting arrows = add(Setting.bool("pfeile", "Pfeile um das Fadenkreuz, die zur Struktur zeigen", true));
     private final Setting tracers = add(Setting.bool("linien", "Linie zur Struktur", true));
     private final Setting compass = add(Setting.bool("kompass", "Richtung und Entfernung oben in der Mitte", true));
+    private final Setting autoSeed = add(Setting.bool("autoseed", "Seed automatisch holen und an SeedMapper / Seed Atlas geben (Server: OP)", true));
+    private final Setting mapMode = add(Setting.choice("seedmap", "Welche Karte: auto = SeedMapper, sonst Seed Atlas (Xaero), sonst Chunkbase im Browser",
+            "auto", "auto", "seedmapper", "seedatlas", "chunkbase"));
+    private final Setting openMap = add(Setting.action("karte", "Seed holen und die Seed-Karte mit allen Strukturen öffnen", "Seedmap öffnen",
+            this::openSeedMap));
 
     public record Found(BlockPos pos, String label, String key) {
         public Found(BlockPos pos, String label) { this(pos, label, ""); }
@@ -52,7 +57,31 @@ public final class StructureFinder extends Module {
         session++;
         lastQuery = "";
         lastDim = null;
-        if (inGame()) sync();
+        if (inGame()) {
+            sync();
+            if (autoSeed.on()) {
+                dev.teizen.client.core.Seed.fetch(sd -> {
+                    if (sd == null) return;
+                    dev.teizen.client.compat.SeedMapCompat.giveSeed(sd, false);
+                    if (dev.teizen.client.compat.SeedMapCompat.seedMapper() || dev.teizen.client.compat.SeedMapCompat.seedAtlas())
+                        Chat.info("Seed §f" + sd + "§7 an die Seed-Karte gegeben. §f///seedmap§7 öffnet sie.");
+                });
+            }
+        }
+    }
+
+    /** Seed holen und die Seed-Karte öffnen (Knopf im Menü, ///seedmap). */
+    public void openSeedMap() {
+        if (!inGame()) return;
+        dev.teizen.client.core.Seed.fetch(sd -> {
+            if (sd == null) {
+                Chat.error("Seed unbekannt: auf diesem Server braucht /seed OP. Seed von Hand: ///seed <Zahl>");
+                return;
+            }
+            String what = dev.teizen.client.compat.SeedMapCompat.open(sd, mapMode.str());
+            Chat.ok("Seed §f" + sd + "§a → " + what);
+            if (what.startsWith("Chunkbase")) Chat.raw("§7" + dev.teizen.client.compat.SeedMapCompat.lastUrl);
+        });
     }
 
     @Override

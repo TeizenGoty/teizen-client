@@ -59,9 +59,9 @@ jobs:
             done ) &
           mkdir -p run/schematics
           cp ci/teizentest.litematic run/schematics/
-          # Xaero's Minimap + World Map mittesten (Radar zeigt Spieler dort an)
+          # Xaero's Minimap + World Map mittesten (Radar zeigt Spieler dort an), SeedMapper + Seed Atlas (Seedmap)
           mkdir -p run/mods
-          for proj in xaeros-minimap xaeros-world-map; do
+          for proj in xaeros-minimap xaeros-world-map seedmapper seed-atlas; do
             curl -sL "https://api.modrinth.com/v2/project/$proj/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%2226.2%22%5D" -o /tmp/v.json
             URL=$(jq -r '.[0].files[0].url' /tmp/v.json)
             echo "$proj: $URL"

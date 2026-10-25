@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 public final class ServerQuery {
     private static final Minecraft mc = Minecraft.getInstance();
 
-    private record Req(String command, Consumer<String> ok, Runnable failed) {}
+    private record Req(String command, String okKey, Consumer<Component> ok, Runnable failed) {}
 
     private static final Deque<Req> queue = new ArrayDeque<>();
     private static final Deque<Req> pending = new ArrayDeque<>();
@@ -30,13 +30,29 @@ public final class ServerQuery {
         return mc.getSingleplayerServer() == null && Op.has("data");
     }
 
+    /** Darf man diesen Befehl auf dem Server benutzen? */
+    public static boolean allowed(String command) {
+        return mc.getSingleplayerServer() == null && Op.has(command);
+    }
+
     /** Wie viele Anfragen noch offen sind. */
     public static int busy() { return queue.size() + pending.size(); }
 
     /** "/data get entity <ziel> <pfad>" – die Antwort (als Text) kommt an {@code ok}. */
     public static void data(String target, String path, Consumer<String> ok, Runnable failed) {
         if (busy() > 40) return;
-        queue.add(new Req("data get entity " + target + (path == null || path.isEmpty() ? "" : " " + path), ok, failed));
+        queue.add(new Req("data get entity " + target + (path == null || path.isEmpty() ? "" : " " + path), "commands.data.entity.query", msg -> {
+            if (msg.getContents() instanceof TranslatableContents tc && tc.getArgs().length >= 2) {
+                Object v = tc.getArgs()[tc.getArgs().length - 1];
+                ok.accept(v instanceof Component c ? c.getString() : String.valueOf(v));
+            }
+        }, failed));
+    }
+
+    /** Beliebiger Befehl; die Antwort mit dem Übersetzungs-Schlüssel {@code okKey} kommt (versteckt) an {@code ok}. */
+    public static void command(String command, String okKey, Consumer<Component> ok, Runnable failed) {
+        if (busy() > 40) return;
+        queue.add(new Req(command, okKey, ok, failed));
     }
 
     public static void tick() {
@@ -64,12 +80,11 @@ public final class ServerQuery {
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
             if (overlay || pending.isEmpty()) return true;
             String k = key(message);
-            if (k.equals("commands.data.entity.query") && message.getContents() instanceof TranslatableContents tc && tc.getArgs().length >= 2) {
-                Object v = tc.getArgs()[tc.getArgs().length - 1];
-                String txt = v instanceof Component c ? c.getString() : String.valueOf(v);
-                Req r = pending.poll();
+            Req head = pending.peek();
+            if (head != null && k.equals(head.okKey)) {
+                pending.poll();
                 pendingSince = ticks;
-                try { r.ok.accept(txt); } catch (Throwable ignored) {}
+                try { head.ok.accept(message); } catch (Throwable ignored) {}
                 return false;
             }
             if (k.startsWith("arguments.nbtpath") || k.startsWith("argument.entity") || k.startsWith("commands.data")

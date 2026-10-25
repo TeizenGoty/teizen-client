@@ -51,6 +51,8 @@ final class NewTests {
     private static boolean flag1, flag2;
     private static String predictedText = "";
     private static boolean elytraKey;
+    private static Long seedGot;
+    private static boolean seedDone;
     private static int i0;
     private static float minHealth;
 
@@ -1869,6 +1871,41 @@ final class NewTests {
                 t("///fly");
                 result("Fly wie Kreativ: am Boden erst nicht fliegen=" + yes(flag1) + ", 2x Leertaste -> fliegt=" + yes(flag2) + ", Sprinten Tempo x"
                         + f(d2 / Math.max(1e-6, d1) * 2) + " (soll 8) " + ok(flag1 && flag2 && d2 / Math.max(1e-6, d1) > 3.9));
+                SelfTest.jump(270);
+            }
+            // ---------------------------------------------- Seed automatisch + Seed-Karte (SeedMapper / Seed Atlas / Chunkbase)
+            case 270 -> {
+                if (!after(10)) return;
+                seedGot = null;
+                seedDone = false;
+                dev.teizen.client.core.Seed.fetch(sd -> { seedGot = sd; seedDone = true; });
+                next();
+            }
+            case 271 -> {
+                if (!seedDone && !after(200)) return;
+                long expected = "teizen".hashCode(); // server.properties: level-seed=teizen
+                flag1 = seedGot != null && seedGot == expected;
+                result("Seed automatisch (per /seed): " + seedGot + " (Server-Seed " + expected + ") " + ok(flag1));
+                mc.gui.setScreen(null);
+                t("///seedmap auto");
+                next();
+            }
+            case 272 -> {
+                if (!after(40)) return;
+                var scr = mc.gui.screen();
+                String name = scr == null ? "-" : scr.getClass().getName();
+                boolean mapper = dev.teizen.client.compat.SeedMapCompat.seedMapper(), atlas = dev.teizen.client.compat.SeedMapCompat.seedAtlas();
+                boolean mapOpen = !mapper || name.toLowerCase(Locale.ROOT).contains("seedmapper");
+                Long gm = dev.teizen.client.compat.SeedMapCompat.givenSeedMapper(), ga = dev.teizen.client.compat.SeedMapCompat.givenAtlas();
+                boolean givenOk = (!mapper || (gm != null && gm.equals(seedGot))) && (!atlas || (ga != null && ga.equals(seedGot)));
+                String url = seedGot == null ? "" : dev.teizen.client.compat.SeedMapCompat.chunkbaseUrl(seedGot);
+                boolean urlOk = url.contains("seed=" + seedGot) && url.contains("&x=");
+                shot("34-seedmap");
+                result("Seedmap: SeedMapper installiert=" + yes(mapper) + " Karte offen=" + yes(mapOpen) + " (" + name + "), Seed Atlas installiert=" + yes(atlas)
+                        + ", Seed an beide gegeben=" + yes(givenOk) + ", Chunkbase-Adresse ok=" + yes(urlOk) + " " + ok(flag1 && mapOpen && givenOk && urlOk));
+                log("Chunkbase: " + url);
+                if (atlas) dev.teizen.client.compat.SeedMapCompat.clientCommand("seedatlas status");
+                mc.gui.setScreen(null);
                 SelfTest.jump(152);
             }
             default -> {}
