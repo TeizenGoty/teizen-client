@@ -28,7 +28,7 @@ final class Round9Tests {
     private static double y0, y1, hp0;
     private static Vec3 p0;
     private static boolean flag1, flag2;
-    private static int n0;
+    private static int n0, i0;
     private static String text = "";
 
     private Round9Tests() {}
@@ -627,6 +627,64 @@ final class Round9Tests {
                 result("SkinChanger: Skin \"" + text + "\" bei dir=" + yes(flag1) + ", aus -> wieder dein Skin=" + yes(back) + " " + ok(flag1 && back));
                 cmd("clear @s");
                 SelfTest.jump(152);
+            }
+            // ---------------------------------------------- Versuch: wie bekommt der Server die Stich-Richtung? (nur Log)
+            case 380 -> {
+                area = o.offset(100, 0, -60);
+                tp(area, 0.5, 1, 0.5, -90, 0);
+                next();
+            }
+            case 381 -> {
+                if (!after(20)) return;
+                arena(area, 7, 5);
+                cmd("kill @e[type=minecraft:husk]");
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:iron_sword");
+                cmd("item replace entity @s hotbar.3 with minecraft:iron_spear");
+                husk(area.offset(4, 0, 1));
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                n0 = 0;
+                next();
+            }
+            case 382 -> {
+                // Variante n0: 0 = 1x unsichtbar drehen, 1 Tick später stechen; 1 = 3x unsichtbar, dann stechen; 2 = sichtbar drehen, 2 Ticks später stechen
+                if (!after(30)) return;
+                Inv.select(0);
+                mc.player.setYRot(-90); mc.player.setXRot(0);
+                LivingEntity h = huskAt(area.offset(4, 0, 1));
+                if (h == null) { cmd("kill @e[type=minecraft:husk]"); husk(area.offset(4, 0, 1)); return; }
+                hp0 = h.getHealth();
+                i0 = h.getId();
+                next();
+            }
+            case 383 -> {
+                var e = mc.level.getEntity(i0);
+                if (e == null) { next(); return; }
+                int lt = SelfTest.local();
+                float[] r = dev.teizen.client.util.Rot.to(e.getBoundingBox().getCenter());
+                int stabAt = n0 == 0 ? 1 : n0 == 1 ? 3 : 2;
+                if (lt < stabAt) {
+                    if (n0 == 2) { if (lt == 0) dev.teizen.client.util.Rot.look(r[0], r[1]); }
+                    else dev.teizen.client.util.Rot.sendSilent(r[0], r[1]);
+                    return;
+                }
+                if (lt == stabAt) {
+                    if (n0 != 2) dev.teizen.client.util.Rot.sendSilent(r[0], r[1]);
+                    Inv.select(3);
+                    ((dev.teizen.client.mixin.MultiPlayerGameModeAccessor) mc.gameMode).teizen$sendCarriedItem();
+                    var pw = mc.player.getMainHandItem().get(net.minecraft.core.component.DataComponents.PIERCING_WEAPON);
+                    if (pw != null) mc.gameMode.piercingAttack(pw);
+                    mc.player.swing(InteractionHand.MAIN_HAND);
+                    Inv.select(0);
+                    return;
+                }
+                if (lt < stabAt + 15) return;
+                double hp = e instanceof LivingEntity le && le.isAlive() ? le.getHealth() : 0;
+                log("Stich-Versuch " + (n0 == 0 ? "1x unsichtbar + 1 Tick" : n0 == 1 ? "3x unsichtbar" : "sichtbar gedreht") + ": Leben " + f(hp0) + " -> " + f(hp));
+                n0++;
+                cmd("kill @e[type=minecraft:husk]");
+                husk(area.offset(4, 0, 1));
+                if (n0 < 3) SelfTest.jump(382); else SelfTest.jump(152);
             }
             default -> {}
         }

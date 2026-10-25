@@ -129,6 +129,9 @@ public final class SelfTest {
                 cmd("setblock ~3 ~-4 ~2 minecraft:diamond_ore");
                 cmd("setblock ~-4 ~-5 ~3 minecraft:diamond_ore");
                 cmd("setblock ~4 ~ ~4 minecraft:chest");
+                // Nur für schnelle Versuche: direkt bei einem bestimmten Schritt anfangen
+                String from = System.getenv("TEIZEN_SELFTEST_FROM");
+                if (from != null && !from.isBlank()) { log("starte bei Schritt " + from.trim()); jump(Integer.parseInt(from.trim())); return; }
                 next();
             }
             case 1 -> {
