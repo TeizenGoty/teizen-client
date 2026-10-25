@@ -25,7 +25,7 @@ final class Round9Tests {
     private static final Minecraft mc = Minecraft.getInstance();
 
     private static BlockPos area;
-    private static double y0, y1, hp0;
+    private static double y0, y1, hp0, d0;
     private static Vec3 p0;
     private static boolean flag1, flag2;
     private static int n0;
@@ -675,6 +675,305 @@ final class Round9Tests {
                 result("Übersicht-Knöpfe rechts: Kampf -> nur Kampf (" + n0 + ")=" + text.split("/")[0] + ", Bewegung -> nur Bewegung=" + text.split("/")[1]
                         + ", Alle -> alle=" + yes(all) + "; Liste oben rechts kleiner (0.6, ///hud ändert)=" + yes(flag1) + " "
                         + ok(text.equals("ja/ja") && all && flag1));
+                next();
+            }
+            // ---------------------------------------------- Surround (AutoCrystal)
+            case 365 -> {
+                area = o.offset(130, 0, 60);
+                tp(area, 0.5, 1, 0.5, -90, 0);
+                next();
+            }
+            case 366 -> {
+                if (!after(30)) return;
+                arena(area, 7, 5);
+                cmd("kill @e[type=minecraft:husk]");
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:diamond_sword");
+                cmd("item replace entity @s hotbar.1 with minecraft:obsidian 64");
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                mod(AutoCrystal.class).setEnabled(false);
+                t("///set autocrystal surround an");
+                t("///set autocrystal autotrap aus");
+                next();
+            }
+            case 367 -> {
+                if (!after(20)) return;
+                Inv.select(0);
+                mod(AutoCrystal.class).setEnabled(true);
+                next();
+            }
+            case 368 -> {
+                if (!after(40)) return;
+                BlockPos f = mc.player.blockPosition();
+                int n = 0;
+                for (net.minecraft.core.Direction d : net.minecraft.core.Direction.Plane.HORIZONTAL) if (mc.level.getBlockState(f.relative(d)).is(net.minecraft.world.level.block.Blocks.OBSIDIAN)) n++;
+                boolean back = Inv.selected() == 0;
+                shot("52-surround");
+                result("Surround (AutoCrystal): Obsidian um die Füße " + n + "/4, danach wieder Schwert in der Hand=" + yes(back) + " " + ok(n == 4 && back));
+                mod(AutoCrystal.class).setEnabled(false);
+                t("///set autocrystal surround aus");
+                next();
+            }
+            // ---------------------------------------------- AutoTrap (AutoCrystal)
+            case 369 -> {
+                arena(area, 7, 5);
+                husk(area.offset(3, 0, 0));
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                t("///set autocrystal autotrap an");
+                t("///set autocrystal trapziel alle");
+                next();
+            }
+            case 370 -> {
+                if (!after(30)) return;
+                Inv.select(0);
+                mod(AutoCrystal.class).setEnabled(true);
+                next();
+            }
+            case 371 -> {
+                if (!after(80)) return;
+                BlockPos f = area.offset(3, 0, 0);
+                int n = 0;
+                java.util.List<BlockPos> spots = new java.util.ArrayList<>();
+                for (net.minecraft.core.Direction d : net.minecraft.core.Direction.Plane.HORIZONTAL) { spots.add(f.relative(d)); spots.add(f.above().relative(d)); }
+                spots.add(f.above(2));
+                for (BlockPos p : spots) if (mc.level.getBlockState(p).is(net.minecraft.world.level.block.Blocks.OBSIDIAN)) n++;
+                shot("53-autotrap");
+                result("AutoTrap (AutoCrystal): Gegner eingebaut " + n + "/9 Blöcke " + ok(n >= 8));
+                mod(AutoCrystal.class).setEnabled(false);
+                t("///set autocrystal autotrap aus");
+                t("///set autocrystal trapziel spieler");
+                cmd("kill @e[type=minecraft:husk]");
+                next();
+            }
+            // ---------------------------------------------- AutoWeapon (AutoTool)
+            case 372 -> {
+                if (!after(10)) return;
+                arena(area, 7, 5);
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:wooden_sword");
+                cmd("item replace entity @s hotbar.4 with minecraft:diamond_sword");
+                cmd("item replace entity @s hotbar.5 with minecraft:iron_axe");
+                husk(area.offset(2, 0, 0));
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                t("///set autotool waffe schwert");
+                if (!mod(AutoTool.class).isEnabled()) t("///autotool");
+                next();
+            }
+            case 373 -> {
+                if (!after(25)) return;
+                Inv.select(0);
+                LivingEntity h = huskAt(area.offset(2, 0, 0));
+                if (h != null) mc.gameMode.attack(mc.player, h);
+                n0 = Inv.selected();
+                t("///set autotool waffe staerkste");
+                next();
+            }
+            case 374 -> {
+                if (!after(25)) return;
+                Inv.select(0);
+                LivingEntity h = huskAt(area.offset(2, 0, 0));
+                if (h != null) mc.gameMode.attack(mc.player, h);
+                int strongest = Inv.selected();
+                result("AutoWeapon (AutoTool): Schwert bevorzugt -> Diamantschwert=" + yes(n0 == 4) + ", stärkste -> Eisenaxt=" + yes(strongest == 5) + " "
+                        + ok(n0 == 4 && strongest == 5));
+                t("///set autotool waffe schwert");
+                t("///autotool");
+                cmd("kill @e[type=minecraft:husk]");
+                next();
+            }
+            // ---------------------------------------------- Trajectories (Perle: Vorhersage = wo man wirklich landet?)
+            case 375 -> {
+                if (!after(10)) return;
+                arena(area, 7, 5);
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:ender_pearl 4");
+                tp(area, 0.5, 0, 0.5, -90, -25);
+                t("///trajectories");
+                next();
+            }
+            case 376 -> {
+                if (!after(30)) return;
+                Inv.select(0);
+                Trajectories tr = mod(Trajectories.class);
+                tr.simulate(1f);
+                p0 = tr.landing;
+                shot("54-trajectories");
+                if (p0 != null) mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
+                next();
+            }
+            case 377 -> {
+                if (!after(80)) return;
+                double d = p0 == null ? -1 : Math.sqrt(Math.pow(mc.player.getX() - p0.x, 2) + Math.pow(mc.player.getZ() - p0.z, 2));
+                double far = p0 == null ? 0 : Math.sqrt(Math.pow(p0.x - (area.getX() + 0.5), 2) + Math.pow(p0.z - (area.getZ() + 0.5), 2));
+                result("Trajectories: Perle landet laut Vorhersage " + f(far) + " Blöcke weit, wirklich gelandet " + f(d) + " Blöcke daneben " + ok(p0 != null && far > 5 && d >= 0 && d < 2.0));
+                t("///trajectories");
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                next();
+            }
+            // ---------------------------------------------- FastBow (AimAssist)
+            case 378 -> {
+                if (!after(20)) return;
+                arena(area, 7, 5);
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:bow");
+                cmd("item replace entity @s hotbar.8 with minecraft:arrow 64");
+                tp(area, 0.5, 0, 0.5, -90, -10);
+                t("///set aimassist schnellbogen an");
+                t("///set aimassist spannung 6");
+                if (!mod(AimAssist.class).isEnabled()) t("///aimassist");
+                next();
+            }
+            case 379 -> {
+                if (!after(20)) return;
+                Inv.select(0);
+                n0 = count(Items.ARROW);
+                mc.options.keyUse.setDown(true);
+                next();
+            }
+            case 380 -> {
+                if (!after(60)) return;
+                allKeysUp();
+                next();
+            }
+            case 381 -> {
+                if (!after(10)) return;
+                int used = n0 - count(Items.ARROW);
+                result("FastBow (AimAssist): in 3 Sekunden " + used + " Pfeile geschossen (normal: 0, weil nie losgelassen) " + ok(used >= 4));
+                t("///aimassist");
+                t("///set aimassist schnellbogen aus");
+                cmd("kill @e[type=minecraft:arrow]");
+                next();
+            }
+            // ---------------------------------------------- AutoClicker: züchten + farmen
+            case 382 -> {
+                arena(area, 7, 5);
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:diamond_sword");
+                cmd("item replace entity @s hotbar.2 with minecraft:wheat 16");
+                cmd("summon minecraft:cow " + xyz(area, 2.5, 0, 1.5));
+                cmd("summon minecraft:cow " + xyz(area, 2.5, 0, -0.5));
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                t("///set autoclicker modus zuechten");
+                next();
+            }
+            case 383 -> {
+                if (!after(20)) return;
+                Inv.select(0);
+                mod(AutoClicker.class).setEnabled(true);
+                next();
+            }
+            case 384 -> {
+                if (!after(40)) return;
+                int wheat = count(Items.WHEAT);
+                flag1 = wheat == 14 && Inv.selected() == 0;
+                text = String.valueOf(wheat);
+                mod(AutoClicker.class).setEnabled(false);
+                cmd("kill @e[type=minecraft:cow]");
+                husk(area.offset(2, 0, 0));
+                tp(area, 0.5, 0, 0.5, -90, 15);
+                t("///set autoclicker modus farmen");
+                next();
+            }
+            case 385 -> {
+                if (!after(25)) return;
+                Inv.select(0);
+                LivingEntity h = huskAt(area.offset(2, 0, 0));
+                hp0 = h == null ? -1 : h.getHealth();
+                n0 = h == null ? -1 : h.getId();
+                mod(AutoClicker.class).setEnabled(true);
+                next();
+            }
+            case 386 -> {
+                if (!after(60)) return;
+                var e = mc.level.getEntity(n0);
+                double hp = e instanceof LivingEntity le && le.isAlive() ? le.getHealth() : 0;
+                mod(AutoClicker.class).setEnabled(false);
+                result("AutoClicker: züchten -> 2 Kühe gefüttert (Weizen 16 -> " + text + ")=" + yes(flag1) + ", farmen -> Husk geschlagen (Leben " + f(hp0) + " -> " + f(hp) + ") "
+                        + ok(flag1 && hp0 > 0 && hp < hp0));
+                cmd("kill @e[type=minecraft:husk]");
+                next();
+            }
+            // ---------------------------------------------- AirPlace
+            case 387 -> {
+                if (!after(10)) return;
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:stone 16");
+                tp(area, 0.5, 0, 0.5, -90, -70);
+                t("///airplace");
+                next();
+            }
+            case 388 -> {
+                if (!after(20)) return;
+                Inv.select(0);
+                AirPlace ap = mod(AirPlace.class);
+                BlockPos b = ap.spot();
+                p0 = b == null ? null : Vec3.atCenterOf(b);
+                flag1 = AirPlace.onUse();
+                next();
+            }
+            case 389 -> {
+                if (!after(10)) return;
+                boolean ok = p0 != null && mc.level.getBlockState(BlockPos.containing(p0)).is(net.minecraft.world.level.block.Blocks.STONE);
+                shot("55-airplace");
+                result("AirPlace: Rechtsklick in die Luft -> Block steht in der Luft=" + yes(ok) + " " + ok(flag1 && ok));
+                t("///airplace");
+                next();
+            }
+            // ---------------------------------------------- AutoMend (Taste K)
+            case 390 -> {
+                cmd("clear @s");
+                cmd("item replace entity @s armor.chest with minecraft:iron_chestplate[minecraft:damage=120,minecraft:enchantments={\"minecraft:mending\":1}]");
+                cmd("item replace entity @s hotbar.3 with minecraft:experience_bottle 64");
+                tp(area, 0.5, 0, 0.5, -90, 0);
+                next();
+            }
+            case 391 -> {
+                if (!after(20)) return;
+                Inv.select(0);
+                d0 = mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).getDamageValue();
+                mod(AutoMend.class).setEnabled(true);
+                next();
+            }
+            case 392 -> {
+                AutoMend am = mod(AutoMend.class);
+                if (am.isEnabled() && !after(400)) return;
+                int dmg = mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).getDamageValue();
+                boolean off = !am.isEnabled();
+                if (!off) am.setEnabled(false);
+                result("AutoMend: Brustpanzer Schaden " + Math.round(d0) + " -> " + dmg + " (" + am.thrown + " Flaschen), danach von selbst aus=" + yes(off)
+                        + ", Taste=" + dev.teizen.client.util.Keys.name(am.key) + " " + ok(d0 > 0 && dmg == 0 && off && am.key == org.lwjgl.glfw.GLFW.GLFW_KEY_K));
+                cmd("kill @e[type=minecraft:experience_orb]");
+                cmd("clear @s");
+                next();
+            }
+            // ---------------------------------------------- LogoutSpots / VisualRange / Zähler (PlayerFinder)
+            case 393 -> {
+                if (!after(10)) return;
+                PlayerFinder pf = mod(PlayerFinder.class);
+                if (pf.isEnabled()) pf.setEnabled(false);
+                java.util.UUID bob = java.util.UUID.nameUUIDFromBytes("Bob".getBytes()), eva = java.util.UUID.nameUUIDFromBytes("Eva".getBytes());
+                Vec3 me = mc.player.position();
+                var bobSpot = new PlayerFinder.Spot(bob, "Bob", me.x + 5, me.y, me.z, dev.teizen.client.core.FarPlayers.dimName(mc.level.dimension()), 0);
+                var evaSpot = new PlayerFinder.Spot(eva, "Eva", me.x - 5, me.y, me.z, bobSpot.dim(), 0);
+                int e0 = pf.entered, l0 = pf.loggedOut, lf0 = pf.left, c0 = pf.cameBack;
+                pf.presence(java.util.Map.of(bob, bobSpot, eva, evaSpot), java.util.Set.of(bob, eva), 100); // beide kommen
+                pf.presence(java.util.Map.of(), java.util.Set.of(eva), 101);                                 // Bob offline, Eva nur weg
+                for (int t = 102; t <= 112; t++) pf.presence(java.util.Map.of(), java.util.Set.of(eva), t);
+                boolean spot = pf.logoutSpots.containsKey(bob) && Math.abs(pf.logoutSpots.get(bob).x() - bobSpot.x()) < 0.01;
+                boolean came = pf.entered - e0 == 2, out = pf.loggedOut - l0 == 1, leftRange = pf.left - lf0 == 1;
+                pf.presence(java.util.Map.of(), java.util.Set.of(bob, eva), 113);                             // Bob wieder online
+                boolean back = !pf.logoutSpots.containsKey(bob) && pf.cameBack - c0 == 1;
+                Vec3 eye = mc.player.getEyePosition(), look = mc.player.getLookAngle();
+                int view = PlayerFinder.countInView(java.util.List.of(eye.add(look.scale(10)), eye.subtract(look.scale(10))), mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
+                result("PlayerFinder: VisualRange (2 kommen=" + yes(came) + ", Eva verlässt Sichtweite=" + yes(leftRange) + "), LogoutSpot Bob gemerkt=" + yes(out && spot)
+                        + ", wieder online -> weg=" + yes(back) + ", Zähler im Blick 1/2=" + yes(view == 1) + " " + ok(came && leftRange && out && spot && back && view == 1));
+                pf.setEnabled(true);
+                next();
+            }
+            case 394 -> {
+                if (!after(20)) return;
+                shot("56-spieler-zaehler");
+                mod(PlayerFinder.class).setEnabled(false);
                 SelfTest.jump(152);
             }
             default -> {}
