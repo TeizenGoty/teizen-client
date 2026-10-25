@@ -32,6 +32,7 @@ public final class SettingRows {
         // Erz-Listen gleich aufgeklappt zeigen: ein Klick auf "alle", dann einzeln abwählen
         openMulti.add("XRay/erze");
         openMulti.add("AutoMine/erze");
+        openMulti.add("StructureFinder/strukturen");
     }
 
     private Setting editing;
