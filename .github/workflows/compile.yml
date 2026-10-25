@@ -44,6 +44,16 @@ jobs:
               else javap -p -cp "$CP" "$a" >> api-dump.txt 2>&1; fi
             done
           fi
+      - name: Seed Atlas ansehen
+        if: always()
+        run: |
+          set +e
+          mkdir -p /tmp/sa && cd /tmp/sa
+          curl -sL "https://api.modrinth.com/v2/project/seed-atlas/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%2226.2%22%5D" -o v.json
+          curl -sL "$(jq -r '.[0].files[0].url' v.json)" -o sa.jar
+          echo "== SeedAtlasCommands" >> $GITHUB_WORKSPACE/api-dump.txt
+          javap -c -p -constants -cp sa.jar org.seedatlas.xaero.command.SeedAtlasCommands | grep -E 'ldc|String |invokestatic.*literal|// String' | head -150 >> $GITHUB_WORKSPACE/api-dump.txt
+          unzip -Z1 sa.jar | grep -i -E 'config|setting' | head -30 >> $GITHUB_WORKSPACE/api-dump.txt
       - name: Publish
         if: always()
         run: |
