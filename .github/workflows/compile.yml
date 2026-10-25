@@ -52,8 +52,11 @@ jobs:
           curl -sL "https://api.modrinth.com/v2/project/seed-atlas/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%2226.2%22%5D" -o v.json
           curl -sL "$(jq -r '.[0].files[0].url' v.json)" -o sa.jar
           echo "== SeedAtlasCommands" >> $GITHUB_WORKSPACE/api-dump.txt
-          javap -c -p -constants -cp sa.jar org.seedatlas.xaero.command.SeedAtlasCommands | grep -E 'ldc|String |invokestatic.*literal|// String' | head -150 >> $GITHUB_WORKSPACE/api-dump.txt
-          unzip -Z1 sa.jar | grep -i -E 'config|setting' | head -30 >> $GITHUB_WORKSPACE/api-dump.txt
+          for c in org.seedatlas.xaero.config.SeedAtlasConfig 'org.seedatlas.xaero.config.SeedAtlasConfig$StructureKey' 'org.seedatlas.xaero.config.SeedAtlasConfig$StructureGroup' org.seedatlas.xaero.config.SeedAtlasClientState org.seedatlas.xaero.config.SeedAtlasConfigIO org.seedatlas.xaero.config.MarkerType; do
+            javap -p -constants -cp sa.jar "$c" >> $GITHUB_WORKSPACE/api-dump.txt 2>&1
+          done
+          echo "== Strukturen-Code" >> $GITHUB_WORKSPACE/api-dump.txt
+          javap -c -p -constants -cp sa.jar 'org.seedatlas.xaero.gui.SeedAtlasSettingsScreen' | grep -E 'invoke.*(SeedAtlasConfig|SeedAtlasClientState)|// String' | head -80 >> $GITHUB_WORKSPACE/api-dump.txt
       - name: Publish
         if: always()
         run: |
