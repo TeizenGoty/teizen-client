@@ -59,7 +59,7 @@ loom {
 
 // ------------------------------------------------------------------ Zwei Versionen + Key-Mod
 // 1) teizen-client-<version>.jar          = normale Version (geht immer, key_required=false aus src/main/resources)
-// 2) teizen-client-mit-key-<version>.jar  = geht nur, wenn die Key-Mod im mods-Ordner liegt (key_required=true)
+// 2) teizen-client-1.1.0+26.2.jar         = geht nur, wenn die Key-Mod im mods-Ordner liegt (key_required=true)
 // 3) teizen-key.jar                       = die Key-Mod (nur der Schlüssel, kein Code)
 def keyPropsDir = layout.buildDirectory.dir('generated/teizen-key-props')
 
@@ -77,15 +77,22 @@ def clientMitKey = tasks.register('clientMitKeyJar', Zip) {
     group = 'build'
     description = 'Teizen Client, der nur zusammen mit der Key-Mod funktioniert'
     dependsOn tasks.named('jar'), keyProps
-    archiveBaseName = "${project.archives_base_name}-mit-key"
-    archiveVersion = "${project.version}"
+    // gleicher Name wie die normale Version, nur Version 1.1.0 (z.B. teizen-client-1.1.0+26.2.jar)
+    archiveBaseName = "${project.archives_base_name}"
+    archiveVersion = "${project.key_version}+${project.minecraft_version}"
     archiveExtension = 'jar'
     destinationDirectory = layout.buildDirectory.dir('libs')
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     preserveFileTimestamps = false
     reproducibleFileOrder = true
+    def normalVersion = "${project.version}"
+    def keyVersion = "${project.key_version}+${project.minecraft_version}"
     from({ zipTree(tasks.named('jar').get().archiveFile.get().asFile) }) {
         exclude 'teizenclient-build.properties'
+        // auch in Mod Menu als 1.1.0 anzeigen
+        filesMatching('fabric.mod.json') {
+            filter { line -> line.replace('"' + normalVersion + '"', '"' + keyVersion + '"') }
+        }
     }
     from(keyPropsDir)
 }
