@@ -159,6 +159,7 @@ final class Round10Tests {
                         + ", Kiste zu=" + yes(!chestOpen()) + " " + ok(best && rest && junk && !chestOpen()));
                 shot("57-cheststealer-rangliste");
                 stealerOff();
+                cmd("data remove block " + blk(chest()) + " Items"); // nichts herausfallen lassen
                 cmd("setblock " + blk(chest()) + " minecraft:air");
                 cmd("clear @s");
                 next();
@@ -200,6 +201,7 @@ final class Round10Tests {
                         + ok(right && listOk && removed && !chestOpen()));
                 stealerOff();
                 t("///set cheststealer pause 0");
+                cmd("data remove block " + blk(chest()) + " Items"); // nichts herausfallen lassen
                 cmd("setblock " + blk(chest()) + " minecraft:air");
                 cmd("clear @s");
                 next();
@@ -253,6 +255,7 @@ final class Round10Tests {
                         + ok(got && onlyDirt && shulkersInInv() == 1 && clean && hand && ShulkerUnpacker.lastProblem.isEmpty()));
                 shot("58-shulker-aus-kiste");
                 stealerOff();
+                cmd("data remove block " + blk(chest()) + " Items"); // nichts herausfallen lassen
                 cmd("setblock " + blk(chest()) + " minecraft:air");
                 cmd("clear @s");
                 next();
