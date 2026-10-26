@@ -24,6 +24,8 @@ jobs:
           set +e
           ./gradlew build --stacktrace > build-log.txt 2>&1
           echo "EXIT=$?" >> build-log.txt
+          # welche jar ist welche Version? (key_required=true = braucht die Key-Mod)
+          for j in build/libs/*.jar; do echo "JAR $(basename "$j"): $(unzip -p "$j" teizenclient-build.properties 2>/dev/null | tr -d '\n') $(unzip -l "$j" 2>/dev/null | tail -1)" >> build-log.txt; done
           tail -n 40 build-log.txt
       - name: Smoke test (echter Server + Client)
         if: success()
@@ -72,6 +74,8 @@ jobs:
             curl -sL "https://github.com/19MisterX98/SeedcrackerX/releases/download/2.16.1/seedcrackerX-2.16.1.jar" -o run/mods/seedcrackerx.jar
             unzip -tq run/mods/seedcrackerx.jar > /dev/null || rm -f run/mods/seedcrackerx.jar
           fi
+          # Key-Mod mitladen, damit der Selbsttest auch "Version mit Key + Key-Mod da" prüfen kann
+          cp build/libs/teizen-key.jar run/mods/ 2>/dev/null
           ls -la run/mods
           printf "onboardAccessibility:false\nskipMultiplayerWarning:true\njoinedFirstServer:true\ntutorialStep:none\nguiScale:2\nrenderDistance:5\nsimulationDistance:5\nsoundCategory_master:0.0\n" > run/options.txt
           export LIBGL_ALWAYS_SOFTWARE=1

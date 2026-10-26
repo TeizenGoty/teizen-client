@@ -56,3 +56,48 @@ loom {
         }
     }
 }
+
+// ------------------------------------------------------------------ Zwei Versionen + Key-Mod
+// 1) teizen-client-<version>.jar          = normale Version (geht immer, key_required=false aus src/main/resources)
+// 2) teizen-client-mit-key-<version>.jar  = geht nur, wenn die Key-Mod im mods-Ordner liegt (key_required=true)
+// 3) teizen-key.jar                       = die Key-Mod (nur der Schlüssel, kein Code)
+def keyPropsDir = layout.buildDirectory.dir('generated/teizen-key-props')
+
+def keyProps = tasks.register('teizenKeyProps') {
+    def out = keyPropsDir
+    outputs.dir out
+    doLast {
+        def f = out.get().file('teizenclient-build.properties').asFile
+        f.parentFile.mkdirs()
+        f.text = 'key_required=true\n'
+    }
+}
+
+def clientMitKey = tasks.register('clientMitKeyJar', Zip) {
+    group = 'build'
+    description = 'Teizen Client, der nur zusammen mit der Key-Mod funktioniert'
+    dependsOn tasks.named('remapJar'), keyProps
+    archiveBaseName = "${project.archives_base_name}-mit-key"
+    archiveVersion = "${project.version}"
+    archiveExtension = 'jar'
+    destinationDirectory = layout.buildDirectory.dir('libs')
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+    from({ zipTree(tasks.named('remapJar').get().archiveFile.get().asFile) }) {
+        exclude 'teizenclient-build.properties'
+    }
+    from(keyPropsDir)
+}
+
+def keyMod = tasks.register('keyModJar', Jar) {
+    group = 'build'
+    description = 'Die Key-Mod für die Version mit Key-Pflicht'
+    archiveFileName = 'teizen-key.jar'
+    destinationDirectory = layout.buildDirectory.dir('libs')
+    from('keymod') {
+        include 'fabric.mod.json', 'teizen-key.txt'
+    }
+}
+
+tasks.named('build') { dependsOn clientMitKey, keyMod }

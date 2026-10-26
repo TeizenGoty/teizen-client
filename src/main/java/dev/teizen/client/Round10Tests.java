@@ -1,6 +1,9 @@
 package dev.teizen.client;
 
 import dev.teizen.client.core.Commands;
+import dev.teizen.client.core.Lock;
+import dev.teizen.client.core.Module;
+import dev.teizen.client.gui.LockedScreen;
 import dev.teizen.client.modules.ChestStealer;
 import dev.teizen.client.modules.ShulkerUnpacker;
 import dev.teizen.client.util.Inv;
@@ -29,6 +32,8 @@ final class Round10Tests {
     private static BlockPos area;
     private static int u0, sel0;
     private static final List<Item> order = new ArrayList<>();
+    private static boolean lockA, normalOk;
+    private static String lockText = "";
 
     private Round10Tests() {}
 
@@ -353,6 +358,62 @@ final class Round10Tests {
                 t("///cheststealer liste");
                 result("///cheststealer nie add/weg=" + yes(added && gone) + ", unbekanntes Item abgelehnt=" + yes(unknownSkipped) + " "
                         + ok(added && gone && unknownSkipped));
+                next();
+            }
+            // ---------------------------------------------- Key-Sperre: Version mit Key-Pflicht, Key-Mod fehlt -> alles gesperrt
+            case 418 -> {
+                if (!after(10)) return;
+                Module fb = TeizenClient.modules().byName("fullbright");
+                if (fb.isEnabled()) fb.setEnabled(false);
+                normalOk = Lock.ok() && !Lock.REQUIRED;
+                Lock.testRequired = true;
+                Lock.testKeyMissing = true;
+                t("///fullbright");
+                boolean cmdBlocked = !fb.isEnabled();
+                fb.setEnabled(true);
+                fb.toggle();
+                boolean directBlocked = !fb.isEnabled();
+                boolean menuLocked = Lock.menu(dev.teizen.client.gui.ClickGui::new) instanceof LockedScreen
+                        && Lock.menu(dev.teizen.client.gui.Overview::new) instanceof LockedScreen;
+                boolean modMenuLocked = false;
+                try {
+                    Class<?> mm = Class.forName("com.terraformersmc.modmenu.ModMenu");
+                    Object scr = mm.getMethod("getConfigScreen", String.class, net.minecraft.client.gui.screens.Screen.class).invoke(null, "teizenclient", null);
+                    modMenuLocked = scr instanceof LockedScreen;
+                } catch (Throwable t) {
+                    log("Mod Menu Zugriff fehlgeschlagen: " + t);
+                }
+                int u = ShulkerUnpacker.unpacked;
+                t("///shulker");
+                boolean shulkerBlocked = !ShulkerUnpacker.busy() && ShulkerUnpacker.unpacked == u;
+                lockA = cmdBlocked && directBlocked && menuLocked && modMenuLocked && shulkerBlocked && !Lock.ok();
+                lockText = "Befehl gesperrt=" + yes(cmdBlocked) + ", direkt einschalten gesperrt=" + yes(directBlocked) + ", Menü/Übersicht zeigen Fehler="
+                        + yes(menuLocked) + ", Mod-Menu zeigt Fehler=" + yes(modMenuLocked) + ", ///shulker gesperrt=" + yes(shulkerBlocked);
+                t("///gui");
+                next();
+            }
+            case 419 -> {
+                if (!after(10)) return;
+                boolean errorShown = mc.gui.screen() instanceof LockedScreen;
+                shot("60-gesperrt-fehler");
+                result("Key-Sperre ohne Key-Mod: " + lockText + ", ///gui zeigt Fehler-Bildschirm=" + yes(errorShown) + " " + ok(lockA && errorShown));
+                mc.gui.setScreen(null);
+                next();
+            }
+            // ---------------------------------------------- Key-Sperre: Version mit Key-Pflicht + echte Key-Mod im mods-Ordner -> alles geht
+            case 420 -> {
+                if (!after(5)) return;
+                Lock.testKeyMissing = null; // echte Prüfung: liegt teizen-key.jar im mods-Ordner und passt der Schlüssel?
+                Module fb = TeizenClient.modules().byName("fullbright");
+                boolean keyMod = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded(Lock.KEY_MOD);
+                t("///fullbright");
+                boolean on = fb.isEnabled();
+                boolean menu = Lock.menu(dev.teizen.client.gui.ClickGui::new) instanceof dev.teizen.client.gui.ClickGui;
+                if (on) fb.setEnabled(false);
+                Lock.testRequired = null;
+                Lock.testKeyMissing = null;
+                result("Key-Sperre mit Key-Mod: Key-Mod geladen=" + yes(keyMod) + ", Schlüssel passt=" + yes(Lock.keyPresent()) + ", Funktion geht=" + yes(on)
+                        + ", Menü geht=" + yes(menu) + "; normale Version ohne Sperre=" + yes(normalOk) + " " + ok(keyMod && on && menu && normalOk && Lock.ok()));
                 SelfTest.jump(152);
             }
             default -> {}

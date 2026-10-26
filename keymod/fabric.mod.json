@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "teizenkey",
+  "version": "1.0.0",
+  "name": "Teizen Key",
+  "description": "Schlüssel für die Teizen-Client-Version mit Key-Pflicht. Einfach mit in den mods-Ordner legen.",
+  "authors": ["Teizen"],
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "depends": {
+    "fabricloader": ">=0.19.0"
+  }
+}
