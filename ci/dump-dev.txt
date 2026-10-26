@@ -44,3 +44,13 @@ c net.minecraft.world.entity.projectile.throwableitemprojectile.ThrowableItemPro
 c net.minecraft.world.entity.projectile.ThrowableProjectile
 c net.minecraft.world.entity.projectile.Projectile
 c net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl
+# ChestStealer: Rangliste + Shulker
+net.minecraft.world.item.component.ItemContainerContents
+net.minecraft.world.item.ItemStackTemplate
+net.minecraft.world.item.ItemInstance
+net.minecraft.world.inventory.ShulkerBoxMenu
+net.minecraft.world.inventory.ChestMenu
+net.minecraft.world.inventory.Slot
+net.minecraft.world.item.Rarity
+net.minecraft.client.gui.screens.inventory.ShulkerBoxScreen
+net.minecraft.world.entity.item.ItemEntity
