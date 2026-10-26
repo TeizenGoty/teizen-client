@@ -175,6 +175,8 @@ public final class Commands {
                 } else b.toggle();
             }
             case "find", "finde", "suche" -> find(a);
+            case "cheststealer" -> chestStealer(mm, a, body);
+            case "shulker", "shulkers" -> dev.teizen.client.modules.ShulkerUnpacker.startInventory();
             case "fav", "favorit", "favoriten" -> {
                 if (a.length < 2) {
                     var favs = mm.favorites();
@@ -353,6 +355,72 @@ public final class Commands {
         };
     }
 
+    /** ///cheststealer [nie|zuerst add|weg <Items>] [liste] [shulker an|aus] – sonst wie bisher (an/aus, Einstellung setzen). */
+    private static void chestStealer(ModuleManager mm, String[] a, String body) {
+        dev.teizen.client.modules.ChestStealer cs = mm.get(dev.teizen.client.modules.ChestStealer.class);
+        String sub = a.length >= 2 ? a[1].toLowerCase(Locale.ROOT) : "";
+        switch (sub) {
+            case "nie", "never", "zuerst", "first" -> {
+                Setting s = sub.equals("nie") || sub.equals("never") ? cs.never : cs.first;
+                String what = s == cs.never ? "Nie nehmen" : "Zuerst nehmen";
+                if (a.length < 3) {
+                    Chat.info(what + ": §f" + (s.selected().isEmpty() ? "nichts" : String.join(", ", s.selected()))
+                            + " §8(///cheststealer " + s.name + " add|weg <Item>)");
+                    return;
+                }
+                String op = a[2].toLowerCase(Locale.ROOT);
+                java.util.List<String> list = s.selected();
+                java.util.List<String> items = new java.util.ArrayList<>();
+                for (int i = 3; i < a.length; i++) for (String part : a[i].split(",")) if (!part.isBlank()) items.add(dev.teizen.client.util.Loot.clean(part));
+                switch (op) {
+                    case "add", "dazu", "+" -> {
+                        if (items.isEmpty()) { Chat.error("///cheststealer " + s.name + " add <Item>  z.B. dirt oder *_seeds"); return; }
+                        java.util.List<String> unknown = new java.util.ArrayList<>();
+                        for (String it : items) {
+                            if (!dev.teizen.client.util.Loot.known(it)) { unknown.add(it); continue; }
+                            if (!list.contains(it)) list.add(it);
+                        }
+                        if (!unknown.isEmpty()) Chat.error("Unbekannte Items: " + String.join(", ", unknown) + " (englische Namen, z.B. cobblestone)");
+                    }
+                    case "weg", "remove", "-" -> {
+                        if (items.isEmpty()) { Chat.error("///cheststealer " + s.name + " weg <Item>"); return; }
+                        list.removeAll(items);
+                    }
+                    case "leer", "clear" -> list.clear();
+                    case "standard", "reset" -> {
+                        list.clear();
+                        if (s == cs.never) list.addAll(java.util.List.of(dev.teizen.client.util.Loot.DEFAULT_NEVER.split(",")));
+                    }
+                    default -> { Chat.error("///cheststealer " + s.name + " add|weg|leer|standard <Item>"); return; }
+                }
+                s.setText(String.join(",", list));
+                Chat.ok(what + ": §f" + (list.isEmpty() ? "nichts" : String.join(", ", list)));
+                Config.save();
+            }
+            case "liste", "list" -> {
+                Chat.info("§fChestStealer§7: " + (cs.isEnabled() ? "§aan" : "§caus") + "§7, beste Sachen zuerst: " + cs.sort.display()
+                        + ", Shulker gleich ausräumen: " + cs.shulker.display());
+                Chat.raw("  §dzuerst §7= §f" + (cs.first.selected().isEmpty() ? "nichts" : String.join(", ", cs.first.selected())));
+                Chat.raw("  §dnie §7= §f" + (cs.never.selected().isEmpty() ? "nichts" : String.join(", ", cs.never.selected()))
+                        + (cs.filter.on() ? "" : " §c(Filter aus)"));
+                Chat.raw("  §7Rangliste: Totem, Elytra, verz. Goldapfel › Netherite › Shulker, Dreizack, Zauberbücher › Diamant, Goldapfel › Erfahrung, Vorlagen › Perlen, Raketen, Tränke › Smaragd, Obsidian, Bogen › Eisen, Gold, Essen › Holz, Kohle, Kupfer › Rest (verzaubert zählt mehr)");
+            }
+            case "shulker" -> {
+                if (a.length >= 3) {
+                    String err = cs.shulker.parse(a[2]);
+                    if (err != null) { Chat.error(err); return; }
+                } else cs.shulker.setBool(!cs.shulker.on());
+                Chat.ok("Shulker aus Kisten gleich ausräumen: " + (cs.shulker.on() ? "§aan" : "§caus") + "§a  (///shulker räumt die im Inventar aus)");
+                Config.save();
+            }
+            default -> {
+                // wie bisher: ///cheststealer = an/aus, ///cheststealer pause 2 = Einstellung setzen
+                if (a.length >= 3) run("set " + body);
+                else { cs.toggle(); Config.save(); }
+            }
+        }
+    }
+
     private static Module need(ModuleManager mm, String name) {
         Module m = mm.byName(name);
         if (m == null) Chat.error("Keine Funktion namens '" + name + "'. ///list zeigt alle.");
@@ -412,6 +480,9 @@ public final class Commands {
         Chat.raw("§7Menü/Übersicht: §ftippen = suchen (Lupe)§7, §fRechtsklick = Einstellungen direkt aufklappen§7, §fMausrad = scrollen§7, §fZahlen anklicken und eintippen");
         Chat.raw("§d///enchantpreview §7– Zaubertisch zeigt alle Verzauberungen (Server: braucht OP)");
         Chat.raw("§d///combatlog <Herzen> §7· §d///projectiledodge §7· §d///inventorywalk §7· §d///seeinvisible §7· §d///elytrareset §7· §d///hitmarker");
+        Chat.raw("§d///cheststealer §7– Kisten ausräumen: beste Sachen zuerst, Müll (Dirt, Cobblestone …) bleibt liegen · §d///cheststealer liste");
+        Chat.raw("§d///cheststealer nie add|weg <Item> §7· §d///cheststealer zuerst add|weg <Item> §7– z.B. §f///cheststealer nie add *_seeds");
+        Chat.raw("§d///shulker §7– alle Shulker im Inventar ausräumen (kurz hinstellen, gute Sachen nehmen, wieder einpacken)");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
         Chat.raw("§d///autobuild laden <Datei> §7– Schematic aus dem schematics-Ordner genau bei dir platzieren");
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");

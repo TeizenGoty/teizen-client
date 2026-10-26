@@ -1714,6 +1714,8 @@ final class NewTests {
                         + "{Slot:26b,id:\"minecraft:gravel\",count:10}]}");
                 tp(area, 0.5, 0, 0.5, -90, 20);
                 t("///set cheststealer pause 0");
+                // hier soll wirklich alles raus (auch Dirt usw.) – die Liste "nie" prüft Runde 10
+                t("///set cheststealer filter aus");
                 t("///cheststealer");
                 next();
             }
@@ -1753,6 +1755,7 @@ final class NewTests {
                 result("ChestStealer: " + got + "/234 Kisten-Items genommen" + (exact ? "" : " (nicht genau: " + have + ")") + (extra.isEmpty() ? "" : ", sonst noch: " + extra)
                         + ", Kiste nach " + took + " Tick(s) zu (soll höchstens 2) " + ok(got == 234 && exact && took >= 0 && took <= 2));
                 t("///cheststealer");
+                t("///set cheststealer filter an");
                 cmd("clear @s");
                 next();
             }
@@ -1999,7 +2002,10 @@ final class NewTests {
                 }
                 SelfTest.jump(300); // Runde 9: die neuen Funktionen
             }
-            default -> { if (step >= 300) Round9Tests.step(step, o); }
+            default -> {
+                if (step >= 400) Round10Tests.step(step, o);
+                else if (step >= 300) Round9Tests.step(step, o);
+            }
         }
     }
 

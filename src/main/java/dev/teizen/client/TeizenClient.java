@@ -45,12 +45,20 @@ public final class TeizenClient implements ClientModInitializer {
             handleKeys(mc);
             SelfTest.tick();
             modules.get(dev.teizen.client.modules.AutoReconnect.class).globalTick(mc);
-            if (mc.player == null || mc.level == null) { greeted = false; dev.teizen.client.core.Locator.tick(); return; }
+            if (mc.player == null || mc.level == null) { greeted = false; dev.teizen.client.modules.ShulkerUnpacker.reset(); dev.teizen.client.core.Locator.tick(); return; }
             if (!greeted) {
                 greeted = true;
                 Chat.info("geladen! §f" + dev.teizen.client.gui.SettingsScreen.keyName(menuKey) + "§7 = Menü, §f///help§7 = Befehle");
             }
             modules.tick();
+            // Shulker aus dem Inventar ausräumen (///shulker oder nach ChestStealer) – läuft auch, wenn ChestStealer aus ist
+            try {
+                dev.teizen.client.modules.ShulkerUnpacker.tick();
+            } catch (Throwable t) {
+                LOG.error("Fehler beim Shulker-Ausräumen", t);
+                dev.teizen.client.modules.ShulkerUnpacker.reset();
+                Chat.error("Shulker-Ausräumen abgebrochen: " + t);
+            }
             dev.teizen.client.core.FarPlayers.tick();
             dev.teizen.client.util.ServerQuery.tick();
             dev.teizen.client.core.Seed.tick();

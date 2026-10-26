@@ -20,6 +20,8 @@ public final class PanicButton extends Module {
                 n++;
             }
         }
+        // auch ein laufendes Shulker-Ausräumen abbrechen
+        if (ShulkerUnpacker.busy()) { ShulkerUnpacker.stop(); n++; }
         Config.save();
         return n;
     }

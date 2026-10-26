@@ -138,6 +138,26 @@ public final class CommandSuggestions {
             case 2 -> t.get(0).equalsIgnoreCase("block") ? List.of("8", "16", "32") : List.of();
             default -> List.of();
         });
+        simple(d, "shulker");
+        withArgs(d, "cheststealer", t -> {
+            if (t.isEmpty()) {
+                Set<String> out = new LinkedHashSet<>(List.of("nie", "zuerst", "liste", "shulker"));
+                out.addAll(settingNames("cheststealer"));
+                return new ArrayList<>(out);
+            }
+            String first = t.get(0).toLowerCase(Locale.ROOT);
+            if (first.equals("nie") || first.equals("zuerst")) {
+                if (t.size() == 1) return List.of("add", "weg", "leer", "standard");
+                String op = t.get(1).toLowerCase(Locale.ROOT);
+                if (op.equals("weg")) return chestList(first);
+                if (op.equals("add")) return first.equals("nie")
+                        ? List.of("dirt", "cobblestone", "gravel", "sand", "netherrack", "*_seeds", "rotten_flesh", "stone", "deepslate", "string", "bone")
+                        : List.of("totem_of_undying", "elytra", "netherite_ingot", "diamond", "ender_pearl", "golden_apple", "*shulker_box", "enchanted_book");
+                return List.of();
+            }
+            if (first.equals("shulker") && t.size() == 1) return List.of("an", "aus");
+            return t.size() == 1 ? settingValues("cheststealer", first) : List.of();
+        });
         withArgs(d, "friend", t -> switch (t.size()) {
             case 0 -> List.of("add", "remove");
             case 1 -> t.get(0).equalsIgnoreCase("remove") ? new ArrayList<>(Friends.NAMES)
@@ -147,7 +167,7 @@ public final class CommandSuggestions {
 
         // ///killaura usw. = Modul umschalten; danach optional Einstellung + Wert
         Set<String> taken = new LinkedHashSet<>(List.of("help", "list", "gui", "save", "panic", "toggle", "info", "set",
-                "bind", "menutaste", "reach", "mine", "xray", "autobuild", "find", "friend", "fav", "velocity", "structurefinder", "villagerroller", "moredurability", "opcheats", "hud", "seed", "seedmap"));
+                "bind", "menutaste", "reach", "mine", "xray", "autobuild", "find", "friend", "fav", "velocity", "structurefinder", "villagerroller", "moredurability", "opcheats", "hud", "seed", "seedmap", "shulker", "cheststealer"));
         for (Module m : TeizenClient.modules().all()) {
             String name = m.name.toLowerCase(Locale.ROOT);
             if (!taken.add(name)) continue;
@@ -247,6 +267,17 @@ public final class CommandSuggestions {
         if (withNone) out.add("none");
         out.addAll(Keys.names());
         return out;
+    }
+
+    /** Einträge der ChestStealer-Liste "nie" oder "zuerst". */
+    private static List<String> chestList(String which) {
+        try {
+            Module m = TeizenClient.modules().byName("cheststealer");
+            Setting s = m == null ? null : m.setting(which);
+            return s == null ? List.of() : s.selected();
+        } catch (Throwable t) {
+            return List.of();
+        }
     }
 
     private static List<String> xrayOres() {

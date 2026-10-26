@@ -979,7 +979,7 @@ final class Round9Tests {
                 if (!after(20)) return;
                 shot("56-spieler-zaehler");
                 mod(PlayerFinder.class).setEnabled(false);
-                SelfTest.jump(152);
+                SelfTest.jump(400); // Runde 10: ChestStealer-Rangliste + Shulker
             }
             default -> {}
         }
