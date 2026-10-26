@@ -792,6 +792,8 @@ final class Round9Tests {
                 arena(area, 7, 5);
                 cmd("clear @s");
                 cmd("item replace entity @s hotbar.0 with minecraft:ender_pearl 4");
+                // volle Herzen, sonst kann der Aufprall nach der Perle den Testspieler töten (dann wird falsch gemessen)
+                cmd("effect give @s minecraft:instant_health 1 5");
                 tp(area, 0.5, 0, 0.5, -90, -25);
                 t("///trajectories");
                 next();

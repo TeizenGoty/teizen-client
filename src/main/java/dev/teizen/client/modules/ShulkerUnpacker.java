@@ -15,10 +15,12 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.inventory.ShulkerBoxMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -49,6 +51,8 @@ public final class ShulkerUnpacker {
     /** Hand vorher, Hotbar-Platz für den Shulker, Platz mit dem weggetauschten Hand-Item (-1 = nichts getauscht). */
     private static int prevSlot = -1, handSlot = -1, swappedFrom = -1, breakSlot = -1;
     private static int shulkersBefore, doneThisRun, takenThisRun;
+    /** Läuft gerade zum heruntergefallenen Shulker. */
+    private static boolean walked;
 
     /** Für den Selbsttest: so viele Shulker ganz ausgeräumt und wieder eingepackt, so viele Stapel genommen. */
     public static int unpacked, stacksTaken;
@@ -120,6 +124,7 @@ public final class ShulkerUnpacker {
         running = false;
         pos = null;
         prevSlot = handSlot = swappedFrom = breakSlot = -1;
+        walked = false;
     }
 
     // ------------------------------------------------------------------ Ablauf
@@ -263,17 +268,51 @@ public final class ShulkerUnpacker {
 
     private static void tickPickup() {
         if (countShulkers() >= shulkersBefore) {
+            if (walked) stopWalking();
             unpacked++;
             doneThisRun++;
             pos = null;
             phase = Phase.IDLE;
             return;
         }
-        if (timer > 60) {
-            problem("Shulker liegt noch auf dem Boden bei " + pos.toShortString() + " – bitte aufheben.");
+        // nach der kurzen Aufhebe-Pause noch nicht im Inventar (weggerollt)? -> die paar Schritte hingehen
+        ItemEntity drop = timer > 12 ? findDrop() : null;
+        if (drop != null) walkTo(drop.position());
+        if (timer > 100) {
+            if (walked) stopWalking();
+            problem("Shulker liegt noch auf dem Boden bei " + (drop != null ? drop.blockPosition() : pos).toShortString() + " – bitte aufheben.");
             pos = null;
             phase = Phase.IDLE;
         }
+    }
+
+    /** Der abgebaute Shulker als Item am Boden (nächster an der Stelle, wo er stand). */
+    private static ItemEntity findDrop() {
+        ItemEntity best = null;
+        double bestD = Double.MAX_VALUE;
+        for (ItemEntity e : mc.level.getEntitiesOfClass(ItemEntity.class, new AABB(pos).inflate(4), it -> it.isAlive() && Loot.isShulker(it.getItem()))) {
+            double d = e.distanceToSqr(Vec3.atCenterOf(pos));
+            if (d < bestD) { bestD = d; best = e; }
+        }
+        return best;
+    }
+
+    /** Ein Stück direkt auf das Ziel zu gehen (nur kurze Wege auf gleicher Höhe). */
+    private static void walkTo(Vec3 target) {
+        Vec3 me = mc.player.position();
+        double dx = target.x - me.x, dz = target.z - me.z, h = Math.sqrt(dx * dx + dz * dz);
+        if (h < 0.15 || h > 5 || Math.abs(target.y - me.y) > 1.5) return;
+        double speed = Math.min(0.2, h);
+        Vec3 v = mc.player.getDeltaMovement();
+        mc.player.setDeltaMovement(dx / h * speed, v.y, dz / h * speed);
+        walked = true;
+    }
+
+    private static void stopWalking() {
+        walked = false;
+        if (mc.player == null) return;
+        Vec3 v = mc.player.getDeltaMovement();
+        mc.player.setDeltaMovement(0, v.y, 0);
     }
 
     // ------------------------------------------------------------------ Helfer
