@@ -33,7 +33,7 @@ public final class PlayerFinder extends Module {
     private final Setting ring = add(Setting.number("kreis", "Größe des Pfeil-Kreises (Pixel)", 60, 20, 200));
     private final Setting logout = add(Setting.bool("logout", "LogoutSpots: zeigt, wo ein Spieler offline gegangen ist", true));
     private final Setting visual = add(Setting.bool("meldung", "VisualRange: Meldung (mit Ton), wenn ein Spieler in deine Sichtweite kommt oder sie verlässt", true));
-    private final Setting counter = add(Setting.bool("zaehler", "Unten links: wie viele Spieler im Blick und in der Nähe sind", true));
+    private final Setting counter = add(Setting.bool("zaehler", "Unten links: wie viele Spieler du gerade im Blick hast", true));
 
     /** Wo jemand offline gegangen ist. */
     public record Spot(java.util.UUID id, String name, double x, double y, double z, String dim, long time) {}
@@ -205,8 +205,11 @@ public final class PlayerFinder extends Module {
         }
         nearby = pts.size();
         inView = countInView(pts, g.guiWidth(), g.guiHeight());
-        String t = "§d👁 §f" + inView + " §7im Blick §8· §f" + nearby + " §7in der Nähe";
+        // nur ein kleines Feld: Augen-Zeichen + Zahl der Spieler im Blick (passt immer links neben die Hotbar)
+        String t = "§d👁 §f" + inView;
         int w = mc.font.width(t);
+        int maxRight = g.guiWidth() / 2 - 91 - 4; // linker Rand der Hotbar
+        if (w + 5 > maxRight) return;
         g.fill(1, g.guiHeight() - 12, w + 5, g.guiHeight() - 1, 0x80140A26);
         g.text(mc.font, t, 3, g.guiHeight() - 10, 0xFFFFFFFF, true);
     }
