@@ -76,6 +76,7 @@ public final class ShulkerUnpacker {
     /** ///shulker: alle Shulker im Inventar ausräumen. */
     public static void startInventory() {
         if (mc.player == null) return;
+        if (!dev.teizen.client.core.Lock.ok()) { dev.teizen.client.core.Lock.complain(); return; }
         if (running) { Chat.info("Shulker werden schon ausgeräumt …"); return; }
         Loot.Prefs p = prefs();
         List<Integer> slots = new ArrayList<>();
@@ -95,7 +96,7 @@ public final class ShulkerUnpacker {
 
     /** Diese Inventar-Plätze (mit Shulkern) nacheinander ausräumen. */
     public static void queue(List<Integer> slots) {
-        if (slots.isEmpty()) return;
+        if (slots.isEmpty() || !dev.teizen.client.core.Lock.ok()) return;
         if (!running) {
             running = true;
             doneThisRun = 0;

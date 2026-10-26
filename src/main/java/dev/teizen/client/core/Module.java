@@ -57,6 +57,8 @@ public abstract class Module {
 
     public void setEnabled(boolean on) {
         if (on == enabled) return;
+        // Version mit Key-Pflicht ohne Key-Mod: nichts lässt sich einschalten (ausschalten geht immer)
+        if (on && !Lock.ok()) { Lock.complain(); return; }
         enabled = on;
         try {
             if (on) onEnable(); else onDisable();
@@ -66,6 +68,7 @@ public abstract class Module {
     }
 
     public void toggle() {
+        if (!enabled && !Lock.ok()) { Lock.complain(); return; }
         setEnabled(!enabled);
         Chat.info(name + (enabled ? " §aan" : " §caus"));
     }

@@ -35,6 +35,13 @@ public final class Commands {
         lastTime = now;
         executed++;
         String body = message.substring(PREFIX.length()).trim();
+        if (!Lock.ok()) {
+            // gesperrt (Key-Mod fehlt): kein Befehl geht, ///gui zeigt den Fehler im Menü
+            String c = body.isEmpty() ? "" : body.split("\\s+")[0].toLowerCase(Locale.ROOT);
+            if (c.equals("gui") || c.equals("menu") || c.equals("menü")) mc.execute(() -> mc.gui.setScreen(new dev.teizen.client.gui.LockedScreen(null)));
+            else Lock.complain();
+            return true;
+        }
         try {
             run(body);
         } catch (Throwable t) {

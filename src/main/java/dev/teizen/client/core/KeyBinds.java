@@ -49,7 +49,7 @@ public final class KeyBinds {
 
         menu = add(new KeyMapping("key.teizenclient.menu", InputConstants.Type.KEYSYM, TeizenClient.menuKey, cat),
                 () -> TeizenClient.menuKey, v -> TeizenClient.menuKey = v,
-                () -> { Minecraft mc = Minecraft.getInstance(); if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(new ClickGui()); });
+                () -> { Minecraft mc = Minecraft.getInstance(); if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(Lock.menu(ClickGui::new)); });
 
         // Übersicht: hat keinen eigenen Wert im Client – die Minecraft-Taste ist der Wert
         overview = KeyMappingHelper.registerKeyMapping(
@@ -136,7 +136,7 @@ public final class KeyBinds {
         if (save) Config.save();
 
         while (overview.consumeClick()) {
-            if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(new Overview());
+            if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(Lock.menu(Overview::new));
         }
     }
 

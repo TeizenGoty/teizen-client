@@ -8,6 +8,7 @@ import dev.teizen.client.gui.SettingsScreen;
 public final class ModMenuCompat implements ModMenuApi {
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
-        return SettingsScreen::new;
+        // Version mit Key-Pflicht ohne Key-Mod: auch hier nur der Fehler
+        return parent -> dev.teizen.client.core.Lock.ok() ? new SettingsScreen(parent) : new dev.teizen.client.gui.LockedScreen(parent);
     }
 }

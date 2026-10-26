@@ -135,7 +135,7 @@ public final class SettingsScreen extends Screen {
         if (inside(mx, my, x, keyY())) { startListening(); return true; }
         if (inside(mx, my, x, openY())) {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) mc.gui.setScreen(new ClickGui());
+            if (mc.player != null) mc.gui.setScreen(dev.teizen.client.core.Lock.menu(ClickGui::new));
             else note = "§cDas Menü geht nur in einer Welt auf.";
             return true;
         }

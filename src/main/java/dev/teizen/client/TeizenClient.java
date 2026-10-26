@@ -48,7 +48,8 @@ public final class TeizenClient implements ClientModInitializer {
             if (mc.player == null || mc.level == null) { greeted = false; dev.teizen.client.modules.ShulkerUnpacker.reset(); dev.teizen.client.core.Locator.tick(); return; }
             if (!greeted) {
                 greeted = true;
-                Chat.info("geladen! §f" + dev.teizen.client.gui.SettingsScreen.keyName(menuKey) + "§7 = Menü, §f///help§7 = Befehle");
+                if (dev.teizen.client.core.Lock.ok()) Chat.info("geladen! §f" + dev.teizen.client.gui.SettingsScreen.keyName(menuKey) + "§7 = Menü, §f///help§7 = Befehle");
+                else Chat.error(dev.teizen.client.core.Lock.message());
             }
             modules.tick();
             // Shulker aus dem Inventar ausräumen (///shulker oder nach ChestStealer) – läuft auch, wenn ChestStealer aus ist
@@ -89,7 +90,8 @@ public final class TeizenClient implements ClientModInitializer {
             dev.teizen.client.core.Seed.stopCracker();
             dev.teizen.client.util.CleanExit.arm();
         });
-        LOG.info("Teizen Client geladen ({} Funktionen)", modules.all().size());
+        LOG.info("Teizen Client geladen ({} Funktionen, Key-Pflicht={}, Key-Mod da={})", modules.all().size(),
+                dev.teizen.client.core.Lock.REQUIRED, dev.teizen.client.core.Lock.keyPresent());
     }
 
     private boolean pressed(Minecraft mc, int key) {
@@ -103,7 +105,7 @@ public final class TeizenClient implements ClientModInitializer {
         dev.teizen.client.core.KeyBinds.tick(mc);
         boolean noScreen = mc.gui.screen() == null;
         if (pressed(mc, menuKey) && noScreen && mc.player != null) {
-            mc.gui.setScreen(new ClickGui());
+            mc.gui.setScreen(dev.teizen.client.core.Lock.menu(ClickGui::new));
         }
         for (Module m : modules.all()) {
             if (m.key < 0 || m.key == menuKey) continue;
