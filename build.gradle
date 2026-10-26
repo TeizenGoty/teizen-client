@@ -76,7 +76,7 @@ def keyProps = tasks.register('teizenKeyProps') {
 def clientMitKey = tasks.register('clientMitKeyJar', Zip) {
     group = 'build'
     description = 'Teizen Client, der nur zusammen mit der Key-Mod funktioniert'
-    dependsOn tasks.named('remapJar'), keyProps
+    dependsOn tasks.named('jar'), keyProps
     archiveBaseName = "${project.archives_base_name}-mit-key"
     archiveVersion = "${project.version}"
     archiveExtension = 'jar'
@@ -84,7 +84,7 @@ def clientMitKey = tasks.register('clientMitKeyJar', Zip) {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     preserveFileTimestamps = false
     reproducibleFileOrder = true
-    from({ zipTree(tasks.named('remapJar').get().archiveFile.get().asFile) }) {
+    from({ zipTree(tasks.named('jar').get().archiveFile.get().asFile) }) {
         exclude 'teizenclient-build.properties'
     }
     from(keyPropsDir)
