@@ -1,3 +1,6 @@
 # dump
-c net.minecraft.client.KeyMapping
-c com.mojang.blaze3d.platform.InputConstants
+c net.minecraft.server.network.ServerGamePacketListenerImpl
+c net.minecraft.network.protocol.game.ServerboundMovePlayerPacket
+c net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$Rot
+c net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$PosRot
+c net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$Pos
