@@ -786,6 +786,11 @@ final class NewTests {
             }
             // ---------------------------------------------- AutoReconnect (Rauswurf per /kick, danach von selbst wieder rein)
             case 152 -> {
+                // sicherer Platz zum Wieder-Einloggen (nicht in einem Block landen)
+                BlockPos safe = SelfTest.origin().offset(30, 0, -60);
+                cmd("fill " + (safe.getX() - 3) + " " + (safe.getY() - 1) + " " + (safe.getZ() - 3) + " " + (safe.getX() + 3) + " " + (safe.getY() - 1) + " " + (safe.getZ() + 3) + " minecraft:stone");
+                cmd("fill " + (safe.getX() - 3) + " " + safe.getY() + " " + (safe.getZ() - 3) + " " + (safe.getX() + 3) + " " + (safe.getY() + 3) + " " + (safe.getZ() + 3) + " minecraft:air");
+                cmd(String.format(java.util.Locale.ROOT, "tp @s %.1f %d %.1f", safe.getX() + 0.5, safe.getY(), safe.getZ() + 0.5));
                 t("///set autoreconnect sekunden 2");
                 t("///autoreconnect");
                 next();
@@ -864,6 +869,9 @@ final class NewTests {
             // ---------------------------------------------- ProjectileDodge (Pfeil fliegt genau auf dich zu)
             case 101 -> {
                 if (!after(10)) return;
+                // freie, flache Bahn für den Pfeil (sonst hängt es vom Gelände am Spawn ab)
+                cmd("fill " + (area.getX() - 2) + " " + (area.getY() - 1) + " " + (area.getZ() - 3) + " " + (area.getX() + 12) + " " + (area.getY() - 1) + " " + (area.getZ() + 3) + " minecraft:stone");
+                cmd("fill " + (area.getX() - 2) + " " + area.getY() + " " + (area.getZ() - 3) + " " + (area.getX() + 12) + " " + (area.getY() + 4) + " " + (area.getZ() + 3) + " minecraft:air");
                 tp(area, 0.5, 0, 0.5, 180, 0);
                 next();
             }

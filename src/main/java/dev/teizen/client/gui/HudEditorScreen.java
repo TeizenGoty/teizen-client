@@ -34,10 +34,14 @@ public final class HudEditorScreen extends Screen {
 
     /** Ganz oben liegendes Teil unter der Maus. */
     public String at(double mx, double my) {
+        // sichtbare Teile zuerst (Platzhalter von ausgeschalteten Teilen können darüber liegen)
         String hit = null;
-        for (String id : HudLayout.NAMES.keySet()) {
-            HudLayout.Box b = HudLayout.screenBox(id);
-            if (mx >= b.x1() - 1 && mx <= b.x2() + 1 && my >= b.y1() - 1 && my <= b.y2() + 1) hit = id;
+        for (int pass = 0; pass < 2 && hit == null; pass++) {
+            for (String id : HudLayout.NAMES.keySet()) {
+                if ((pass == 0) != HudLayout.visible(id)) continue;
+                HudLayout.Box b = HudLayout.screenBox(id);
+                if (mx >= b.x1() - 1 && mx <= b.x2() + 1 && my >= b.y1() - 1 && my <= b.y2() + 1) hit = id;
+            }
         }
         return hit;
     }
