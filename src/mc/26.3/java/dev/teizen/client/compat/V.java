@@ -16,6 +16,8 @@ public final class V {
     public static final String MC = "26.3";
     /** Ab 26.3 wirft der Server raus, wenn mehr als ein Positions-Paket pro Tick kommt. */
     public static final boolean MULTI_MOVE_PACKETS = false;
+    /** Schlüssel für Item-Modifier in /item modify (26.2: function, 26.3: type). */
+    public static final String FN = "type";
     public static final InputConstants.Type KEYBOARD = InputConstants.Type.KEYBOARD;
 
     /** Arm schwingen. In 26.3 schwingt der Server beim Schlagen selbst. */

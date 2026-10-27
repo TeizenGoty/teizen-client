@@ -109,7 +109,7 @@ public final class FastEat extends Module {
         String target = slot == 36 ? "weapon.offhand" : "container." + slot;
         String value = String.format(Locale.ROOT, "%.3f", secs);
         mc.player.connection.sendCommand("item modify entity @s " + target
-                + " {function:\"minecraft:set_components\",components:{\"minecraft:consumable\":{consume_seconds:" + value + "f}}}");
+                + " {" + dev.teizen.client.compat.V.FN + ":\"minecraft:set_components\",components:{\"minecraft:consumable\":{consume_seconds:" + value + "f}}}");
     }
 
     @Override

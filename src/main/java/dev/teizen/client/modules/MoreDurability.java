@@ -65,14 +65,14 @@ public final class MoreDurability extends Module {
         switch (mode.str()) {
             case "mehr" -> {
                 int want = def * factor.integer();
-                if (currentMax(s) != want) return "{function:\"minecraft:set_components\",components:{\"minecraft:max_damage\":" + want + "}}";
+                if (currentMax(s) != want) return "{" + dev.teizen.client.compat.V.FN + ":\"minecraft:set_components\",components:{\"minecraft:max_damage\":" + want + "}}";
             }
             case "unzerstoerbar" -> {
-                if (!s.has(DataComponents.UNBREAKABLE)) return "{function:\"minecraft:set_components\",components:{\"minecraft:unbreakable\":{}}}";
+                if (!s.has(DataComponents.UNBREAKABLE)) return "{" + dev.teizen.client.compat.V.FN + ":\"minecraft:set_components\",components:{\"minecraft:unbreakable\":{}}}";
             }
             default -> {
                 int max = currentMax(s);
-                if (max > 0 && s.getDamageValue() >= max * repairAt.num() / 100.0) return "{function:\"minecraft:set_damage\",damage:1.0}";
+                if (max > 0 && s.getDamageValue() >= max * repairAt.num() / 100.0) return "{" + dev.teizen.client.compat.V.FN + ":\"minecraft:set_damage\",damage:1.0}";
             }
         }
         return null;
@@ -86,10 +86,10 @@ public final class MoreDurability extends Module {
         int cur = currentMax(s);
         if (cur != def && cur > 0) {
             float left = Math.max(0.01f, 1f - (float) s.getDamageValue() / cur);
-            sb.append("{function:\"minecraft:set_components\",components:{\"minecraft:max_damage\":").append(def).append("}},")
-              .append("{function:\"minecraft:set_damage\",damage:").append(String.format(Locale.ROOT, "%.3f", left)).append("},");
+            sb.append("{" + dev.teizen.client.compat.V.FN + ":\"minecraft:set_components\",components:{\"minecraft:max_damage\":").append(def).append("}},")
+              .append("{" + dev.teizen.client.compat.V.FN + ":\"minecraft:set_damage\",damage:").append(String.format(Locale.ROOT, "%.3f", left)).append("},");
         }
-        if (s.has(DataComponents.UNBREAKABLE)) sb.append("{function:\"minecraft:set_components\",components:{\"!minecraft:unbreakable\":{}}},");
+        if (s.has(DataComponents.UNBREAKABLE)) sb.append("{" + dev.teizen.client.compat.V.FN + ":\"minecraft:set_components\",components:{\"!minecraft:unbreakable\":{}}},");
         if (sb.isEmpty()) return null;
         return "[" + sb.substring(0, sb.length() - 1) + "]";
     }

@@ -14,6 +14,8 @@ public final class V {
     public static final String MC = "26.2";
     /** Server erlaubt mehrere Positions-Pakete pro Tick (Criticals mit Paketen). */
     public static final boolean MULTI_MOVE_PACKETS = true;
+    /** Schlüssel für Item-Modifier in /item modify (26.2: function, 26.3: type). */
+    public static final String FN = "function";
     public static final InputConstants.Type KEYBOARD = InputConstants.Type.KEYSYM;
 
     /** Arm schwingen (auch für den Server). */
