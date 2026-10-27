@@ -2,6 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "dev.teizen.client.mixin",
+  "plugin": "dev.teizen.client.compat.MixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "MinecraftAccessor",
@@ -18,7 +19,6 @@
     "LivingEntityAccessor",
     "ConnectionMixin",
     "LevelMixin",
-    "ClientClockManagerMixin",
     "StringDecomposerMixin",
     "AbstractClientPlayerMixin",
     "DefaultPlayerSkinAccessor",

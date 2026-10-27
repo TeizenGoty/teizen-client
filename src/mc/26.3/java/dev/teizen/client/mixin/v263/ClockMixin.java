@@ -1,4 +1,4 @@
-package dev.teizen.client.mixin;
+package dev.teizen.client.mixin.v263;
 
 import dev.teizen.client.modules.TimeChanger;
 import org.spongepowered.asm.mixin.Mixin;
@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /** TimeChanger (26.3): die Uhr der Welt zeigt (nur bei dir) die gewählte Tageszeit. In 26.3 steckt die Zeit in ClientClockInstance. */
 @Mixin(targets = "net.minecraft.client.ClientClockManager$ClientClockInstance")
-public abstract class ClientClockManagerMixin {
+public abstract class ClockMixin {
     @Inject(method = "totalTicks", at = @At("RETURN"), cancellable = true)
     private void teizen$time(CallbackInfoReturnable<Long> cir) {
         Long t = TimeChanger.override(cir.getReturnValueJ());

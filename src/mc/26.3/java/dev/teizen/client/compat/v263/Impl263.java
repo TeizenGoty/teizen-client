@@ -1,57 +1,105 @@
-package dev.teizen.client.compat;
+package dev.teizen.client.compat.v263;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.teizen.client.compat.Impl;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.PiercingWeapon;
+import net.minecraft.world.item.component.SwingAnimation;
 
-/** Tasten-Codes für Minecraft 26.3 (SDL3, nicht mehr GLFW). Gleiche Namen wie in der 26.2-Version. */
-public final class K {
-    private K() {}
-    public static final int MOD_SHIFT = InputConstants.MOD_SHIFT;
-    public static final int ESCAPE = InputConstants.KEY_ESCAPE;
-    public static final int ENTER = InputConstants.KEY_RETURN;
-    public static final int KP_ENTER = InputConstants.KEY_NUMPADENTER;
-    public static final int TAB = InputConstants.KEY_TAB;
-    public static final int BACKSPACE = InputConstants.KEY_BACKSPACE;
-    public static final int DELETE = InputConstants.KEY_DELETE;
-    public static final int INSERT = InputConstants.KEY_INSERT;
-    public static final int HOME = InputConstants.KEY_HOME;
-    public static final int END = InputConstants.KEY_END;
-    public static final int PAGE_UP = InputConstants.KEY_PAGEUP;
-    public static final int PAGE_DOWN = InputConstants.KEY_PAGEDOWN;
-    public static final int UP = InputConstants.KEY_UP;
-    public static final int DOWN = InputConstants.KEY_DOWN;
-    public static final int LEFT = InputConstants.KEY_LEFT;
-    public static final int RIGHT = InputConstants.KEY_RIGHT;
-    public static final int SPACE = InputConstants.KEY_SPACE;
-    public static final int LEFT_SHIFT = InputConstants.KEY_LSHIFT;
-    public static final int RIGHT_SHIFT = InputConstants.KEY_RSHIFT;
-    public static final int LEFT_CONTROL = InputConstants.KEY_LCONTROL;
-    public static final int RIGHT_CONTROL = InputConstants.KEY_RCONTROL;
-    public static final int LEFT_ALT = InputConstants.KEY_LALT;
-    public static final int RIGHT_ALT = InputConstants.KEY_RALT;
-    public static final int LEFT_SUPER = InputConstants.KEY_LGUI;
-    public static final int RIGHT_SUPER = InputConstants.KEY_RGUI;
-    public static final int CAPS_LOCK = InputConstants.KEY_CAPSLOCK;
-    public static final int COMMA = InputConstants.KEY_COMMA;
-    public static final int PERIOD = InputConstants.KEY_PERIOD;
-    public static final int MINUS = InputConstants.KEY_MINUS;
-    public static final int A = InputConstants.KEY_A;
-    public static final int G = InputConstants.KEY_G;
-    public static final int H = InputConstants.KEY_H;
-    public static final int J = InputConstants.KEY_J;
-    public static final int K = InputConstants.KEY_K;
-    public static final int M = InputConstants.KEY_M;
-    public static final int O = InputConstants.KEY_O;
-    public static final int F1 = InputConstants.KEY_F1;
+/** Versions-Code für Minecraft 26.3. */
+public final class Impl263 implements Impl {
+    public Impl263() {}
+
+    @Override public String mc() { return "26.3"; }
+    @Override public boolean multiMovePackets() { return false; }
+    @Override public String fn() { return "type"; }
+    @Override public InputConstants.Type keyboard() { return InputConstants.Type.KEYBOARD; }
+
+    @Override public void swing(InteractionHand hand) {
+        Minecraft mc = Minecraft.getInstance();
+        ItemStack s = mc.player.getItemInHand(hand);
+        mc.player.swing(hand, s.getOrDefault(DataComponents.ATTACK_ANIMATION, SwingAnimation.DEFAULT), false);
+    }
+
+    @Override public boolean isKeyDown(int code) {
+        if (code < 0) return false;
+        return InputConstants.isKeyDown(code);
+    }
+
+    @Override public void piercingAttack(ItemStack weapon, PiercingWeapon pw) {
+        Minecraft.getInstance().gameMode.piercingAttack(weapon.getOrDefault(DataComponents.ATTACK_ANIMATION, SwingAnimation.DEFAULT), pw);
+    }
+
+    @Override public float attackAnim(LivingEntity e, float partial) {
+        return e.getSwingAnimation(partial);
+    }
+
+    @Override public String layoutName(int code) {
+        try {
+            String n = InputConstants.Type.KEYBOARD.getOrCreate(code).getDisplayName().getString();
+            return n == null || n.isBlank() || n.startsWith("key.") ? null : n;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    @Override public int key(String name) {
+        return switch (name) {
+            case "MOD_SHIFT" -> InputConstants.MOD_SHIFT;
+            case "ESCAPE" -> InputConstants.KEY_ESCAPE;
+            case "ENTER" -> InputConstants.KEY_RETURN;
+            case "KP_ENTER" -> InputConstants.KEY_NUMPADENTER;
+            case "TAB" -> InputConstants.KEY_TAB;
+            case "BACKSPACE" -> InputConstants.KEY_BACKSPACE;
+            case "DELETE" -> InputConstants.KEY_DELETE;
+            case "INSERT" -> InputConstants.KEY_INSERT;
+            case "HOME" -> InputConstants.KEY_HOME;
+            case "END" -> InputConstants.KEY_END;
+            case "PAGE_UP" -> InputConstants.KEY_PAGEUP;
+            case "PAGE_DOWN" -> InputConstants.KEY_PAGEDOWN;
+            case "UP" -> InputConstants.KEY_UP;
+            case "DOWN" -> InputConstants.KEY_DOWN;
+            case "LEFT" -> InputConstants.KEY_LEFT;
+            case "RIGHT" -> InputConstants.KEY_RIGHT;
+            case "SPACE" -> InputConstants.KEY_SPACE;
+            case "LEFT_SHIFT" -> InputConstants.KEY_LSHIFT;
+            case "RIGHT_SHIFT" -> InputConstants.KEY_RSHIFT;
+            case "LEFT_CONTROL" -> InputConstants.KEY_LCONTROL;
+            case "RIGHT_CONTROL" -> InputConstants.KEY_RCONTROL;
+            case "LEFT_ALT" -> InputConstants.KEY_LALT;
+            case "RIGHT_ALT" -> InputConstants.KEY_RALT;
+            case "LEFT_SUPER" -> InputConstants.KEY_LGUI;
+            case "RIGHT_SUPER" -> InputConstants.KEY_RGUI;
+            case "CAPS_LOCK" -> InputConstants.KEY_CAPSLOCK;
+            case "COMMA" -> InputConstants.KEY_COMMA;
+            case "PERIOD" -> InputConstants.KEY_PERIOD;
+            case "MINUS" -> InputConstants.KEY_MINUS;
+            case "A" -> InputConstants.KEY_A;
+            case "G" -> InputConstants.KEY_G;
+            case "H" -> InputConstants.KEY_H;
+            case "J" -> InputConstants.KEY_J;
+            case "K" -> InputConstants.KEY_K;
+            case "M" -> InputConstants.KEY_M;
+            case "O" -> InputConstants.KEY_O;
+            case "F1" -> InputConstants.KEY_F1;
+            default -> throw new IllegalArgumentException("Taste " + name);
+        };
+    }
+
 
     private static final int[] LETTERS = {InputConstants.KEY_A,InputConstants.KEY_B,InputConstants.KEY_C,InputConstants.KEY_D,InputConstants.KEY_E,InputConstants.KEY_F,InputConstants.KEY_G,InputConstants.KEY_H,InputConstants.KEY_I,InputConstants.KEY_J,InputConstants.KEY_K,InputConstants.KEY_L,InputConstants.KEY_M,InputConstants.KEY_N,InputConstants.KEY_O,InputConstants.KEY_P,InputConstants.KEY_Q,InputConstants.KEY_R,InputConstants.KEY_S,InputConstants.KEY_T,InputConstants.KEY_U,InputConstants.KEY_V,InputConstants.KEY_W,InputConstants.KEY_X,InputConstants.KEY_Y,InputConstants.KEY_Z};
     private static final int[] DIGITS = {InputConstants.KEY_0,InputConstants.KEY_1,InputConstants.KEY_2,InputConstants.KEY_3,InputConstants.KEY_4,InputConstants.KEY_5,InputConstants.KEY_6,InputConstants.KEY_7,InputConstants.KEY_8,InputConstants.KEY_9};
     private static final int[] FS = {InputConstants.KEY_F1,InputConstants.KEY_F2,InputConstants.KEY_F3,InputConstants.KEY_F4,InputConstants.KEY_F5,InputConstants.KEY_F6,InputConstants.KEY_F7,InputConstants.KEY_F8,InputConstants.KEY_F9,InputConstants.KEY_F10,InputConstants.KEY_F11,InputConstants.KEY_F12,InputConstants.KEY_F13,InputConstants.KEY_F14,InputConstants.KEY_F15,InputConstants.KEY_F16,InputConstants.KEY_F17,InputConstants.KEY_F18,InputConstants.KEY_F19,InputConstants.KEY_F20,InputConstants.KEY_F21,InputConstants.KEY_F22,InputConstants.KEY_F23,InputConstants.KEY_F24};
     private static final int[] NUMPAD = {InputConstants.KEY_NUMPAD0,InputConstants.KEY_NUMPAD1,InputConstants.KEY_NUMPAD2,InputConstants.KEY_NUMPAD3,InputConstants.KEY_NUMPAD4,InputConstants.KEY_NUMPAD5,InputConstants.KEY_NUMPAD6,InputConstants.KEY_NUMPAD7,InputConstants.KEY_NUMPAD8,InputConstants.KEY_NUMPAD9};
 
-    public static int letter(char c) { return LETTERS[Character.toLowerCase(c) - 'a']; }
-    public static int digit(int d) { return DIGITS[d]; }
-    public static int f(int i) { return FS[i - 1]; }
-    public static int numpad(int d) { return NUMPAD[d]; }
+    @Override public int letter(char c) { return LETTERS[Character.toLowerCase(c) - 'a']; }
+    @Override public int digit(int d) { return DIGITS[d]; }
+    @Override public int f(int i) { return FS[i - 1]; }
+    @Override public int numpad(int d) { return NUMPAD[d]; }
 
     /** GLFW-Code (26.2) <-> SDL-Code (26.3), damit die Config für beide Versionen gleich bleibt. */
     private static final int[][] GLFW = {
@@ -172,13 +220,13 @@ public final class K {
     };
 
     /** Für die Config: Codes werden immer als GLFW-Code gespeichert (gleiche Datei für 26.2 und 26.3). */
-    public static int toGlfw(int code) {
+    @Override public int toGlfw(int code) {
         if (code < 0) return code;
         for (int[] p : GLFW) if (p[1] == code) return p[0];
         return -1;
     }
 
-    public static int fromGlfw(int glfw) {
+    @Override public int fromGlfw(int glfw) {
         if (glfw < 0) return glfw;
         for (int[] p : GLFW) if (p[0] == glfw) return p[1];
         return -1;

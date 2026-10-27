@@ -9,7 +9,14 @@ def litematicaLibs = ["libs/${mcv.litematica_jar}", "libs/${mcv.malilib_jar}"]
 // SeedCrackerX (MIT, selbst aus dem offiziellen Code gebaut, siehe .github/workflows/scx.yml) – fest eingebaut
 def scxJar = "libs/seedcrackerx-${project.minecraft_version}.jar"
 
-version = "${project.mod_version}+${project.minecraft_version}"
+// Eine Jar für 26.2 + 26.3: erst mit -Pminecraft_version=26.3 kompilieren, dann normal (26.2) bauen mit
+// -Pv263Classes=<Ordner mit den 26.3-Klassen>. Ohne v263Classes entsteht eine Jar nur für die eine Version.
+def v263Classes = project.findProperty('v263Classes')
+def universal = v263Classes != null
+// Test der fertigen Jar: -PuseJar=<jar> -> der Entwicklungs-Client lädt diese Jar statt des Quellcodes
+def useJar = project.findProperty('useJar')
+
+version = universal ? "${project.mod_version}" : "${project.mod_version}+${project.minecraft_version}"
 group = project.maven_group
 
 base { archivesName = project.archives_base_name }
@@ -32,7 +39,8 @@ dependencies {
     // nur für den automatischen Test im Entwicklungs-Client (nicht in der fertigen Mod)
     runtimeOnly files(litematicaLibs)
     // SeedCrackerX im Entwicklungs-Client (in der fertigen Jar steckt es unter META-INF/jars)
-    runtimeOnly files(scxJar)
+    if (useJar == null) runtimeOnly files(scxJar)
+    else runtimeOnly files(useJar)
 
     // Mod Menu: Einstellungs-Knopf (Menü-Taste festlegen). Optional, nicht in der jar enthalten.
     compileOnly "maven.modrinth:modmenu:${mcv.modmenu_version}"
@@ -41,15 +49,26 @@ dependencies {
 
 processResources {
     def v = project.version
-    def mc = project.minecraft_version
+    def mcdep = universal ? ">=26.2- <26.4-" : "~${project.minecraft_version}"
+    def jars = universal
+            ? '[{ "file": "META-INF/jars/seedcrackerx-26.2.jar" }, { "file": "META-INF/jars/seedcrackerx-26.3.jar" }]'
+            : '[{ "file": "META-INF/jars/seedcrackerx-' + project.minecraft_version + '.jar" }]'
     inputs.property "version", v
-    inputs.property "mc", mc
-    filesMatching("fabric.mod.json") { expand "version": v, "mc": mc }
+    inputs.property "mcdep", mcdep
+    inputs.property "jars", jars
+    filesMatching("fabric.mod.json") { expand "version": v, "mcdep": mcdep, "jars": jars }
 }
 
 // SeedCrackerX in die Jar packen (Fabric lädt Jars aus META-INF/jars automatisch mit)
 tasks.named('jar') {
-    from(scxJar) { into 'META-INF/jars' }
+    if (universal) {
+        from('libs/seedcrackerx-26.2.jar') { into 'META-INF/jars' }
+        from('libs/seedcrackerx-26.3.jar') { into 'META-INF/jars' }
+        // die 26.3-Klassen (Versions-Code + Mixin) aus dem 26.3-Durchlauf
+        from(v263Classes) { include 'dev/teizen/client/compat/v263/**', 'dev/teizen/client/mixin/v263/**' }
+    } else {
+        from(scxJar) { into 'META-INF/jars' }
+    }
     from('libs/SEEDCRACKERX-LICENSE.txt')
 }
 
@@ -61,6 +80,11 @@ tasks.withType(JavaCompile).configureEach {
 
 // Code, der je nach Minecraft-Version anders ist (Tasten, Arm-Schwung ...)
 sourceSets.main.java.srcDir "src/mc/${project.minecraft_version}/java"
+if (useJar != null) {
+    // fertige Jar testen: eigenen Quellcode/Ressourcen nicht zusätzlich laden
+    sourceSets.main.java.srcDirs = []
+    sourceSets.main.resources.srcDirs = []
+}
 
 java {
     sourceCompatibility = JavaVersion.VERSION_25
@@ -99,14 +123,14 @@ def clientMitKey = tasks.register('clientMitKeyJar', Zip) {
     dependsOn tasks.named('jar'), keyProps
     // gleicher Name wie die normale Version, nur Version 1.1.0 (z.B. teizen-client-1.1.0+26.2.jar)
     archiveBaseName = "${project.archives_base_name}"
-    archiveVersion = "${project.key_version}+${project.minecraft_version}"
+    archiveVersion = universal ? "${project.key_version}" : "${project.key_version}+${project.minecraft_version}"
     archiveExtension = 'jar'
     destinationDirectory = layout.buildDirectory.dir('libs')
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     preserveFileTimestamps = false
     reproducibleFileOrder = true
     def normalVersion = "${project.version}"
-    def keyVersion = "${project.key_version}+${project.minecraft_version}"
+    def keyVersion = universal ? "${project.key_version}" : "${project.key_version}+${project.minecraft_version}"
     from({ zipTree(tasks.named('jar').get().archiveFile.get().asFile) }) {
         exclude 'teizenclient-build.properties'
         // auch in Mod Menu als 1.1.0 anzeigen
