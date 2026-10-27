@@ -83,6 +83,14 @@ jobs:
           if [ -s run/mods/cloth-config.jar ] && [ "$MCV" = "26.2" ]; then
             curl -sL "https://github.com/19MisterX98/SeedcrackerX/releases/download/2.16.1/seedcrackerX-2.16.1.jar" -o run/mods/seedcrackerx.jar
             unzip -tq run/mods/seedcrackerx.jar > /dev/null || rm -f run/mods/seedcrackerx.jar
+          elif [ -s run/mods/cloth-config.jar ]; then
+            # neuere Version: Release suchen, das die Minecraft-Version nennt
+            SCX=$(curl -sL "https://api.github.com/repos/19MisterX98/SeedcrackerX/releases?per_page=15" | jq -r --arg v "$MCV" '[.[] | select(((.name // "") + " " + (.body // "") + " " + .tag_name) | contains($v)) | .assets[] | select(.name | endswith(".jar")) | .browser_download_url][0] // empty')
+            echo "SeedCrackerX für $MCV: $SCX"
+            if [ -n "$SCX" ]; then curl -sL "$SCX" -o run/mods/seedcrackerx.jar; fi
+          fi
+          if [ -s run/mods/seedcrackerx.jar ]; then
+            unzip -tq run/mods/seedcrackerx.jar > /dev/null || rm -f run/mods/seedcrackerx.jar
           fi
           # Key-Mod mitladen, damit der Selbsttest auch "Version mit Key + Key-Mod da" prüfen kann
           cp build/libs/teizen-key.jar run/mods/ 2>/dev/null
