@@ -3,7 +3,6 @@ package dev.teizen.client.compat;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.protocol.game.ServerboundSwingPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -17,12 +16,11 @@ public final class V {
     public static final String MC = "26.3";
     public static final InputConstants.Type KEYBOARD = InputConstants.Type.KEYBOARD;
 
-    /** Arm schwingen (auch für den Server). In 26.3 schickt swing() selbst nichts mehr an den Server. */
+    /** Arm schwingen. In 26.3 schwingt der Server beim Schlagen selbst. */
     public static void swing(InteractionHand hand) {
         Minecraft mc = Minecraft.getInstance();
         ItemStack s = mc.player.getItemInHand(hand);
         mc.player.swing(hand, s.getOrDefault(DataComponents.ATTACK_ANIMATION, SwingAnimation.DEFAULT), false);
-        if (mc.getConnection() != null) mc.getConnection().send(new ServerboundSwingPacket(hand));
     }
 
     public static boolean isKeyDown(int code) {
