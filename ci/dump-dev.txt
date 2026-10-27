@@ -1,5 +1,3 @@
 # dump
-net.minecraft.client.ClientClockManager
-c net.minecraft.client.ClientClockManager
-net.minecraft.world.clock.ClockManager
-net.minecraft.world.clock.WorldClock
+c net.minecraft.client.ClientClockManager$ClientClockInstance
+net.minecraft.world.clock.ClockInstance
