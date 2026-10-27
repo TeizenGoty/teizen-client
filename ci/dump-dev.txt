@@ -1,56 +1,18 @@
 # Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
-c net.minecraft.client.ClientClockManager
-c net.minecraft.client.ClientClockManager$ClockInstance
-net.minecraft.world.clock.ClockManager
-net.minecraft.world.clock.WorldClocks
-net.minecraft.world.clock.WorldClock
-net.minecraft.world.attribute.EnvironmentAttributeSystem
-net.minecraft.world.attribute.WeatherAttributes
-net.minecraft.world.attribute.WeatherAttributes$WeatherAccess
-net.minecraft.world.level.Level
-net.minecraft.client.multiplayer.ClientLevel
-net.minecraft.client.multiplayer.ClientLevel$ClientLevelData
-net.minecraft.network.protocol.game.ClientboundSetTimePacket
-c net.minecraft.util.StringDecomposer
-net.minecraft.client.player.AbstractClientPlayer
-net.minecraft.client.resources.SkinManager
-net.minecraft.client.resources.DefaultPlayerSkin
-net.minecraft.world.entity.player.PlayerSkin
-net.minecraft.world.entity.vehicle.boat.AbstractBoat
-net.minecraft.client.multiplayer.MultiPlayerGameMode
-net.minecraft.world.item.component.AttackRange
-net.minecraft.world.item.component.PiercingWeapon
-net.minecraft.world.entity.LivingEntity
-net.minecraft.world.entity.Entity
-net.minecraft.client.player.LocalPlayer
-net.minecraft.world.entity.player.Inventory
-c net.minecraft.client.Minecraft
-c net.minecraft.server.network.ServerGamePacketListenerImpl
-c net.minecraft.client.multiplayer.ClientPacketListener
-net.minecraft.core.ClientAsset$Texture
-net.minecraft.core.ClientAsset
-net.minecraft.server.Services
-net.minecraft.server.players.ProfileResolver
-net.minecraft.world.inventory.ContainerInput
-net.minecraft.client.multiplayer.ClientChunkCache
-net.minecraft.world.level.chunk.LevelChunk
-c net.minecraft.world.item.component.PiercingWeapon
-c net.minecraft.world.item.component.AttackRange
-c net.minecraft.client.multiplayer.MultiPlayerGameMode
-c net.minecraft.world.entity.player.Player
-c net.minecraft.world.entity.projectile.ProjectileUtil
+com.mojang.blaze3d.platform.InputConstants
+com.mojang.blaze3d.platform.InputConstants$Type
+com.mojang.blaze3d.platform.InputConstants$Key
+com.mojang.blaze3d.platform.Window
+net.minecraft.client.KeyMapping
+net.minecraft.client.input.KeyEvent
+net.minecraft.client.input.MouseButtonEvent
+net.minecraft.client.input.MouseButtonInfo
+net.minecraft.client.input.InputWithModifiers
+net.minecraft.client.KeyboardHandler
+net.minecraft.client.MouseHandler
 c net.minecraft.world.entity.LivingEntity
-c net.minecraft.world.entity.projectile.throwableitemprojectile.ThrowableItemProjectile
-c net.minecraft.world.entity.projectile.ThrowableProjectile
-c net.minecraft.world.entity.projectile.Projectile
-c net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl
-# ChestStealer: Rangliste + Shulker
-net.minecraft.world.item.component.ItemContainerContents
-net.minecraft.world.item.ItemStackTemplate
-net.minecraft.world.item.ItemInstance
-net.minecraft.world.inventory.ShulkerBoxMenu
-net.minecraft.world.inventory.ChestMenu
-net.minecraft.world.inventory.Slot
-net.minecraft.world.item.Rarity
-net.minecraft.client.gui.screens.inventory.ShulkerBoxScreen
-net.minecraft.world.entity.item.ItemEntity
+net.minecraft.client.player.LocalPlayer
+net.minecraft.client.multiplayer.MultiPlayerGameMode
+net.minecraft.util.Util
+net.minecraft.client.Minecraft
+net.minecraft.client.gui.screens.Screen

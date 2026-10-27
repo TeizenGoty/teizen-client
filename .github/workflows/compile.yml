@@ -58,6 +58,12 @@ jobs:
         run: |
           set +e
           MC=$(head -1 api-dump.txt | sed 's/MC jar: //')
+          echo "== Klassen mit Swing/Input/Key/Uri" >> api-dump.txt
+          unzip -Z1 "$MC" | grep -iE "swinganim|inputconst|platform/window|keyboard|keycode|/input/" >> api-dump.txt
+          echo "== Fenster-Bibliotheken (lwjgl/sdl)" >> api-dump.txt
+          find ~/.gradle -name '*.jar' \( -path '*lwjgl*' -o -path '*sdl*' \) 2>/dev/null | sed 's#.*/##' | sort -u >> api-dump.txt
+          for j in $(find ~/.gradle -name 'lwjgl-sdl*.jar' -o -name 'lwjgl-glfw*.jar' 2>/dev/null | grep -v natives | head -3); do echo "-- $j"; unzip -Z1 "$j" | grep -iE "keycode|scancode|SDL_?Keyboard|GLFW.class" | head -10; done >> api-dump.txt
+          for c in $(unzip -Z1 "$MC" | grep -iE "swinganimation[^/]*\.class$" | sed 's/\.class$//; s#/#.#g'); do javap -p -cp "$MC" "$c" >> api-dump.txt 2>&1; done
           echo "== Items mit SPEAR/MACE" >> api-dump.txt
           javap -p -cp "$MC" net.minecraft.world.item.Items | grep -E "SPEAR|MACE|_AXE " >> api-dump.txt
           echo "== DataComponents (Waffen)" >> api-dump.txt
