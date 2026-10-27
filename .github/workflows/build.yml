@@ -56,13 +56,15 @@ jobs:
           print("server.jar ok")
           PY
           echo "eula=true" > eula.txt
-          printf "online-mode=false\ndifficulty=easy\nspawn-protection=0\nview-distance=5\nsimulation-distance=5\nlevel-seed=teizen\nmotd=teizen-test\n" > server.properties
+          printf "online-mode=false\ndifficulty=easy\nspawn-protection=0\nview-distance=5\nsimulation-distance=5\nlevel-seed=teizen\nmotd=teizen-test\nwhite-list=false\nenforce-whitelist=false\n" > server.properties
           mkfifo srv-in
           (java -Xmx2G -jar server.jar nogui < srv-in > ../server-log.txt 2>&1 &)
           exec 3>srv-in
           cd ..
           for i in $(seq 1 150); do grep -q 'Done (' server-log.txt && break; sleep 2; done
           echo "Server bereit: $(grep -c 'Done (' server-log.txt)"
+          # ab 26.3 ist die Whitelist sonst an
+          echo "whitelist off" >&3
           # Spieler sofort zum OP machen, sobald er joint
           ( for i in $(seq 1 400); do
               N=$(grep -oE '[A-Za-z0-9_]+ joined the game' server-log.txt | head -1 | cut -d' ' -f1)
