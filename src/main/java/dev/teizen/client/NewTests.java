@@ -1140,7 +1140,9 @@ final class NewTests {
             // ---------------------------------------------- CombatLog (nach AutoReconnect, ganz am Ende)
             case 160 -> {
                 if (!after(40)) return;
-                cmd("give @s minecraft:totem_of_undying");
+                // volle Herzen + Totem in der linken Hand (sonst stirbt man beim Test-Schaden)
+                cmd("effect give @s minecraft:instant_health 1 5");
+                cmd("item replace entity @s weapon.offhand with minecraft:totem_of_undying");
                 t("///set combatlog herzen 5");
                 t("///combatlog");
                 cmd("damage @s 15 minecraft:generic");

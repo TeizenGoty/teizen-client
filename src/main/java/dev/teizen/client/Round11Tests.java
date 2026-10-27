@@ -65,7 +65,9 @@ final class Round11Tests {
         switch (step) {
             // ---------------------------------------------- Criticals: Krit-Schaden, ohne Rauswurf (26.3: 1 Positions-Paket pro Tick)
             case 500 -> {
-                if (!after(10)) return;
+                // erst hinteleportieren (Chunks laden), sonst geht /fill nicht ("That position is not loaded")
+                if (SelfTest.local() <= 1) cmd(String.format(Locale.ROOT, "tp @s %s -90 0", xyz(o.offset(-60, 0, 90), 0.5, 0, 0.5)));
+                if (!after(40)) return;
                 area = o.offset(-60, 0, 90);
                 before.clear();
                 for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) before.add(m.name);
