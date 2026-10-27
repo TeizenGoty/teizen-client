@@ -1,6 +1,5 @@
 # dump
-c net.minecraft.server.network.ServerGamePacketListenerImpl
-c net.minecraft.network.protocol.game.ServerboundMovePlayerPacket
-c net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$Rot
-c net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$PosRot
-c net.minecraft.network.protocol.game.ServerboundMovePlayerPacket$Pos
+net.minecraft.client.ClientClockManager
+c net.minecraft.client.ClientClockManager
+net.minecraft.world.clock.ClockManager
+net.minecraft.world.clock.WorldClock
