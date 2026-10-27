@@ -1,8 +1,3 @@
-# Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
-c net.minecraft.client.Minecraft
-net.minecraft.network.protocol.game.ServerboundSwingPacket
-net.minecraft.util.Util$OS
-c net.minecraft.client.player.LocalPlayer
-c net.minecraft.client.multiplayer.MultiPlayerGameMode
-net.minecraft.client.gui.components.EditBox
-net.minecraft.client.gui.components.events.GuiEventListener
+# dump
+c net.minecraft.client.KeyMapping
+c com.mojang.blaze3d.platform.InputConstants

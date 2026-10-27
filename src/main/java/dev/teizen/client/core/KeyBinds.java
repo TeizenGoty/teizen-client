@@ -47,7 +47,7 @@ public final class KeyBinds {
     public static void register() {
         KeyMapping.Category cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("teizenclient", "main"));
 
-        menu = add(new KeyMapping("key.teizenclient.menu", dev.teizen.client.compat.V.KEYBOARD, TeizenClient.menuKey, cat),
+        menu = add(new KeyMapping("key.teizenclient.menu", dev.teizen.client.compat.V.KEYBOARD, raw(TeizenClient.menuKey), cat),
                 () -> TeizenClient.menuKey, v -> TeizenClient.menuKey = v,
                 () -> { Minecraft mc = Minecraft.getInstance(); if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(Lock.menu(ClickGui::new)); });
 
@@ -60,11 +60,14 @@ public final class KeyBinds {
 
         for (Module m : TeizenClient.modules().all()) {
             String id = "key.teizenclient.module." + m.name.toLowerCase(Locale.ROOT);
-            add(new KeyMapping(id, dev.teizen.client.compat.V.KEYBOARD, m.key, cat),
+            add(new KeyMapping(id, dev.teizen.client.compat.V.KEYBOARD, raw(m.key), cat),
                     () -> m.key, v -> m.key = v,
                     () -> { Minecraft mc = Minecraft.getInstance(); if (mc.player != null && mc.gui.screen() == null) { m.toggle(); Config.save(); } });
         }
     }
+
+    /** "keine Taste" (-1) als Minecraft-Wert (26.3: SDL kennt kein -1, sonst Absturz). */
+    private static int raw(int v) { return v >= 0 ? v : InputConstants.UNKNOWN.getValue(); }
 
     private static KeyMapping add(KeyMapping k, IntSupplier get, IntConsumer set, Runnable mouse) {
         KeyMapping reg = KeyMappingHelper.registerKeyMapping(k);
@@ -77,7 +80,7 @@ public final class KeyBinds {
 
     /** Code einer Belegung: Tastatur = GLFW-Code, Maus = -1000 - Knopf, keine = -1. */
     private static int encode(InputConstants.Key key) {
-        if (key == null || key.getValue() < 0) return -1;
+        if (key == null || key.getValue() < 0 || key.equals(InputConstants.UNKNOWN)) return -1;
         if (key.getType() == InputConstants.Type.MOUSE) return -1000 - key.getValue();
         return key.getValue();
     }

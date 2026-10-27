@@ -20,6 +20,7 @@ public final class V {
     }
 
     public static boolean isKeyDown(int code) {
+        if (code < 0) return false;
         return InputConstants.isKeyDown(Minecraft.getInstance().getWindow(), code);
     }
 
