@@ -790,6 +790,9 @@ final class Round9Tests {
             case 375 -> {
                 if (!after(10)) return;
                 arena(area, 7, 5);
+                // flache Bahn bis 60 Blöcke in Wurfrichtung (+X), damit die Perle nicht auf Hügeln/Bäumen landet
+                cmd("fill " + blk(area.offset(-2, -1, -4)) + " " + blk(area.offset(60, -1, 4)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-2, 0, -4)) + " " + blk(area.offset(60, 10, 4)) + " minecraft:air");
                 cmd("clear @s");
                 cmd("item replace entity @s hotbar.0 with minecraft:ender_pearl 4");
                 // volle Herzen, sonst kann der Aufprall nach der Perle den Testspieler töten (dann wird falsch gemessen)
