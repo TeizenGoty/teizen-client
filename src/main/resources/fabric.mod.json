@@ -3,7 +3,7 @@
   "id": "teizenclient",
   "version": "${version}",
   "name": "Teizen Client",
-  "description": "Teizen Client – eigene Utility-Mod mit ///-Befehlen.",
+  "description": "Teizen Client – eigene Utility-Mod mit ///-Befehlen. Enthält SeedCrackerX (MIT, KaptainWutax & 19MisterX98).",
   "authors": ["Teizen"],
   "license": "All-Rights-Reserved",
   "icon": "assets/teizenclient/icon.png",
@@ -13,6 +13,7 @@
     "modmenu": ["dev.teizen.client.compat.ModMenuCompat"]
   },
   "mixins": ["teizenclient.mixins.json"],
+  "jars": [{ "file": "META-INF/jars/seedcrackerx-${mc}.jar" }],
   "depends": {
     "fabricloader": ">=0.19.0",
     "fabric-api": "*",

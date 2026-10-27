@@ -1994,7 +1994,7 @@ final class NewTests {
                         && (!dev.teizen.client.compat.SeedMapCompat.seedMapper() || (gm != null && gm == 1234567890123L));
                 result("SeedCrackerX (Seed ohne OP): installiert=" + yes(flag2) + ", geknackter Seed übernommen=" + yes(taken) + " (" + k + "), an die Seed-Karten gegeben="
                         + yes(given) + ", Fortschritt " + (bits == null ? "?" : Math.round(bits[0]) + "/" + Math.round(bits[1]) + " Bits") + " "
-                        + (!flag2 && !dev.teizen.client.compat.V.MC.equals("26.2") ? "(für " + dev.teizen.client.compat.V.MC + " im Test nicht da – übersprungen)" : ok(flag2 && taken && given && bits != null)));
+                        + ok(flag2 && taken && given && bits != null));
                 dev.teizen.client.core.Seed.crackerTestSeed(1234567890123L, false);
                 if (seedGot != null) {
                     dev.teizen.client.core.Seed.set(seedGot);

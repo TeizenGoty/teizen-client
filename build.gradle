@@ -6,6 +6,8 @@ plugins {
 def mcv = new Properties()
 file("versions/${project.minecraft_version}.properties").withInputStream { mcv.load(it) }
 def litematicaLibs = ["libs/${mcv.litematica_jar}", "libs/${mcv.malilib_jar}"]
+// SeedCrackerX (MIT, selbst aus dem offiziellen Code gebaut, siehe .github/workflows/scx.yml) – fest eingebaut
+def scxJar = "libs/seedcrackerx-${project.minecraft_version}.jar"
 
 version = "${project.mod_version}+${project.minecraft_version}"
 group = project.maven_group
@@ -29,6 +31,8 @@ dependencies {
     compileOnly files(litematicaLibs)
     // nur für den automatischen Test im Entwicklungs-Client (nicht in der fertigen Mod)
     runtimeOnly files(litematicaLibs)
+    // SeedCrackerX im Entwicklungs-Client (in der fertigen Jar steckt es unter META-INF/jars)
+    runtimeOnly files(scxJar)
 
     // Mod Menu: Einstellungs-Knopf (Menü-Taste festlegen). Optional, nicht in der jar enthalten.
     compileOnly "maven.modrinth:modmenu:${mcv.modmenu_version}"
@@ -41,6 +45,12 @@ processResources {
     inputs.property "version", v
     inputs.property "mc", mc
     filesMatching("fabric.mod.json") { expand "version": v, "mc": mc }
+}
+
+// SeedCrackerX in die Jar packen (Fabric lädt Jars aus META-INF/jars automatisch mit)
+tasks.named('jar') {
+    from(scxJar) { into 'META-INF/jars' }
+    from('libs/SEEDCRACKERX-LICENSE.txt')
 }
 
 tasks.withType(JavaCompile).configureEach {
