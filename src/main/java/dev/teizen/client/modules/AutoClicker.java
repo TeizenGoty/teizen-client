@@ -68,7 +68,7 @@ public final class AutoClicker extends Module {
         if (e instanceof Player p && (!players.on() || Friends.is(p.getGameProfile().name()))) return;
         if (mc.player.getAttackStrengthScale(0.5f) < 1.0f) return;
         mc.gameMode.attack(mc.player, e);
-        mc.player.swing(InteractionHand.MAIN_HAND);
+        dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
         clicks++;
     }
 
@@ -76,7 +76,7 @@ public final class AutoClicker extends Module {
         if (hold.on() && !mc.options.keyAttack.isDown()) return;
         for (int i = due(); i > 0; i--) {
             if (mc.hitResult instanceof EntityHitResult eh) mc.gameMode.attack(mc.player, eh.getEntity());
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             clicks++;
         }
     }
@@ -88,7 +88,7 @@ public final class AutoClicker extends Module {
             if (h instanceof BlockHitResult bh && h.getType() == HitResult.Type.BLOCK) mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, bh);
             else if (h instanceof EntityHitResult eh) mc.gameMode.interact(mc.player, eh.getEntity(), eh, InteractionHand.MAIN_HAND);
             else mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             clicks++;
         }
     }
@@ -110,7 +110,7 @@ public final class AutoClicker extends Module {
             Rot.sendSilent(rot[0], rot[1]);
             EntityHitResult hit = new EntityHitResult(a, a.getBoundingBox().getCenter());
             mc.gameMode.interact(mc.player, a, hit, InteractionHand.MAIN_HAND);
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             Inv.select(prev);
             fed.put(a.getId(), now);
             feeds++;

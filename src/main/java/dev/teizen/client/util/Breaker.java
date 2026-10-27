@@ -56,7 +56,7 @@ public final class Breaker {
         } else {
             mc.gameMode.continueDestroyBlock(pos, dir);
         }
-        mc.player.swing(InteractionHand.MAIN_HAND);
+        dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
         lastTick = mc.player.tickCount;
         return mc.level.getBlockState(pos).isAir();
     }

@@ -39,7 +39,7 @@ public final class AutoFish extends Module {
 
     private void use(InteractionHand hand) {
         mc.gameMode.useItem(mc.player, hand);
-        mc.player.swing(hand);
+        dev.teizen.client.compat.V.swing(hand);
     }
 
     @Override

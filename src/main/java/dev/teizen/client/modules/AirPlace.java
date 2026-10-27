@@ -52,7 +52,7 @@ public final class AirPlace extends Module {
         BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(b), Direction.UP, b, false);
         var res = mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
         if (res.consumesAction()) {
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             placed++;
             return true;
         }

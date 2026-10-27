@@ -62,7 +62,7 @@ public final class AutoCrystal extends Module {
 
     public AutoCrystal() {
         super("AutoCrystal", Category.KAMPF, "Setzt und zündet End-Kristalle automatisch (Taste J).");
-        key = org.lwjgl.glfw.GLFW.GLFW_KEY_J;
+        key = dev.teizen.client.compat.K.J;
     }
 
     /** Modus einfach: kürzlich belegte Plätze (10 Ticks Pause je Platz, wie bei der Mod). */
@@ -81,7 +81,7 @@ public final class AutoCrystal extends Module {
         for (EndCrystal c : list) {
             if (rotate.on()) { float[] rr = Rot.to(c.getBoundingBox().getCenter()); Rot.sendSilent(rr[0], rr[1]); }
             mc.gameMode.attack(mc.player, c);
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             recent.remove(c.blockPosition().below());
             broken++;
         }
@@ -113,7 +113,7 @@ public final class AutoCrystal extends Module {
         Vec3 hit = new Vec3(best.getX() + 0.5, best.getY() + 1.0, best.getZ() + 0.5);
         if (rotate.on()) { float[] rr = Rot.to(hit); Rot.sendSilent(rr[0], rr[1]); }
         mc.gameMode.useItemOn(mc.player, hand, new BlockHitResult(hit, Direction.UP, best, false));
-        mc.player.swing(hand);
+        dev.teizen.client.compat.V.swing(hand);
         recent.put(best, 10);
         placed++;
     }
@@ -217,7 +217,7 @@ public final class AutoCrystal extends Module {
         if (best == null) return false;
         if (rotate.on()) { float[] rr = Rot.to(best.getBoundingBox().getCenter()); Rot.sendSilent(rr[0], rr[1]); }
         mc.gameMode.attack(mc.player, best);
-        mc.player.swing(InteractionHand.MAIN_HAND);
+        dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
         broken++;
         return true;
     }
@@ -253,7 +253,7 @@ public final class AutoCrystal extends Module {
         if (rotate.on()) { float[] rr = Rot.to(hit); Rot.sendSilent(rr[0], rr[1]); }
         InteractionResult res = mc.gameMode.useItemOn(mc.player, hand, new BlockHitResult(hit, Direction.UP, best, false));
         if (res.consumesAction()) {
-            mc.player.swing(hand);
+            dev.teizen.client.compat.V.swing(hand);
             placed++;
             return true;
         }
@@ -325,7 +325,7 @@ public final class AutoCrystal extends Module {
             if (anchorStage >= 2) return; // Laden ist unterwegs
             if (!Inv.ensureInHand(s -> s.is(Items.GLOWSTONE))) { anchorPos = null; return; }
             mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             anchorStage = 2;
             return;
         }
@@ -335,7 +335,7 @@ public final class AutoCrystal extends Module {
         if (slot < 0) return;
         Inv.select(slot);
         mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
-        mc.player.swing(InteractionHand.MAIN_HAND);
+        dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
         if (anchorStage < 3) anchors++;
         anchorStage = 3;
     }

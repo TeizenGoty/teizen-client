@@ -1,43 +1,43 @@
 package dev.teizen.client.util;
 
-import org.lwjgl.glfw.GLFW;
+import dev.teizen.client.compat.K;
 
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-/** Tastennamen <-> GLFW-Codes. */
+/** Tastennamen <-> Tasten-Codes (26.2: GLFW, 26.3: SDL). */
 public final class Keys {
     public static final int INVALID = Integer.MIN_VALUE;
     private static final Map<String, Integer> BY_NAME = new HashMap<>();
     private static final Map<Integer, String> BY_CODE = new HashMap<>();
 
     static {
-        for (char c = 'a'; c <= 'z'; c++) put(String.valueOf(c), GLFW.GLFW_KEY_A + (c - 'a'));
-        for (char c = '0'; c <= '9'; c++) put(String.valueOf(c), GLFW.GLFW_KEY_0 + (c - '0'));
-        for (int i = 1; i <= 12; i++) put("f" + i, GLFW.GLFW_KEY_F1 + i - 1);
-        put("rshift", GLFW.GLFW_KEY_RIGHT_SHIFT);
-        put("lshift", GLFW.GLFW_KEY_LEFT_SHIFT);
-        put("rctrl", GLFW.GLFW_KEY_RIGHT_CONTROL);
-        put("lctrl", GLFW.GLFW_KEY_LEFT_CONTROL);
-        put("ralt", GLFW.GLFW_KEY_RIGHT_ALT);
-        put("lalt", GLFW.GLFW_KEY_LEFT_ALT);
-        put("tab", GLFW.GLFW_KEY_TAB);
-        put("capslock", GLFW.GLFW_KEY_CAPS_LOCK);
-        put("insert", GLFW.GLFW_KEY_INSERT);
-        put("delete", GLFW.GLFW_KEY_DELETE);
-        put("home", GLFW.GLFW_KEY_HOME);
-        put("end", GLFW.GLFW_KEY_END);
-        put("pageup", GLFW.GLFW_KEY_PAGE_UP);
-        put("pagedown", GLFW.GLFW_KEY_PAGE_DOWN);
-        put("up", GLFW.GLFW_KEY_UP);
-        put("down", GLFW.GLFW_KEY_DOWN);
-        put("left", GLFW.GLFW_KEY_LEFT);
-        put("right", GLFW.GLFW_KEY_RIGHT);
-        put("comma", GLFW.GLFW_KEY_COMMA);
-        put("period", GLFW.GLFW_KEY_PERIOD);
-        put("minus", GLFW.GLFW_KEY_MINUS);
-        for (int i = 0; i <= 9; i++) put("num" + i, GLFW.GLFW_KEY_KP_0 + i);
+        for (char c = 'a'; c <= 'z'; c++) put(String.valueOf(c), K.letter(c));
+        for (char c = '0'; c <= '9'; c++) put(String.valueOf(c), K.digit(c - '0'));
+        for (int i = 1; i <= 12; i++) put("f" + i, K.f(i));
+        put("rshift", K.RIGHT_SHIFT);
+        put("lshift", K.LEFT_SHIFT);
+        put("rctrl", K.RIGHT_CONTROL);
+        put("lctrl", K.LEFT_CONTROL);
+        put("ralt", K.RIGHT_ALT);
+        put("lalt", K.LEFT_ALT);
+        put("tab", K.TAB);
+        put("capslock", K.CAPS_LOCK);
+        put("insert", K.INSERT);
+        put("delete", K.DELETE);
+        put("home", K.HOME);
+        put("end", K.END);
+        put("pageup", K.PAGE_UP);
+        put("pagedown", K.PAGE_DOWN);
+        put("up", K.UP);
+        put("down", K.DOWN);
+        put("left", K.LEFT);
+        put("right", K.RIGHT);
+        put("comma", K.COMMA);
+        put("period", K.PERIOD);
+        put("minus", K.MINUS);
+        for (int i = 0; i <= 9; i++) put("num" + i, K.numpad(i));
     }
 
     private static void put(String n, int code) {

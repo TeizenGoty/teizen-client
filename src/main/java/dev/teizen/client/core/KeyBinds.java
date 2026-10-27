@@ -8,7 +8,7 @@ import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import dev.teizen.client.compat.K;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -26,7 +26,7 @@ import java.util.function.IntSupplier;
  * ändern auch die Taste in den Minecraft-Einstellungen).
  */
 public final class KeyBinds {
-    public static final int OVERVIEW_DEFAULT = GLFW.GLFW_KEY_O;
+    public static final int OVERVIEW_DEFAULT = K.O;
 
     private record Link(KeyMapping mapping, IntSupplier get, IntConsumer set, Runnable onMouseClick) {}
 
@@ -47,20 +47,20 @@ public final class KeyBinds {
     public static void register() {
         KeyMapping.Category cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("teizenclient", "main"));
 
-        menu = add(new KeyMapping("key.teizenclient.menu", InputConstants.Type.KEYSYM, TeizenClient.menuKey, cat),
+        menu = add(new KeyMapping("key.teizenclient.menu", dev.teizen.client.compat.V.KEYBOARD, TeizenClient.menuKey, cat),
                 () -> TeizenClient.menuKey, v -> TeizenClient.menuKey = v,
                 () -> { Minecraft mc = Minecraft.getInstance(); if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(Lock.menu(ClickGui::new)); });
 
         // Übersicht: hat keinen eigenen Wert im Client – die Minecraft-Taste ist der Wert
         overview = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.teizenclient.overview", InputConstants.Type.KEYSYM, OVERVIEW_DEFAULT, cat));
+                new KeyMapping("key.teizenclient.overview", dev.teizen.client.compat.V.KEYBOARD, OVERVIEW_DEFAULT, cat));
 
         elytra = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.teizenclient.elytrareset", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_CONTROL, cat));
+                new KeyMapping("key.teizenclient.elytrareset", dev.teizen.client.compat.V.KEYBOARD, K.LEFT_CONTROL, cat));
 
         for (Module m : TeizenClient.modules().all()) {
             String id = "key.teizenclient.module." + m.name.toLowerCase(Locale.ROOT);
-            add(new KeyMapping(id, InputConstants.Type.KEYSYM, m.key, cat),
+            add(new KeyMapping(id, dev.teizen.client.compat.V.KEYBOARD, m.key, cat),
                     () -> m.key, v -> m.key = v,
                     () -> { Minecraft mc = Minecraft.getInstance(); if (mc.player != null && mc.gui.screen() == null) { m.toggle(); Config.save(); } });
         }
@@ -100,7 +100,7 @@ public final class KeyBinds {
                 String mod = n.startsWith("key.teizenclient.module.") ? n.substring("key.teizenclient.module.".length()) : "";
                 int v = l.get.getAsInt();
                 if (Config.keepDefaultKey.contains(mod) && bound(l.mapping) < 0 && v >= 0) {
-                    l.mapping.setKey(InputConstants.Type.KEYSYM.getOrCreate(v));
+                    l.mapping.setKey(dev.teizen.client.compat.V.KEYBOARD.getOrCreate(v));
                     lastBound.put(l.mapping, v);
                     lastValue.put(l.mapping, v);
                     reset = true;
@@ -120,7 +120,7 @@ public final class KeyBinds {
                 save = true;
             } else if (v != lastValue.get(k)) {
                 // im Client geändert (///bind, Menü, Mod Menu) -> in Minecraft eintragen
-                k.setKey(v >= 0 ? InputConstants.Type.KEYSYM.getOrCreate(v) : InputConstants.UNKNOWN);
+                k.setKey(v >= 0 ? dev.teizen.client.compat.V.KEYBOARD.getOrCreate(v) : InputConstants.UNKNOWN);
                 lastBound.put(k, v);
                 lastValue.put(k, v);
                 reset = true;

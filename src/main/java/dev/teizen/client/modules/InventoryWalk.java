@@ -23,7 +23,7 @@ public final class InventoryWalk extends Module {
     private final Setting lookSpeed = add(Setting.number("drehtempo", "Wie schnell die Pfeiltasten drehen (Grad pro Tick)", 6, 1, 30));
 
     /** Wie der Zustand einer Taste abgefragt wird (der Selbsttest kann das ersetzen). */
-    public static IntPredicate keyDown = code -> InputConstants.isKeyDown(mc.getWindow(), code);
+    public static IntPredicate keyDown = code -> dev.teizen.client.compat.V.isKeyDown(code);
     private boolean active;
 
     public InventoryWalk() {
@@ -41,7 +41,7 @@ public final class InventoryWalk extends Module {
 
     private static boolean held(KeyMapping k) {
         InputConstants.Key key = KeyMappingHelper.getBoundKeyOf(k);
-        if (key == null || key.getType() != InputConstants.Type.KEYSYM || key.getValue() < 0) return false;
+        if (key == null || key.getType() != dev.teizen.client.compat.V.KEYBOARD || key.getValue() < 0) return false;
         return keyDown.test(key.getValue());
     }
 
@@ -63,10 +63,10 @@ public final class InventoryWalk extends Module {
         if (look.on()) {
             float sp = lookSpeed.flt();
             float dy = 0, dp = 0;
-            if (keyDown.test(org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT)) dy -= sp;
-            if (keyDown.test(org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT)) dy += sp;
-            if (keyDown.test(org.lwjgl.glfw.GLFW.GLFW_KEY_UP)) dp -= sp;
-            if (keyDown.test(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN)) dp += sp;
+            if (keyDown.test(dev.teizen.client.compat.K.LEFT)) dy -= sp;
+            if (keyDown.test(dev.teizen.client.compat.K.RIGHT)) dy += sp;
+            if (keyDown.test(dev.teizen.client.compat.K.UP)) dp -= sp;
+            if (keyDown.test(dev.teizen.client.compat.K.DOWN)) dp += sp;
             if (dy != 0 || dp != 0) {
                 mc.player.setYRot(mc.player.getYRot() + dy);
                 mc.player.setXRot(Mth.clamp(mc.player.getXRot() + dp, -90f, 90f));

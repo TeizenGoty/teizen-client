@@ -88,7 +88,7 @@ public final class AutoReplant extends Module {
             if (!Inv.ensureInHand(s -> s.is(seed))) continue;
             Vec3 hit = new Vec3(ground.getX() + 0.5, ground.getY() + 1.0, ground.getZ() + 0.5);
             if (mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(hit, Direction.UP, ground, false)).consumesAction()) {
-                mc.player.swing(InteractionHand.MAIN_HAND);
+                dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
                 planted++;
                 it.remove();
             }
@@ -105,7 +105,7 @@ public final class AutoReplant extends Module {
             toPlant.put(pos.below(), s.getBlock().asItem());
             crops.remove(pos);
             mc.gameMode.startDestroyBlock(pos, Direction.UP);
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             harvested++;
             actions--;
         }

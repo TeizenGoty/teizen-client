@@ -12,7 +12,7 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import dev.teizen.client.compat.K;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -196,7 +196,7 @@ public final class ClickGui extends Screen {
         if (search.click(mx, my)) return true;
         if (my < TOP - 3) return true;
         int button = e.button();
-        boolean shift = (e.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0;
+        boolean shift = (e.modifiers() & K.MOD_SHIFT) != 0;
         List<Panel> panels = panels();
         int[][] pos = layout(panels);
         for (int c = 0; c < panels.size(); c++) {
@@ -275,7 +275,7 @@ public final class ClickGui extends Screen {
         if (rows.keyPressed(e)) return true; // während eine Zahl/ein Text eingetippt wird
         if (binding != null) {
             int k = e.key();
-            binding.key = (k == GLFW.GLFW_KEY_DELETE || k == GLFW.GLFW_KEY_BACKSPACE || k == GLFW.GLFW_KEY_ESCAPE) ? -1 : k;
+            binding.key = (k == K.DELETE || k == K.BACKSPACE || k == K.ESCAPE) ? -1 : k;
             binding = null;
             Config.save();
             return true;

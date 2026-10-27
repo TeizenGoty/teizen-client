@@ -36,7 +36,7 @@ public final class Config {
             for (Module m : TeizenClient.modules().all()) {
                 JsonObject o = new JsonObject();
                 o.addProperty("an", m.isEnabled());
-                o.addProperty("taste", m.key);
+                o.addProperty("taste", dev.teizen.client.compat.K.toGlfw(m.key));
                 o.addProperty("favorit", m.favorite);
                 JsonObject set = new JsonObject();
                 for (Map.Entry<String, Setting> e : m.settings.entrySet()) {
@@ -55,7 +55,7 @@ public final class Config {
             JsonArray fr = new JsonArray();
             for (String f : Friends.NAMES) fr.add(f);
             root.add("freunde", fr);
-            root.addProperty("menuTaste", TeizenClient.menuKey);
+            root.addProperty("menuTaste", dev.teizen.client.compat.K.toGlfw(TeizenClient.menuKey));
             root.addProperty("version", VERSION);
             root.addProperty("opAusblenden", ModuleManager.hideOp);
             root.addProperty("hudGroesse", dev.teizen.client.gui.Hud.scale);
@@ -71,7 +71,7 @@ public final class Config {
         try {
             JsonObject root = GSON.fromJson(Files.readString(f, StandardCharsets.UTF_8), JsonObject.class);
             if (root == null) return;
-            if (root.has("menuTaste")) TeizenClient.menuKey = root.get("menuTaste").getAsInt();
+            if (root.has("menuTaste")) { int mk = dev.teizen.client.compat.K.fromGlfw(root.get("menuTaste").getAsInt()); if (mk >= 0) TeizenClient.menuKey = mk; }
             if (root.has("opAusblenden")) ModuleManager.hideOp = root.get("opAusblenden").getAsBoolean();
             if (root.has("hudGroesse")) dev.teizen.client.gui.Hud.scale = Math.max(0f, Math.min(2f, root.get("hudGroesse").getAsFloat()));
             if (root.has("freunde")) for (JsonElement e : root.getAsJsonArray("freunde")) Friends.add(e.getAsString());
@@ -82,7 +82,7 @@ public final class Config {
                 if (!mods.has(m.name)) continue;
                 JsonObject o = mods.getAsJsonObject(m.name);
                 if (o.has("taste")) {
-                    int k = o.get("taste").getAsInt();
+                    int k = dev.teizen.client.compat.K.fromGlfw(o.get("taste").getAsInt());
                     // neue Standard-Taste (z.B. AutoCrystal = J) nicht durch ein altes "keine Taste" überschreiben
                     if (version < 2 && k == -1 && m.key >= 0) keepDefaultKey.add(m.name.toLowerCase(java.util.Locale.ROOT));
                     else m.key = k;

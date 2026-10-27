@@ -45,7 +45,7 @@ public final class KillAura extends Module {
         else if (rotate.is("sichtbar")) Rot.look(r[0], r[1]);
 
         mc.gameMode.attack(mc.player, target);
-        mc.player.swing(InteractionHand.MAIN_HAND);
+        dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
     }
 
     @Override

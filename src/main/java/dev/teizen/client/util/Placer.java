@@ -46,7 +46,7 @@ public final class Placer {
         BlockHitResult bhr = new BlockHitResult(hit, face, neighbor, false);
         InteractionResult res = mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, bhr);
         if (res.consumesAction()) {
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             return true;
         }
         return false;

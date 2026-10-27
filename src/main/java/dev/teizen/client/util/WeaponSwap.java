@@ -84,8 +84,8 @@ public final class WeaponSwap {
                 Rot.sendSilent(r[0], r[1]);
                 ((MultiPlayerGameModeAccessor) mc.gameMode).teizen$sendCarriedItem();
                 var pw = spear.get(DataComponents.PIERCING_WEAPON);
-                if (pw != null) mc.gameMode.piercingAttack(pw);
-                mc.player.swing(InteractionHand.MAIN_HAND);
+                if (pw != null) dev.teizen.client.compat.V.piercingAttack(spear, pw);
+                dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
                 Inv.select(prev);
                 sp.swaps++;
                 return true;
@@ -113,7 +113,7 @@ public final class WeaponSwap {
         aimAt(e);
         if (stabWanted && now - aimSince >= LEAD) {
             mc.gameMode.attack(mc.player, e);
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
         }
     }
 

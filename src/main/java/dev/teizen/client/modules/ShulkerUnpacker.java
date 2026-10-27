@@ -359,7 +359,7 @@ public final class ShulkerUnpacker {
         float[] r = Rot.to(hit);
         Rot.sendSilent(r[0], r[1]);
         mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(hit, Direction.UP, pos, false));
-        mc.player.swing(InteractionHand.MAIN_HAND);
+        dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
     }
 
     /** Freier Platz direkt neben dir (dort fällt der Shulker beim Abbauen wieder zu dir). */

@@ -27,7 +27,7 @@ public final class AutoMend extends Module {
 
     public AutoMend() {
         super("AutoMend", Category.SONSTIGES, "Taste K: XP-Flaschen werfen, bis die Rüstung ganz ist.");
-        key = org.lwjgl.glfw.GLFW.GLFW_KEY_K;
+        key = dev.teizen.client.compat.K.K;
     }
 
     private boolean mending(ItemStack s) {

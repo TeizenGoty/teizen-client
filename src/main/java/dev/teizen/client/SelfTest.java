@@ -332,10 +332,10 @@ public final class SelfTest {
                 if (!after(20)) return;
                 if (mc.gui.screen() instanceof dev.teizen.client.gui.SettingsScreen st) {
                     st.startListening();
-                    st.applyKey(org.lwjgl.glfw.GLFW.GLFW_KEY_M);
-                    boolean ok = TeizenClient.menuKey == org.lwjgl.glfw.GLFW.GLFW_KEY_M;
+                    st.applyKey(dev.teizen.client.compat.K.M);
+                    boolean ok = TeizenClient.menuKey == dev.teizen.client.compat.K.M;
                     boolean saved = false;
-                    try { saved = java.nio.file.Files.readString(mc.gameDirectory.toPath().resolve("config/teizenclient.json")).contains("\"menuTaste\": " + org.lwjgl.glfw.GLFW.GLFW_KEY_M); } catch (Throwable ignored) {}
+                    try { saved = java.nio.file.Files.readString(mc.gameDirectory.toPath().resolve("config/teizenclient.json")).contains("\"menuTaste\": " + dev.teizen.client.compat.K.M); } catch (Throwable ignored) {}
                     results.add("Menü-Taste ändern: " + (ok ? "ok (jetzt " + dev.teizen.client.gui.SettingsScreen.keyName(TeizenClient.menuKey) + ")" : "FEHLER") + ", gespeichert=" + saved);
                 } else {
                     results.add("Menü-Taste ändern: FEHLER (Einstellungen nicht offen: " + mc.gui.screen() + ")");
@@ -350,7 +350,7 @@ public final class SelfTest {
             case 19 -> {
                 if (!after(20)) return;
                 // zurück auf Standard
-                TeizenClient.menuKey = org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT;
+                TeizenClient.menuKey = dev.teizen.client.compat.K.RIGHT_SHIFT;
                 dev.teizen.client.core.Config.save();
                 mc.gui.setScreen(null);
                 next();
@@ -411,16 +411,16 @@ public final class SelfTest {
                 log("Tasten-Kategorie: " + net.minecraft.client.resources.language.I18n.get("key.category.teizenclient.main")
                         + " / " + net.minecraft.client.resources.language.I18n.get("key.teizenclient.overview"));
                 // im Client ändern -> muss in Minecraft ankommen
-                TeizenClient.modules().byName("fly").key = org.lwjgl.glfw.GLFW.GLFW_KEY_G;
+                TeizenClient.modules().byName("fly").key = dev.teizen.client.compat.K.G;
                 next();
             }
             case 23 -> {
                 if (!after(5)) return;
                 net.minecraft.client.KeyMapping fly = net.minecraft.client.KeyMapping.get("key.teizenclient.module.fly");
                 int bound = net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.getBoundKeyOf(fly).getValue();
-                boolean a = bound == org.lwjgl.glfw.GLFW.GLFW_KEY_G;
+                boolean a = bound == dev.teizen.client.compat.K.G;
                 // in Minecraft ändern -> muss im Client ankommen
-                fly.setKey(com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(org.lwjgl.glfw.GLFW.GLFW_KEY_H));
+                fly.setKey(dev.teizen.client.compat.V.KEYBOARD.getOrCreate(dev.teizen.client.compat.K.H));
                 net.minecraft.client.KeyMapping.resetMapping();
                 fastEatCheck = a;
                 next();
@@ -428,7 +428,7 @@ public final class SelfTest {
             case 24 -> {
                 if (!after(5)) return;
                 Module fly = TeizenClient.modules().byName("fly");
-                boolean b = fly.key == org.lwjgl.glfw.GLFW.GLFW_KEY_H;
+                boolean b = fly.key == dev.teizen.client.compat.K.H;
                 results.add("Taste Client→Minecraft: " + (fastEatCheck ? "ok" : "FEHLER") + ", Minecraft→Client: " + (b ? "ok" : "FEHLER (" + fly.key + ")"));
                 fly.key = -1;
                 mc.gui.setScreen(new dev.teizen.client.gui.Overview());

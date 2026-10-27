@@ -31,6 +31,6 @@ public final class TriggerBot extends Module {
         if (cooldown.on() && mc.player.getAttackStrengthScale(0.5f) < 1.0f) return;
         mc.gameMode.attack(mc.player, e);
         wait = delay.integer();
-        mc.player.swing(InteractionHand.MAIN_HAND);
+        dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
     }
 }

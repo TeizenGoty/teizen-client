@@ -322,7 +322,7 @@ public final class AutoBuild extends Module {
         Rot.look(oldYaw, oldPitch);
         mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(oldYaw, oldPitch, mc.player.onGround(), mc.player.horizontalCollision));
         if (res.consumesAction()) {
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             return true;
         }
         return false;

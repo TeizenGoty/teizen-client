@@ -36,7 +36,7 @@ public final class BlockSwap {
             // kein Nachbarblock: direkt in die Luft setzen (wie AirPlace)
             var hit = new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(pos), net.minecraft.core.Direction.UP, pos, false);
             ok = mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND, hit).consumesAction();
-            if (ok) mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+            if (ok) dev.teizen.client.compat.V.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
         }
         Inv.select(prev);
         return ok;

@@ -128,7 +128,7 @@ public final class AutoShield extends Module {
                 // Spieler: wenn er zu uns schaut oder gerade ausholt
                 Vec3 look = pl.getViewVector(1f);
                 Vec3 to = me.subtract(pl.getEyePosition()).normalize();
-                if (look.dot(to) < 0.5 && pl.getAttackAnim(0f) <= 0) continue;
+                if (look.dot(to) < 0.5 && dev.teizen.client.compat.V.attackAnim(pl, 0f) <= 0) continue;
             }
             lastThreat = e.getName().getString();
             return ((net.minecraft.world.entity.LivingEntity) e).getEyePosition();

@@ -9,7 +9,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import dev.teizen.client.compat.K;
 
 import java.util.Locale;
 
@@ -35,23 +35,20 @@ public final class SettingsScreen extends Screen {
     /** Lesbarer Name einer Taste, z.B. "M", "Rechte Shift", "F6". */
     public static String keyName(int code) {
         if (code < 0) return "keine";
-        switch (code) {
-            case GLFW.GLFW_KEY_RIGHT_SHIFT: return "Rechte Shift";
-            case GLFW.GLFW_KEY_LEFT_SHIFT: return "Linke Shift";
-            case GLFW.GLFW_KEY_RIGHT_CONTROL: return "Rechte Strg";
-            case GLFW.GLFW_KEY_LEFT_CONTROL: return "Linke Strg";
-            case GLFW.GLFW_KEY_RIGHT_ALT: return "Rechte Alt";
-            case GLFW.GLFW_KEY_LEFT_ALT: return "Linke Alt";
-            case GLFW.GLFW_KEY_RIGHT_SUPER: return "Rechte Cmd";
-            case GLFW.GLFW_KEY_LEFT_SUPER: return "Linke Cmd";
-            case GLFW.GLFW_KEY_TAB: return "Tab";
-            case GLFW.GLFW_KEY_CAPS_LOCK: return "Feststelltaste";
-            case GLFW.GLFW_KEY_SPACE: return "Leertaste";
-            case GLFW.GLFW_KEY_ENTER: return "Enter";
-            default: break;
-        }
+        if (code == K.RIGHT_SHIFT) return "Rechte Shift";
+        if (code == K.LEFT_SHIFT) return "Linke Shift";
+        if (code == K.RIGHT_CONTROL) return "Rechte Strg";
+        if (code == K.LEFT_CONTROL) return "Linke Strg";
+        if (code == K.RIGHT_ALT) return "Rechte Alt";
+        if (code == K.LEFT_ALT) return "Linke Alt";
+        if (code == K.RIGHT_SUPER) return "Rechte Cmd";
+        if (code == K.LEFT_SUPER) return "Linke Cmd";
+        if (code == K.TAB) return "Tab";
+        if (code == K.CAPS_LOCK) return "Feststelltaste";
+        if (code == K.SPACE) return "Leertaste";
+        if (code == K.ENTER) return "Enter";
         try {
-            String n = GLFW.glfwGetKeyName(code, 0);
+            String n = dev.teizen.client.compat.V.layoutName(code);
             if (n != null && !n.isBlank()) return n.toUpperCase(Locale.ROOT);
         } catch (Throwable ignored) {}
         return Keys.name(code);
@@ -62,9 +59,9 @@ public final class SettingsScreen extends Screen {
     /** Neue Menü-Taste übernehmen und speichern. */
     public void applyKey(int code) {
         waitingForKey = false;
-        if (code == GLFW.GLFW_KEY_ESCAPE) { note = "§7Abgebrochen."; return; }
-        if (code == GLFW.GLFW_KEY_DELETE || code == GLFW.GLFW_KEY_BACKSPACE) {
-            code = GLFW.GLFW_KEY_RIGHT_SHIFT;
+        if (code == K.ESCAPE) { note = "§7Abgebrochen."; return; }
+        if (code == K.DELETE || code == K.BACKSPACE) {
+            code = K.RIGHT_SHIFT;
             note = "§aZurückgesetzt auf Rechte Shift.";
         } else {
             note = "§aGespeichert! Das Menü geht jetzt mit §f" + keyName(code) + "§a auf.";

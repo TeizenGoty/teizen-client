@@ -948,7 +948,7 @@ final class Round9Tests {
                 boolean off = !am.isEnabled();
                 if (!off) am.setEnabled(false);
                 result("AutoMend: Brustpanzer Schaden " + Math.round(d0) + " -> " + dmg + " (" + am.thrown + " Flaschen), danach von selbst aus=" + yes(off)
-                        + ", Taste=" + dev.teizen.client.util.Keys.name(am.key) + " " + ok(d0 > 0 && dmg == 0 && off && am.key == org.lwjgl.glfw.GLFW.GLFW_KEY_K));
+                        + ", Taste=" + dev.teizen.client.util.Keys.name(am.key) + " " + ok(d0 > 0 && dmg == 0 && off && am.key == dev.teizen.client.compat.K.K));
                 cmd("kill @e[type=minecraft:experience_orb]");
                 cmd("clear @s");
                 next();

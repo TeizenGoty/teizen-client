@@ -9,7 +9,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import dev.teizen.client.compat.K;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -211,10 +211,10 @@ public final class SettingRows {
     public boolean keyPressed(KeyEvent e) {
         if (editing == null) return false;
         int k = e.key();
-        if (k == GLFW.GLFW_KEY_ENTER || k == GLFW.GLFW_KEY_KP_ENTER) finish(true);
-        else if (k == GLFW.GLFW_KEY_ESCAPE) finish(false);
-        else if (k == GLFW.GLFW_KEY_BACKSPACE && !buffer.isEmpty()) { buffer = buffer.substring(0, buffer.length() - 1); error = ""; }
-        else if (k == GLFW.GLFW_KEY_DELETE) { buffer = ""; error = ""; }
+        if (k == K.ENTER || k == K.KP_ENTER) finish(true);
+        else if (k == K.ESCAPE) finish(false);
+        else if (k == K.BACKSPACE && !buffer.isEmpty()) { buffer = buffer.substring(0, buffer.length() - 1); error = ""; }
+        else if (k == K.DELETE) { buffer = ""; error = ""; }
         return true;
     }
 }

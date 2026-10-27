@@ -803,7 +803,7 @@ final class NewTests {
                 mc.gui.setScreen(gui);
                 Module ka = TeizenClient.modules().byName("killaura");
                 gui.clickSetting(ka, ka.setting("reichweite"), 0);
-                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_DELETE, 0, 0));
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(dev.teizen.client.compat.K.DELETE, 0, 0));
                 for (char c : "5.5".toCharArray()) gui.charTyped(new net.minecraft.client.input.CharacterEvent(c));
                 next();
             }
@@ -817,15 +817,15 @@ final class NewTests {
                 if (!(mc.gui.screen() instanceof ClickGui gui)) { result("Menü Zahl eingeben: FEHLER (Menü nicht offen)"); next(); return; }
                 Module ka = TeizenClient.modules().byName("killaura");
                 boolean editing = gui.isEditing();
-                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(dev.teizen.client.compat.K.ENTER, 0, 0));
                 double v1 = ka.setting("reichweite").num();
                 // ungültige Zahl: bleibt offen, Esc bricht ab, Wert bleibt
                 gui.clickSetting(ka, ka.setting("reichweite"), 0);
-                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_DELETE, 0, 0));
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(dev.teizen.client.compat.K.DELETE, 0, 0));
                 for (char c : "99".toCharArray()) gui.charTyped(new net.minecraft.client.input.CharacterEvent(c));
-                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(dev.teizen.client.compat.K.ENTER, 0, 0));
                 boolean stillOpen = gui.isEditing();
-                gui.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE, 0, 0));
+                gui.keyPressed(new net.minecraft.client.input.KeyEvent(dev.teizen.client.compat.K.ESCAPE, 0, 0));
                 double v2 = ka.setting("reichweite").num();
                 boolean menuStillOpen = mc.gui.screen() instanceof ClickGui;
                 result("Menü Zahl eingeben: Eingabe offen=" + yes(editing) + ", 5.5 übernommen=" + f(v1) + ", 99 abgelehnt=" + yes(stillOpen)
@@ -848,7 +848,7 @@ final class NewTests {
                 List<LivingEntity> h = husks(6);
                 if (!h.isEmpty()) {
                     mc.gameMode.attack(mc.player, h.get(0));
-                    mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+                    dev.teizen.client.compat.V.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
                 }
                 next();
             }
@@ -945,7 +945,7 @@ final class NewTests {
                 if (!after(30)) return;
                 double moved = mc.player.getX() - p0.x;
                 boolean open = mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen;
-                dev.teizen.client.modules.InventoryWalk.keyDown = code -> com.mojang.blaze3d.platform.InputConstants.isKeyDown(mc.getWindow(), code);
+                dev.teizen.client.modules.InventoryWalk.keyDown = code -> dev.teizen.client.compat.V.isKeyDown(code);
                 mc.gui.setScreen(null);
                 mc.options.keyUp.setDown(false);
                 t("///inventorywalk");
@@ -996,7 +996,7 @@ final class NewTests {
                 boolean again = mc.player.isFallFlying();
                 var er = mod(dev.teizen.client.modules.ElytraReset.class);
                 var km = dev.teizen.client.core.KeyBinds.elytra();
-                boolean ctrl = km != null && net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.getBoundKeyOf(km).getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL;
+                boolean ctrl = km != null && net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.getBoundKeyOf(km).getValue() == dev.teizen.client.compat.K.LEFT_CONTROL;
                 result("ElytraReset: Gleiten vorher=" + yes(flag1) + ", Taste = Elytra zu=" + yes(flag2) + " (Fallen " + f(d1) + "), nochmal Taste = wieder offen="
                         + yes(again) + ", eigene Taste in der Steuerung = Strg links=" + yes(ctrl) + " " + ok(flag1 && flag2 && again && er.resets >= 1 && ctrl));
                 t("///elytrareset");
@@ -1198,9 +1198,9 @@ final class NewTests {
                     log("XRay-Erze nach Klicks: " + x.ores.str());
                     // Zahl direkt in der Übersicht eintippen
                     ov.clickSetting(x.setting("radius"), 0);
-                    ov.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_DELETE, 0, 0));
+                    ov.keyPressed(new net.minecraft.client.input.KeyEvent(dev.teizen.client.compat.K.DELETE, 0, 0));
                     ov.charTyped(new net.minecraft.client.input.CharacterEvent('7'));
-                    ov.keyPressed(new net.minecraft.client.input.KeyEvent(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0, 0));
+                    ov.keyPressed(new net.minecraft.client.input.KeyEvent(dev.teizen.client.compat.K.ENTER, 0, 0));
                 }
                 boolean typed = x.setting("radius").integer() == 7;
                 result("Rechtsklick in der Übersicht klappt die Einstellungen direkt dort auf=" + yes(inline) + " (gleicher Bildschirm=" + yes(ov != null)
@@ -1852,7 +1852,7 @@ final class NewTests {
                 AutoCrystal ac = mod(AutoCrystal.class);
                 int key = ac.key;
                 result("AutoCrystal einfach (wie Crystal-Aura): gesetzt " + ac.placed + ", zerschlagen " + ac.broken + ", Taste=" + dev.teizen.client.util.Keys.name(key)
-                        + " " + ok(ac.placed >= 2 && ac.broken >= 2 && key == org.lwjgl.glfw.GLFW.GLFW_KEY_J));
+                        + " " + ok(ac.placed >= 2 && ac.broken >= 2 && key == dev.teizen.client.compat.K.J));
                 t("///autocrystal");
                 if (!flag1) t("///antiknockback");
                 cmd("effect clear @s minecraft:resistance");

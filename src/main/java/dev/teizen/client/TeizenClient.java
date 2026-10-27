@@ -16,7 +16,7 @@ import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import dev.teizen.client.compat.K;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +27,7 @@ public final class TeizenClient implements ClientModInitializer {
     public static final Logger LOG = LoggerFactory.getLogger("TeizenClient");
     private static ModuleManager modules;
     /** Taste fürs Menü (Standard: rechte Shift-Taste). */
-    public static int menuKey = GLFW.GLFW_KEY_RIGHT_SHIFT;
+    public static int menuKey = K.RIGHT_SHIFT;
 
     private final Map<Integer, Boolean> wasDown = new HashMap<>();
     private boolean greeted;
@@ -95,7 +95,7 @@ public final class TeizenClient implements ClientModInitializer {
     }
 
     private boolean pressed(Minecraft mc, int key) {
-        boolean down = InputConstants.isKeyDown(mc.getWindow(), key);
+        boolean down = dev.teizen.client.compat.V.isKeyDown(key);
         Boolean before = wasDown.put(key, down);
         return down && (before == null || !before);
     }

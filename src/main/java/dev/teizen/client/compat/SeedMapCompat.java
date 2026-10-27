@@ -174,7 +174,7 @@ public final class SeedMapCompat {
         String url = chunkbaseUrl(seed);
         lastUrl = url;
         try {
-            net.minecraft.util.Util.getPlatform().openUri(url);
+            dev.teizen.client.util.Browser.open(url);
         } catch (Throwable t) {
             TeizenClient.LOG.warn("Browser konnte nicht geöffnet werden", t);
             return "Chunkbase (Adresse im Chat)";

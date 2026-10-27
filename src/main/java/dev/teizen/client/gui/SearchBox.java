@@ -7,7 +7,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
-import org.lwjgl.glfw.GLFW;
+import dev.teizen.client.compat.K;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,11 +71,11 @@ public final class SearchBox {
     public boolean keyPressed(KeyEvent e) {
         if (!focused) return false;
         int k = e.key();
-        if (k == GLFW.GLFW_KEY_BACKSPACE) { if (!query.isEmpty()) query = query.substring(0, query.length() - 1); return true; }
-        if (k == GLFW.GLFW_KEY_ESCAPE) { if (query.isEmpty()) focused = false; else query = ""; return true; }
-        if (k == GLFW.GLFW_KEY_ENTER || k == GLFW.GLFW_KEY_KP_ENTER) { focused = false; return true; }
-        if (k == GLFW.GLFW_KEY_DELETE) { query = ""; return true; }
-        return k != GLFW.GLFW_KEY_TAB; // andere Tasten (auch die Menü-Taste) gehen beim Tippen nicht weiter
+        if (k == K.BACKSPACE) { if (!query.isEmpty()) query = query.substring(0, query.length() - 1); return true; }
+        if (k == K.ESCAPE) { if (query.isEmpty()) focused = false; else query = ""; return true; }
+        if (k == K.ENTER || k == K.KP_ENTER) { focused = false; return true; }
+        if (k == K.DELETE) { query = ""; return true; }
+        return k != K.TAB; // andere Tasten (auch die Menü-Taste) gehen beim Tippen nicht weiter
     }
 
     /** Treffer: erst Namen, die so anfangen, dann alle, die es irgendwo enthalten. */

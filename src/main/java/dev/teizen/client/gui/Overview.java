@@ -15,7 +15,7 @@ import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import dev.teizen.client.compat.K;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -458,7 +458,7 @@ public final class Overview extends Screen {
         for (Cell c : cells) {
             if (!in(mx, my, c.x(), c.y() + off, CELL_W, CELL_H)) continue;
             Module m = c.m();
-            boolean shift = (e.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0;
+            boolean shift = (e.modifiers() & K.MOD_SHIFT) != 0;
             if (button == 2 || (button == 0 && shift)) {
                 m.favorite = !m.favorite;
                 Config.save();
@@ -492,13 +492,13 @@ public final class Overview extends Screen {
         if (rows.keyPressed(e)) return true;
         if (binding != null) {
             int k = e.key();
-            binding.key = (k == GLFW.GLFW_KEY_DELETE || k == GLFW.GLFW_KEY_BACKSPACE || k == GLFW.GLFW_KEY_ESCAPE) ? -1 : k;
+            binding.key = (k == K.DELETE || k == K.BACKSPACE || k == K.ESCAPE) ? -1 : k;
             binding = null;
             Config.save();
             return true;
         }
         if (search.keyPressed(e)) return true;
-        if (e.key() == GLFW.GLFW_KEY_ESCAPE && expanded != null) { toggleExpand(expanded); return true; }
+        if (e.key() == K.ESCAPE && expanded != null) { toggleExpand(expanded); return true; }
         if (e.key() == TeizenClient.menuKey) {
             net.minecraft.client.Minecraft.getInstance().gui.setScreen(new ClickGui());
             return true;
@@ -507,8 +507,8 @@ public final class Overview extends Screen {
             onClose();
             return true;
         }
-        if (e.key() == GLFW.GLFW_KEY_PAGE_DOWN || e.key() == GLFW.GLFW_KEY_DOWN) { scroll = Math.min(maxScroll(), scroll + (e.key() == GLFW.GLFW_KEY_DOWN ? 24 : height / 2)); return true; }
-        if (e.key() == GLFW.GLFW_KEY_PAGE_UP || e.key() == GLFW.GLFW_KEY_UP) { scroll = Math.max(0, scroll - (e.key() == GLFW.GLFW_KEY_UP ? 24 : height / 2)); return true; }
+        if (e.key() == K.PAGE_DOWN || e.key() == K.DOWN) { scroll = Math.min(maxScroll(), scroll + (e.key() == K.DOWN ? 24 : height / 2)); return true; }
+        if (e.key() == K.PAGE_UP || e.key() == K.UP) { scroll = Math.max(0, scroll - (e.key() == K.UP ? 24 : height / 2)); return true; }
         return super.keyPressed(e);
     }
 }

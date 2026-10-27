@@ -242,7 +242,7 @@ public final class AimAssist extends Module {
                     }
                 } else if (aimed && !mc.player.isUsingItem()) {
                     mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
-                    mc.player.swing(InteractionHand.MAIN_HAND);
+                    dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
                     shots++;
                 }
             }

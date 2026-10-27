@@ -48,7 +48,7 @@ public final class ShieldBreaker extends Module {
         if (mc.player.getAttackStrengthScale(0.5f) < 0.9f) return;
         if (Inv.findHotbar(WeaponSwap::isAxe) < 0) return;
         mc.gameMode.attack(mc.player, t);
-        mc.player.swing(InteractionHand.MAIN_HAND);
+        dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
     }
 
     @Override

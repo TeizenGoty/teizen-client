@@ -49,6 +49,9 @@ tasks.withType(JavaCompile).configureEach {
     it.options.compilerArgs += ['-Xmaxerrs', '1000']
 }
 
+// Code, der je nach Minecraft-Version anders ist (Tasten, Arm-Schwung ...)
+sourceSets.main.java.srcDir "src/mc/${project.minecraft_version}/java"
+
 java {
     sourceCompatibility = JavaVersion.VERSION_25
     targetCompatibility = JavaVersion.VERSION_25
