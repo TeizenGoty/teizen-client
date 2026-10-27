@@ -67,7 +67,7 @@ jobs:
           echo "== Items mit SPEAR/MACE" >> api-dump.txt
           javap -p -cp "$MC" net.minecraft.world.item.Items | grep -E "SPEAR|MACE|_AXE " >> api-dump.txt
           echo "== DataComponents (Waffen)" >> api-dump.txt
-          javap -p -cp "$MC" net.minecraft.core.component.DataComponents | grep -iE "ATTACK|PIERC|KINETIC|WEAPON|BLOCKS_ATTACKS|PIERCING" >> api-dump.txt
+          javap -p -cp "$MC" net.minecraft.core.component.DataComponents | grep -iE "ATTACK|PIERC|KINETIC|WEAPON|BLOCKS_ATTACKS|PIERCING|SWING" >> api-dump.txt
           echo "== ItemTags AXES" >> api-dump.txt
           javap -p -cp "$MC" net.minecraft.tags.ItemTags | grep -E "AXE|SPEAR|SWORD" >> api-dump.txt
           echo "== Speer-Komponenten (Items.<clinit>)" >> api-dump.txt

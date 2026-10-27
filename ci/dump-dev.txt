@@ -1,18 +1,8 @@
 # Klassen für den schnellen dev-Lauf (javap). "c <Klasse>" = mit Bytecode.
-com.mojang.blaze3d.platform.InputConstants
-com.mojang.blaze3d.platform.InputConstants$Type
-com.mojang.blaze3d.platform.InputConstants$Key
-com.mojang.blaze3d.platform.Window
-net.minecraft.client.KeyMapping
-net.minecraft.client.input.KeyEvent
-net.minecraft.client.input.MouseButtonEvent
-net.minecraft.client.input.MouseButtonInfo
-net.minecraft.client.input.InputWithModifiers
-net.minecraft.client.KeyboardHandler
-net.minecraft.client.MouseHandler
-c net.minecraft.world.entity.LivingEntity
-net.minecraft.client.player.LocalPlayer
-net.minecraft.client.multiplayer.MultiPlayerGameMode
-net.minecraft.util.Util
-net.minecraft.client.Minecraft
-net.minecraft.client.gui.screens.Screen
+c net.minecraft.client.Minecraft
+net.minecraft.network.protocol.game.ServerboundSwingPacket
+net.minecraft.util.Util$OS
+c net.minecraft.client.player.LocalPlayer
+c net.minecraft.client.multiplayer.MultiPlayerGameMode
+net.minecraft.client.gui.components.EditBox
+net.minecraft.client.gui.components.events.GuiEventListener
