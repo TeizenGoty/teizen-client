@@ -325,6 +325,29 @@ public final class Overview extends Screen {
             g.text(font, cnt, sideX + SIDE_W - 4 - font.width(cnt), by + 4, 0xFFFFFFFF, false);
         }
 
+        // Profile (ein Klick = mehrere Cheats an/aus) + HUD verschieben
+        int py = profileTop();
+        if (py + 12 < clipBottom) g.text(font, "§7Profile", sideX + 2, py + 1, 0xFFFFFFFF, false);
+        java.util.List<dev.teizen.client.core.Profiles.Profile> profs = dev.teizen.client.core.Profiles.all();
+        for (int j = 0; j < profs.size(); j++) {
+            int by = profileButtonY(j);
+            if (by + SIDE_BTN_H > hudButtonY()) break;
+            var pr = profs.get(j);
+            boolean act = dev.teizen.client.core.Profiles.isActive(pr);
+            boolean hover = in(mouseX, mouseY, sideX, by, SIDE_W, SIDE_BTN_H - 2);
+            g.fill(sideX, by, sideX + SIDE_W, by + SIDE_BTN_H - 2, act ? 0xFF2E9A50 : (hover ? 0xE0362060 : 0xD0281646));
+            g.fill(sideX, by, sideX + 3, by + SIDE_BTN_H - 2, pr.builtIn() ? 0xFF50E080 : 0xFFE080FF);
+            String pl = (act ? "§f§l" : "§f") + pr.name();
+            if (font.width(pl) > SIDE_W - 22) pl = font.plainSubstrByWidth(pl, SIDE_W - 24);
+            g.text(font, pl, sideX + 7, by + 4, 0xFFFFFFFF, false);
+            g.text(font, act ? "§aan" : "§8aus", sideX + SIDE_W - 4 - font.width(act ? "an" : "aus"), by + 4, 0xFFFFFFFF, false);
+            if (hover) g.setTooltipForNextFrame(font, Component.literal(pr.name() + ": " + String.join(", ", pr.modules())), mouseX, mouseY);
+        }
+        int hy = hudButtonY();
+        boolean hh = in(mouseX, mouseY, sideX, hy, SIDE_W, SIDE_BTN_H - 2);
+        g.fill(sideX, hy, sideX + SIDE_W, hy + SIDE_BTN_H - 2, hh ? 0xFF7A2CF0 : 0xD0402080);
+        g.centeredText(font, "§fHUD verschieben", sideX + SIDE_W / 2, hy + 4, 0xFFFFFFFF);
+
         // Bildlaufleiste
         if (maxS > 0) {
             int trackH = clipBottom - TOP;
@@ -378,6 +401,19 @@ public final class Overview extends Screen {
     }
 
     private int sideButtonY(int i) { return TOP + 12 + i * SIDE_BTN_H; }
+    private int profileTop() { return sideButtonY(Module.Category.values().length + 1) + 4; }
+    private int profileButtonY(int j) { return profileTop() + 12 + j * SIDE_BTN_H; }
+    private int hudButtonY() { return height - 16 - SIDE_BTN_H - 2; }
+
+    /** Für den Selbsttest: Mitte des Profil-Knopfs / HUD-Knopfs. */
+    public double[] profileButtonCenter(String name) {
+        java.util.List<dev.teizen.client.core.Profiles.Profile> profs = dev.teizen.client.core.Profiles.all();
+        for (int j = 0; j < profs.size(); j++)
+            if (profs.get(j).name().equalsIgnoreCase(name)) return new double[]{sideX + SIDE_W / 2.0, profileButtonY(j) + (SIDE_BTN_H - 2) / 2.0};
+        return null;
+    }
+
+    public double[] hudButtonCenter() { return new double[]{sideX + SIDE_W / 2.0, hudButtonY() + (SIDE_BTN_H - 2) / 2.0}; }
 
     /** Nur eine Kategorie zeigen (null = alle). */
     public void setFilter(Module.Category c) {
@@ -437,6 +473,13 @@ public final class Overview extends Screen {
             setFilter(i == 0 ? null : Module.Category.values()[i - 1]);
             return true;
         }
+        java.util.List<dev.teizen.client.core.Profiles.Profile> profs = dev.teizen.client.core.Profiles.all();
+        for (int j = 0; j < profs.size(); j++) {
+            int by = profileButtonY(j);
+            if (by + SIDE_BTN_H > hudButtonY()) break;
+            if (in(mx, my, sideX, by, SIDE_W, SIDE_BTN_H - 2)) { dev.teizen.client.core.Profiles.toggle(profs.get(j).name()); return true; }
+        }
+        if (in(mx, my, sideX, hudButtonY(), SIDE_W, SIDE_BTN_H - 2)) { net.minecraft.client.Minecraft.getInstance().gui.setScreen(new HudEditorScreen(this)); return true; }
         if (mx >= sideX - 3) return true;
         int off = TOP - scroll;
         int button = e.button();

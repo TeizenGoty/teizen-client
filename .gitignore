@@ -5,3 +5,6 @@ out/
 .idea/
 *.iml
 .DS_Store
+out-keys/
+keys/
+*.pem

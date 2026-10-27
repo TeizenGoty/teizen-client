@@ -21,6 +21,7 @@ public final class Hud {
     public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
         if (mc.player == null || mc.level == null) return;
         if (mc.gui.hud.isHidden()) return;
+        HudLayout.frame();
         float partial = delta.getGameTimeDeltaPartialTick(true);
 
         if (Projector.begin(g)) {
@@ -40,12 +41,22 @@ public final class Hud {
         for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) on.add(m);
         on.sort(Comparator.comparingInt((Module m) -> -mc.font.width(label(m))));
         // mit Xaero's Minimap ist oben links die Karte -> Schriftzug weglassen
-        if (!dev.teizen.client.compat.XaeroCompat.minimapInstalled()) g.text(mc.font, "§5§lTeizen §7Client", 3, 3, 0xFFFFFFFF, true);
+        if (!dev.teizen.client.compat.XaeroCompat.minimapInstalled()) {
+            String logo = "§5§lTeizen §7Client";
+            HudLayout.report("logo", 2, 2, 4 + mc.font.width(logo), 12);
+            HudLayout.push(g, "logo");
+            g.text(mc.font, logo, 3, 3, 0xFFFFFFFF, true);
+            HudLayout.pop(g);
+        }
         if (scale <= 0.01f || on.isEmpty()) return;
         // Liste oben rechts, verkleinert (///hud <Größe>)
         float sc = scale;
         int w = (int) Math.floor(g.guiWidth() / sc);
         int y = 1;
+        int maxTw = 0;
+        for (Module m : on) maxTw = Math.max(maxTw, mc.font.width(label(m)));
+        HudLayout.report("liste", (int) Math.floor((w - maxTw - 5) * sc), (int) Math.floor(sc), g.guiWidth(), (int) Math.ceil((1 + on.size() * 10) * sc));
+        HudLayout.push(g, "liste");
         g.pose().pushMatrix();
         g.pose().scale(sc, sc);
         for (Module m : on) {
@@ -57,6 +68,7 @@ public final class Hud {
             y += 10;
         }
         g.pose().popMatrix();
+        HudLayout.pop(g);
     }
 
     /** Größe der Liste oben rechts (1 = normal, 0 = ausblenden). */

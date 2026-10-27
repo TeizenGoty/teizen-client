@@ -2003,7 +2003,8 @@ final class NewTests {
                 SelfTest.jump(300); // Runde 9: die neuen Funktionen
             }
             default -> {
-                if (step >= 400) Round10Tests.step(step, o);
+                if (step >= 500) Round11Tests.step(step, o);
+                else if (step >= 400) Round10Tests.step(step, o);
                 else if (step >= 300) Round9Tests.step(step, o);
             }
         }

@@ -5,6 +5,7 @@ import net.minecraft.client.player.LocalPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /** NoSlowdown: Essen, Bogen und Blocken machen dich nicht langsamer. */
@@ -21,5 +22,11 @@ public abstract class LocalPlayerMixin {
     private void teizen$fullSpeed(CallbackInfoReturnable<Float> cir) {
         NoSlowdown n = NoSlowdown.active();
         if (n != null && n.items.on()) cir.setReturnValue(1.0f);
+    }
+
+    /** Criticals (26.3): in den Krit-Ticks eigenes Positions-Paket statt des normalen (nie zwei pro Tick). */
+    @Inject(method = "sendPosition", at = @At("HEAD"), cancellable = true)
+    private void teizen$critPosition(CallbackInfo ci) {
+        if (dev.teizen.client.modules.Criticals.onSendPosition()) ci.cancel();
     }
 }

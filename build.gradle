@@ -95,7 +95,8 @@ loom {
     runs {
         client {
             if (System.getenv('TEIZEN_SELFTEST') == '1') {
-                programArgs '--quickPlayMultiplayer', 'localhost:25565'
+                // fester Name, damit der Test-Key (ci/teizen-key-TeizenTest.jar) passt
+                programArgs '--quickPlayMultiplayer', 'localhost:25565', '--username', 'TeizenTest'
             }
         }
     }
@@ -104,7 +105,7 @@ loom {
 // ------------------------------------------------------------------ Zwei Versionen + Key-Mod
 // 1) teizen-client-<version>.jar          = normale Version (geht immer, key_required=false aus src/main/resources)
 // 2) teizen-client-1.1.0+26.2.jar         = geht nur, wenn die Key-Mod im mods-Ordner liegt (key_required=true)
-// 3) teizen-key.jar                       = die Key-Mod (nur der Schlüssel, kein Code)
+// 3) teizen-key-<Name>.jar                = Key für genau einen Spielernamen (ci/make-key.py)
 def keyPropsDir = layout.buildDirectory.dir('generated/teizen-key-props')
 
 def keyProps = tasks.register('teizenKeyProps') {
@@ -141,14 +142,5 @@ def clientMitKey = tasks.register('clientMitKeyJar', Zip) {
     from(keyPropsDir)
 }
 
-def keyMod = tasks.register('keyModJar', Jar) {
-    group = 'build'
-    description = 'Die Key-Mod für die Version mit Key-Pflicht'
-    archiveFileName = 'teizen-key.jar'
-    destinationDirectory = layout.buildDirectory.dir('libs')
-    from('keymod') {
-        include 'fabric.mod.json', 'teizen-key.txt'
-    }
-}
-
-tasks.named('build') { dependsOn clientMitKey, keyMod }
+// Keys (an den Spielernamen gebunden) macht ci/make-key.py mit dem geheimen Schlüssel aus keys/
+tasks.named('build') { dependsOn clientMitKey }

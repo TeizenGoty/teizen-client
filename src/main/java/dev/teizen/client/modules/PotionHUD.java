@@ -227,7 +227,7 @@ public final class PotionHUD extends Module {
     @Override
     public void onHud(GuiGraphicsExtractor g, float partial) {
         if (!inGame() || effects.isEmpty()) return;
-        int y = g.guiHeight() / 2 - 40;
+        int y = g.guiHeight() / 2 - 40, y0 = y, minX = g.guiWidth();
         for (Player p : mc.level.players()) {
             List<Eff> l = effects.get(p.getUUID());
             if (l == null) continue;
@@ -246,17 +246,22 @@ public final class PotionHUD extends Module {
                 }
             }
             if (list.on()) {
+                dev.teizen.client.gui.HudLayout.push(g, "effekte");
                 String head = "§f" + p.getGameProfile().name() + "§7:";
                 g.text(mc.font, head, g.guiWidth() - mc.font.width(head) - 4, y, 0xFFFFFFFF, true);
+                minX = Math.min(minX, g.guiWidth() - mc.font.width(head) - 4);
                 y += 10;
                 for (Eff e : l) {
                     String t = text(e);
                     g.text(mc.font, t, g.guiWidth() - mc.font.width(t) - 8, y, e.color(), true);
+                    minX = Math.min(minX, g.guiWidth() - mc.font.width(t) - 8);
                     y += 9;
                 }
                 y += 3;
+                dev.teizen.client.gui.HudLayout.pop(g);
             }
         }
+        if (y > y0) dev.teizen.client.gui.HudLayout.report("effekte", minX, y0, g.guiWidth() - 2, y - 3);
     }
 
     @Override

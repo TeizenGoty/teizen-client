@@ -117,8 +117,8 @@ jobs:
             if [ -n "$URL" ] && [ "$URL" != "null" ]; then curl -sL "$URL" -o "run/mods/$proj.jar"; fi
           done
           # SeedCrackerX ist jetzt fest im Teizen Client eingebaut (libs/seedcrackerx-<mc>.jar)
-          # Key-Mod mitladen, damit der Selbsttest auch "Version mit Key + Key-Mod da" prüfen kann
-          cp dist/teizen-key.jar run/mods/ 2>/dev/null
+          # Test-Key (für den Namen TeizenTest) mitladen, damit der Selbsttest "Version mit Key + passender Key" prüfen kann
+          cp ci/teizen-key-TeizenTest.jar run/mods/
           ls -la run/mods
           printf "onboardAccessibility:false\nskipMultiplayerWarning:true\njoinedFirstServer:true\ntutorialStep:none\nguiScale:2\nrenderDistance:5\nsimulationDistance:5\nsoundCategory_master:0.0\n" > run/options.txt
           export LIBGL_ALWAYS_SOFTWARE=1

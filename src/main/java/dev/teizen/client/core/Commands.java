@@ -275,6 +275,13 @@ public final class Commands {
                         : "OP-Cheats werden im Menü wieder gezeigt.");
             }
             case "hud" -> {
+                if (a.length >= 2 && (a[1].equalsIgnoreCase("verschieben") || a[1].equalsIgnoreCase("bearbeiten") || a[1].equalsIgnoreCase("edit"))) {
+                    mc.execute(() -> mc.gui.setScreen(new dev.teizen.client.gui.HudEditorScreen(null)));
+                    return;
+                }
+                if (a.length >= 2 && (a[1].equalsIgnoreCase("reset") || a[1].equalsIgnoreCase("zuruecksetzen"))) {
+                    dev.teizen.client.gui.HudLayout.resetAll(); Config.save(); Chat.ok("Alle HUD-Teile wieder an ihrem Standard-Platz."); return;
+                }
                 if (a.length < 2) { Chat.info("Liste oben rechts: Größe §f" + dev.teizen.client.gui.Hud.scale + "§7. Ändern: ///hud 0.5 (0 = aus, 1 = normal)"); return; }
                 try {
                     float v = Float.parseFloat(a[1].replace(',', '.'));
@@ -288,6 +295,18 @@ public final class Commands {
                     else Chat.error("///hud <Zahl>, z.B. ///hud 0.5");
                 }
             }
+            case "profil", "profile", "profiles" -> {
+                if (a.length < 2) { Profiles.list(); return; }
+                String sub = a[1].toLowerCase(Locale.ROOT);
+                switch (sub) {
+                    case "speichern", "save", "neu" -> { if (a.length < 3) Chat.error("///profil speichern <Name>"); else Profiles.save(a[2]); }
+                    case "loeschen", "löschen", "delete", "weg" -> { if (a.length < 3) Chat.error("///profil loeschen <Name>"); else Profiles.delete(a[2]); }
+                    case "aus", "off" -> Profiles.off(true);
+                    case "liste", "list" -> Profiles.list();
+                    default -> Profiles.toggle(a[1]);
+                }
+            }
+            case "hudedit", "hudeditor" -> mc.execute(() -> mc.gui.setScreen(new dev.teizen.client.gui.HudEditorScreen(null)));
             case "panic", "alleaus", "panik" -> {
                 int n = dev.teizen.client.modules.PanicButton.panic();
                 Chat.ok("Alle Funktionen aus (" + n + " ausgeschaltet).");
@@ -498,6 +517,8 @@ public final class Commands {
         Chat.raw("§d///seedmap §7– Seed holen und Seed-Karte mit allen Strukturen öffnen (SeedMapper / Seed Atlas / Chunkbase) · §d///seed [Zahl]");
         Chat.raw("§d///opcheats §7– Cheats, die OP brauchen, im Menü verstecken/zeigen (auch Knopf oben rechts)");
         Chat.raw("§d///hud <Größe> §7– Liste oben rechts kleiner/größer (z.B. 0.5, 0 = aus, 1 = normal)");
+        Chat.raw("§d///profil <Name> §7– Profil an/aus (PvP, Farmen, Bauen, Abbauen, Erkunden) · §d///profil speichern <Name> §7– jetzige Cheats als eigenes Profil");
+        Chat.raw("§d///hud verschieben §7– HUD-Teile mit der Maus verschieben (auch Knopf in der Übersicht) · §d///hud reset");
         Chat.raw("§d///panic §7– alles aus   §d///save §7– speichern");
     }
 }

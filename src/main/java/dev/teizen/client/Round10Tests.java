@@ -410,11 +410,25 @@ final class Round10Tests {
                 boolean on = fb.isEnabled();
                 boolean menu = Lock.menu(dev.teizen.client.gui.ClickGui::new) instanceof dev.teizen.client.gui.ClickGui;
                 if (on) fb.setEnabled(false);
+                boolean keyFits = Lock.keyPresent();
+                String keyFor = Lock.keyName;
+                // Key an den Namen gebunden: mit einem anderen Namen gesperrt
+                Lock.testName = "Fremder";
+                boolean otherLocked = !Lock.keyPresent() && !Lock.ok() && Lock.message().contains("gehört zu");
+                t("///fullbright");
+                boolean otherBlocked = !fb.isEnabled();
+                Lock.testName = null;
+                boolean backOk = Lock.keyPresent();
+                // die Unterschrift gilt nur für den einen Namen
+                String sig = "ueMPSFSi2des2wuHbqQ0ZH58ezTDYfxBd38FWzp4Wo9fzfwMgnoe9CKtM7bv+V6+jLivbGvNSnnYa4mbimBGAA==";
+                boolean noForge = !Lock.verifyForTest("Fremder", sig) && Lock.verifyForTest("TeizenTest", sig);
                 Lock.testRequired = null;
                 Lock.testKeyMissing = null;
-                result("Key-Sperre mit Key-Mod: Key-Mod geladen=" + yes(keyMod) + ", Schlüssel passt=" + yes(Lock.keyPresent()) + ", Funktion geht=" + yes(on)
-                        + ", Menü geht=" + yes(menu) + "; normale Version ohne Sperre=" + yes(normalOk) + " " + ok(keyMod && on && menu && normalOk && Lock.ok()));
-                SelfTest.jump(152);
+                result("Key-Sperre mit Key-Mod: Key-Mod geladen=" + yes(keyMod) + ", Key für " + keyFor + " passt zu " + Lock.myName() + "=" + yes(keyFits) + ", Funktion geht=" + yes(on)
+                        + ", Menü geht=" + yes(menu) + "; normale Version ohne Sperre=" + yes(normalOk) + " " + ok(keyMod && keyFits && on && menu && normalOk && Lock.ok()));
+                result("Key an Spielernamen gebunden: anderer Name gesperrt=" + yes(otherLocked) + ", Funktion gesperrt=" + yes(otherBlocked) + ", eigener Name wieder frei=" + yes(backOk)
+                        + ", Key nicht auf anderen Namen übertragbar=" + yes(noForge) + " " + ok(otherLocked && otherBlocked && backOk && noForge));
+                SelfTest.jump(500); // Runde 11
             }
             default -> {}
         }

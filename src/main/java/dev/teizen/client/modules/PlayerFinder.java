@@ -209,9 +209,12 @@ public final class PlayerFinder extends Module {
         String t = "§d👁 §f" + inView;
         int w = mc.font.width(t);
         int maxRight = g.guiWidth() / 2 - 91 - 4; // linker Rand der Hotbar
-        if (w + 5 > maxRight) return;
+        if (w + 5 > maxRight && !dev.teizen.client.gui.HudLayout.moved("zaehler")) return;
+        dev.teizen.client.gui.HudLayout.report("zaehler", 1, g.guiHeight() - 12, w + 5, g.guiHeight() - 1);
+        dev.teizen.client.gui.HudLayout.push(g, "zaehler");
         g.fill(1, g.guiHeight() - 12, w + 5, g.guiHeight() - 1, 0x80140A26);
         g.text(mc.font, t, 3, g.guiHeight() - 10, 0xFFFFFFFF, true);
+        dev.teizen.client.gui.HudLayout.pop(g);
     }
 
     private void drawTargets(GuiGraphicsExtractor g, float partial) {
@@ -219,13 +222,18 @@ public final class PlayerFinder extends Module {
             // sonst denkt man, es geht nicht
             if (list.on()) {
                 int y0 = dev.teizen.client.compat.XaeroCompat.minimapInstalled() ? Math.max(14, g.guiHeight() / 3) : 14;
-                g.text(mc.font, "§7PlayerFinder: kein anderer Spieler gefunden", 4, y0, 0xFFFFFFFF, true);
-                g.text(mc.font, "§8(Server ohne OP: nur Spieler in Sichtweite)", 4, y0 + 10, 0xFFFFFFFF, true);
+                String l1 = "§7PlayerFinder: kein anderer Spieler gefunden", l2 = "§8(Server ohne OP: nur Spieler in Sichtweite)";
+                dev.teizen.client.gui.HudLayout.report("spielerliste", 4, y0, 4 + Math.max(mc.font.width(l1), mc.font.width(l2)), y0 + 19);
+                dev.teizen.client.gui.HudLayout.push(g, "spielerliste");
+                g.text(mc.font, l1, 4, y0, 0xFFFFFFFF, true);
+                g.text(mc.font, l2, 4, y0 + 10, 0xFFFFFFFF, true);
+                dev.teizen.client.gui.HudLayout.pop(g);
             }
             return;
         }
         Vec3 eye = mc.player.getEyePosition();
         int line = 0;
+        listW = 0;
         boolean first = true;
         // Liste links oben – mit Xaero's Minimap weiter unten, damit sie nicht unter der Karte liegt
         int listY = dev.teizen.client.compat.XaeroCompat.minimapInstalled() ? Math.max(14, g.guiHeight() / 3) : 14;
@@ -273,11 +281,17 @@ public final class PlayerFinder extends Module {
                 } else {
                     s = "§f" + t.name() + " §8im " + t.dim() + " §7(" + Math.round(t.x()) + " " + Math.round(t.z()) + ")";
                 }
+                dev.teizen.client.gui.HudLayout.push(g, "spielerliste");
                 g.text(mc.font, s, 4, listY + line * 10, c, true);
+                dev.teizen.client.gui.HudLayout.pop(g);
+                listW = Math.max(listW, mc.font.width(s));
                 line++;
             }
         }
+        if (line > 0) dev.teizen.client.gui.HudLayout.report("spielerliste", 4, listY, 4 + listW, listY + line * 10 - 1);
     }
+
+    private int listW;
 
     @Override
     public String info() { return String.valueOf(targets.size()); }

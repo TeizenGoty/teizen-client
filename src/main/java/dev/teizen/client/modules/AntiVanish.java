@@ -94,12 +94,17 @@ public final class AntiVanish extends Module {
         String head = "§c👁 Beobachter:";
         int y = 2;
         int x = g.guiWidth() - 2;
+        int maxW = mc.font.width(head);
+        for (Watcher w : watchers) maxW = Math.max(maxW, mc.font.width("§f" + w.name() + " §7(" + w.kind() + ")"));
+        dev.teizen.client.gui.HudLayout.report("beobachter", x - maxW - 3, 1, x + 1, 2 + 11 + watchers.size() * 10);
+        dev.teizen.client.gui.HudLayout.push(g, "beobachter");
         drawRight(g, head, x, y);
         y += 11;
         for (Watcher w : watchers) {
             drawRight(g, "§f" + w.name() + " §7(" + w.kind() + ")", x, y);
             y += 10;
         }
+        dev.teizen.client.gui.HudLayout.pop(g);
     }
 
     private void drawRight(GuiGraphicsExtractor g, String text, int right, int y) {

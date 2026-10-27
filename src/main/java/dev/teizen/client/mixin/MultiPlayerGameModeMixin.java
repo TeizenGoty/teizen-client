@@ -13,15 +13,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Criticals vor jedem Schlag + Abbau-Schutz für AutoMine/Nuker. */
 @Mixin(MultiPlayerGameMode.class)
 public abstract class MultiPlayerGameModeMixin {
-    @Inject(method = "attack", at = @At("HEAD"))
-    private void teizen$crit(Player player, Entity target, CallbackInfo ci) {
-        Criticals.beforeAttack();
-        dev.teizen.client.modules.HitMarker.onAttack(target);
-    }
-
-    /** ShieldBreaker / MaceSwap / SpearSwap: Waffe nur für diesen Schlag wechseln. */
+    /**
+     * Criticals (26.3: Schlag kurz verzögern) + ShieldBreaker / MaceSwap / SpearSwap (Waffe nur für diesen Schlag).
+     * In einem Inject, damit ein abgebrochener Schlag nicht trotzdem die Waffe wechselt.
+     */
     @Inject(method = "attack", at = @At("HEAD"), cancellable = true)
-    private void teizen$weaponSwap(Player player, Entity target, CallbackInfo ci) {
+    private void teizen$beforeAttack(Player player, Entity target, CallbackInfo ci) {
+        if (Criticals.beforeAttack(target)) { ci.cancel(); return; }
+        dev.teizen.client.modules.HitMarker.onAttack(target);
         dev.teizen.client.modules.TargetESP.onAttack(target);
         if (dev.teizen.client.util.WeaponSwap.before(target)) ci.cancel();
     }

@@ -30,8 +30,14 @@ public final class LockedScreen extends Screen {
         g.fill(x - 2, y - 2, x + w + 2, y + 102, 0xFFD02020);
         g.fill(x, y, x + w, y + 100, 0xFF2A0A0A);
         g.centeredText(font, "§c§lFEHLER: Teizen Client ist gesperrt", width / 2, y + 10, 0xFFFFFFFF);
-        g.centeredText(font, "§fDie Key-Mod §e(teizen-key.jar)§f fehlt.", width / 2, y + 28, 0xFFFFFFFF);
-        g.centeredText(font, "§7Leg sie in den mods-Ordner und starte Minecraft neu.", width / 2, y + 42, 0xFFFFFFFF);
+        String kn = Lock.keyName;
+        if (kn != null && !kn.equalsIgnoreCase(String.valueOf(Lock.myName()))) {
+            g.centeredText(font, "§fDer Key gehört zu §e" + kn + "§f, du spielst als §e" + Lock.myName() + "§f.", width / 2, y + 28, 0xFFFFFFFF);
+            g.centeredText(font, "§7Jeder braucht seinen eigenen Key (teizen-key-<Name>.jar).", width / 2, y + 42, 0xFFFFFFFF);
+        } else {
+            g.centeredText(font, "§fDie Key-Mod §e(teizen-key-<Name>.jar)§f fehlt.", width / 2, y + 28, 0xFFFFFFFF);
+            g.centeredText(font, "§7Leg sie in den mods-Ordner und starte Minecraft neu.", width / 2, y + 42, 0xFFFFFFFF);
+        }
         g.centeredText(font, "§7Ohne sie geht keine Funktion.", width / 2, y + 54, 0xFFFFFFFF);
         boolean hover = mouseX >= btnX() && mouseX < btnX() + BTN_W && mouseY >= btnY() && mouseY < btnY() + BTN_H;
         g.fill(btnX(), btnY(), btnX() + BTN_W, btnY() + BTN_H, hover ? 0xFF8A2020 : 0xFF5A1414);

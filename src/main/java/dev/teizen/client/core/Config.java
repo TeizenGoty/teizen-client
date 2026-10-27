@@ -59,6 +59,8 @@ public final class Config {
             root.addProperty("version", VERSION);
             root.addProperty("opAusblenden", ModuleManager.hideOp);
             root.addProperty("hudGroesse", dev.teizen.client.gui.Hud.scale);
+            root.add("profile", Profiles.toJson());
+            root.add("hudPositionen", dev.teizen.client.gui.HudLayout.toJson());
             Files.writeString(file(), GSON.toJson(root), StandardCharsets.UTF_8);
         } catch (Exception e) {
             TeizenClient.LOG.warn("Config konnte nicht gespeichert werden", e);
@@ -74,6 +76,8 @@ public final class Config {
             if (root.has("menuTaste")) { int mk = dev.teizen.client.compat.K.fromGlfw(root.get("menuTaste").getAsInt()); if (mk >= 0) TeizenClient.menuKey = mk; }
             if (root.has("opAusblenden")) ModuleManager.hideOp = root.get("opAusblenden").getAsBoolean();
             if (root.has("hudGroesse")) dev.teizen.client.gui.Hud.scale = Math.max(0f, Math.min(2f, root.get("hudGroesse").getAsFloat()));
+            if (root.has("profile")) Profiles.fromJson(root.getAsJsonObject("profile"));
+            if (root.has("hudPositionen")) dev.teizen.client.gui.HudLayout.fromJson(root.getAsJsonObject("hudPositionen"));
             if (root.has("freunde")) for (JsonElement e : root.getAsJsonArray("freunde")) Friends.add(e.getAsString());
             if (!root.has("funktionen")) return;
             JsonObject mods = root.getAsJsonObject("funktionen");
