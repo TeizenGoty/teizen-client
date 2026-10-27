@@ -14,6 +14,8 @@ public final class V {
     private V() {}
 
     public static final String MC = "26.3";
+    /** Ab 26.3 wirft der Server raus, wenn mehr als ein Positions-Paket pro Tick kommt. */
+    public static final boolean MULTI_MOVE_PACKETS = false;
     public static final InputConstants.Type KEYBOARD = InputConstants.Type.KEYBOARD;
 
     /** Arm schwingen. In 26.3 schwingt der Server beim Schlagen selbst. */
