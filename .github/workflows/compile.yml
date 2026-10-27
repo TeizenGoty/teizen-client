@@ -23,20 +23,29 @@ jobs:
         run: |
           chmod +x ./gradlew
           set +e
-          ./gradlew compileJava --stacktrace > build-log.txt 2>&1
-          echo "EXIT=$?" >> build-log.txt
-          tail -n 60 build-log.txt
+          : > build-log.txt
+          # beide Minecraft-Versionen kompilieren
+          for MCV in 26.2 26.3; do
+            sh ci/libs.sh $MCV
+            echo "===================== Minecraft $MCV" >> build-log.txt
+            ./gradlew compileJava -Pminecraft_version=$MCV --stacktrace > /tmp/b.txt 2>&1
+            echo "EXIT $MCV=$?" >> /tmp/b.txt
+            cat /tmp/b.txt >> build-log.txt
+            tail -n 60 /tmp/b.txt
+          done
       - name: API dump
         if: always()
         run: |
           set +e
+          # welche Version gedumpt wird: ci/dump-mc.txt (Standard 26.2)
+          DMC=$(cat ci/dump-mc.txt 2>/dev/null || echo 26.2)
           MC=""
-          for j in $(find ~/.gradle .gradle -name '*.jar' -size +8M 2>/dev/null); do
+          for j in $(find ~/.gradle .gradle -name '*.jar' -size +8M 2>/dev/null | grep "$DMC"); do
             if unzip -l "$j" 2>/dev/null | grep -q 'net/minecraft/client/Minecraft.class'; then MC="$j"; break; fi
           done
           echo "MC jar: $MC" > api-dump.txt
           if [ -n "$MC" ]; then
-            CP="$MC:libs/litematica-fabric-26.2-0.28.8.jar:libs/malilib-fabric-26.2-0.29.6.jar"
+            CP="$MC:$(ls libs/*-$DMC-*.jar | tr '\n' ':')"
             for j in $(find ~/.gradle -name '*.jar' \( -path '*fabric*' -o -path '*joml*' \) 2>/dev/null | head -500); do CP="$CP:$j"; done
             # Zeilen mit "c " davor: mit Bytecode (javap -c)
             grep -v '^#' ci/dump-dev.txt 2>/dev/null | grep -v '^$' | while read a b; do

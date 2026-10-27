@@ -2,6 +2,11 @@ plugins {
     id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
+// Werte für die gewählte Minecraft-Version (versions/26.2.properties, versions/26.3.properties ...)
+def mcv = new Properties()
+file("versions/${project.minecraft_version}.properties").withInputStream { mcv.load(it) }
+def litematicaLibs = ["libs/${mcv.litematica_jar}", "libs/${mcv.malilib_jar}"]
+
 version = "${project.mod_version}+${project.minecraft_version}"
 group = project.maven_group
 
@@ -17,23 +22,25 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    implementation "net.fabricmc:fabric-loader:${mcv.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${mcv.fabric_api_version}"
 
     // Litematica + malilib nur zum Kompilieren (AutoBuild). Zur Laufzeit optional.
-    compileOnly files('libs/litematica-fabric-26.2-0.28.8.jar', 'libs/malilib-fabric-26.2-0.29.6.jar')
+    compileOnly files(litematicaLibs)
     // nur für den automatischen Test im Entwicklungs-Client (nicht in der fertigen Mod)
-    runtimeOnly files('libs/litematica-fabric-26.2-0.28.8.jar', 'libs/malilib-fabric-26.2-0.29.6.jar')
+    runtimeOnly files(litematicaLibs)
 
     // Mod Menu: Einstellungs-Knopf (Menü-Taste festlegen). Optional, nicht in der jar enthalten.
-    compileOnly "maven.modrinth:modmenu:${project.modmenu_version}"
-    runtimeOnly "maven.modrinth:modmenu:${project.modmenu_version}"
+    compileOnly "maven.modrinth:modmenu:${mcv.modmenu_version}"
+    runtimeOnly "maven.modrinth:modmenu:${mcv.modmenu_version}"
 }
 
 processResources {
     def v = project.version
+    def mc = project.minecraft_version
     inputs.property "version", v
-    filesMatching("fabric.mod.json") { expand "version": v }
+    inputs.property "mc", mc
+    filesMatching("fabric.mod.json") { expand "version": v, "mc": mc }
 }
 
 tasks.withType(JavaCompile).configureEach {
