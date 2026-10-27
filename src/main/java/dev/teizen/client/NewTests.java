@@ -786,8 +786,8 @@ final class NewTests {
             }
             // ---------------------------------------------- AutoReconnect (Rauswurf per /kick, danach von selbst wieder rein)
             case 152 -> {
-                // sicherer Platz zum Wieder-Einloggen (nicht in einem Block landen)
-                BlockPos safe = SelfTest.origin().offset(30, 0, -60);
+                // sicherer Platz zum Wieder-Einloggen (nicht in einem Block / Loch landen) – genau hier, Chunk ist geladen
+                BlockPos safe = mc.player.blockPosition();
                 cmd("fill " + (safe.getX() - 3) + " " + (safe.getY() - 1) + " " + (safe.getZ() - 3) + " " + (safe.getX() + 3) + " " + (safe.getY() - 1) + " " + (safe.getZ() + 3) + " minecraft:stone");
                 cmd("fill " + (safe.getX() - 3) + " " + safe.getY() + " " + (safe.getZ() - 3) + " " + (safe.getX() + 3) + " " + (safe.getY() + 3) + " " + (safe.getZ() + 3) + " minecraft:air");
                 cmd(String.format(java.util.Locale.ROOT, "tp @s %.1f %d %.1f", safe.getX() + 0.5, safe.getY(), safe.getZ() + 0.5));
