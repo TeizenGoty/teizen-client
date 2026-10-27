@@ -28,6 +28,8 @@ final class Round11Tests {
     private static HudLayout.Box box0;
     private static boolean flag1, flag2;
     private static String text = "";
+    /** Was vor Runde 11 an war (danach wieder so herstellen, z.B. AutoTotem für den CombatLog-Test). */
+    private static final java.util.List<String> before = new java.util.ArrayList<>();
 
     private Round11Tests() {}
 
@@ -65,6 +67,8 @@ final class Round11Tests {
             case 500 -> {
                 if (!after(10)) return;
                 area = o.offset(-60, 0, 90);
+                before.clear();
+                for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) before.add(m.name);
                 cmd("fill " + blk(area.offset(-6, -1, -6)) + " " + blk(area.offset(6, -1, 6)) + " minecraft:stone");
                 cmd("fill " + blk(area.offset(-6, 0, -6)) + " " + blk(area.offset(6, 4, 6)) + " minecraft:air");
                 cmd("kill @e[type=minecraft:husk]");
@@ -221,8 +225,9 @@ final class Round11Tests {
                 result("HUD-Editor: " + text + ", bleibt nach dem Schließen dort=" + yes(stays) + ", gespeichert=" + yes(inConfig) + ", Rechtsklick = zurück=" + yes(back) + " "
                         + ok(flag1 && flag2 && stays && inConfig && back));
                 HudLayout.resetAll();
-                dev.teizen.client.core.Config.save();
                 dev.teizen.client.modules.PanicButton.panic();
+                for (String n : before) { Module m = TeizenClient.modules().byName(n); if (m != null && !m.isEnabled()) m.setEnabled(true); }
+                dev.teizen.client.core.Config.save();
                 SelfTest.jump(152);
             }
             default -> {}
