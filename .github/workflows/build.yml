@@ -42,6 +42,17 @@ jobs:
         with:
           name: dist
           path: dist/
+      - name: Build-Log in Branch jar-out (zum Nachlesen, git geht durch den Proxy)
+        if: always()
+        run: |
+          set +e
+          mkdir -p /tmp/jarout && cd /tmp/jarout
+          cp "$GITHUB_WORKSPACE/build-log.txt" . 2>/dev/null
+          echo "${GITHUB_SHA}" > commit.txt
+          git init -q -b jar-out
+          git config user.name ci; git config user.email ci@users.noreply.github.com
+          git add -A && git commit -q -m "jar log ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:jar-out
   # 2) diese eine Jar im echten Spiel testen: 26.2 und 26.3
   build:
     needs: jar
