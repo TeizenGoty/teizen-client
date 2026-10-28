@@ -59,8 +59,11 @@ public final class AutoClutch extends Module {
                 || p.getAbilities().flying || p.getDeltaMovement().y > -0.35 || p.isPassenger()) return;
         if (p.fallDistance < minFall.num()) return;
 
-        int ground = groundBelow();
-        if (ground < 0 || ground > Math.max(dist.integer(), 2) + 1) return; // noch zu hoch / kein Boden in Sicht
+        // je schneller der Fall, desto früher auslösen (ein Tick kann mehrere Blöcke überspringen)
+        int vy = (int) Math.ceil(Math.max(0, -p.getDeltaMovement().y));
+        int window = Math.max(dist.integer(), 2) + vy;
+        int ground = groundBelow(window + 2);
+        if (ground < 0 || ground > window) return;
 
         // bestes Rettungsmittel wählen
         if (place(s -> s.is(Items.WATER_BUCKET), true, true)) { clutches++; cooldown = 10; return; }
@@ -70,9 +73,9 @@ public final class AutoClutch extends Module {
     }
 
     /** Abstand zum nächsten festen Block unter einem (in Blöcken), oder -1. */
-    private int groundBelow() {
+    private int groundBelow(double depth) {
         Vec3 from = mc.player.position();
-        Vec3 to = from.add(0, -(dist.num() + 2), 0);
+        Vec3 to = from.add(0, -depth, 0);
         BlockHitResult hit = mc.level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, mc.player));
         if (hit.getType() != HitResult.Type.BLOCK) return -1;
         return (int) Math.round(from.y - hit.getLocation().y);

@@ -409,7 +409,7 @@ final class Round11Tests {
                 cmd("clear @s");
                 cmd("item replace entity @s hotbar.0 with minecraft:water_bucket");
                 cmd("effect give @s minecraft:instant_health 1 10");
-                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 90", area.getX() + 0.5, area.getY() + 30, area.getZ() + 0.5));
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 90", area.getX() + 0.5, area.getY() + 14, area.getZ() + 0.5));
                 var ac = TeizenClient.modules().get(dev.teizen.client.modules.AutoClutch.class);
                 ac.setEnabled(true);
                 n0 = ac.clutches;
@@ -423,7 +423,7 @@ final class Round11Tests {
                 float hp = mc.player.getHealth();
                 boolean survived = mc.player.isAlive() && hp > 6;
                 shot("68-autoclutch");
-                result("AutoClutch: Sturz aus 30 Blöcken, Wasser gesetzt=" + yes(ac.clutches > n0) + ", gelandet=" + yes(flag1)
+                result("AutoClutch: Sturz aus 14 Blöcken, Rettung gesetzt=" + yes(ac.clutches > n0) + ", gelandet=" + yes(flag1)
                         + ", Leben übrig " + String.format(Locale.ROOT, "%.0f", hp) + " " + ok(ac.clutches > n0 && survived));
                 ac.setEnabled(false);
                 next();

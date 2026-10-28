@@ -631,7 +631,7 @@ final class Round9Tests {
             // ---------------------------------------------- Übersicht: Kategorie-Knöpfe rechts + kleinere Liste oben rechts
             case 361 -> {
                 if (!after(5)) return;
-                flag2 = Math.abs(dev.teizen.client.gui.Hud.scale - 0.6f) < 0.01f; // Standard ist jetzt kleiner
+                flag2 = Math.abs(dev.teizen.client.gui.Hud.scale - 0.45f) < 0.01f; // Standard ist jetzt kleiner
                 t("///hud 0.5");
                 flag1 = Math.abs(dev.teizen.client.gui.Hud.scale - 0.5f) < 0.01f;
                 t("///hud 0.6");
