@@ -359,7 +359,7 @@ final class Round11Tests {
                 // echte Tastatur: über den KeyboardHandler, genau wie beim Tippen im Spiel
                 boolean realType = false;
                 try {
-                    long win = mc.getWindow().getWindow();
+                    long win = dev.teizen.client.compat.V.windowHandle();
                     for (char c : "dolph".toCharArray())
                         mc.keyboardHandler.charTyped(win, new net.minecraft.client.input.CharacterEvent(c));
                     realType = true;

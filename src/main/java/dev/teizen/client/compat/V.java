@@ -1,6 +1,7 @@
 package dev.teizen.client.compat;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -44,4 +45,13 @@ public final class V {
     public static int mouse(int raw) { return I.mouseButton(raw); }
     /** Für den Selbsttest: 0 = links, 1 = rechts, 2 = Mitte -> echter Wert der Version. */
     public static int rawMouse(int logical) { return I.rawMouse(logical); }
+
+    /** Fenster-Handle (long). 26.2: Window.getWindow(), 26.3: Window.handle() – über Reflection, damit beides geht. */
+    public static long windowHandle() {
+        Object w = Minecraft.getInstance().getWindow();
+        for (String m : new String[]{"handle", "getWindow"}) {
+            try { return (Long) w.getClass().getMethod(m).invoke(w); } catch (Throwable ignored) {}
+        }
+        return 0L;
+    }
 }
