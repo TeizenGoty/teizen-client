@@ -68,15 +68,20 @@ public final class ItemESP extends Module {
             entries.add(new Entry(e, special));
             if (special) sp++;
         }
+        // nächste zuerst; bei sehr vielen Items nur die nächsten zeichnen (sonst ruckelt es)
+        entries.sort(java.util.Comparator.comparingDouble(en -> mc.player.distanceToSqr(en.entity())));
         total = entries.size();
         highlighted = sp;
     }
+
+    /** Höchstens so viele normale Items gleichzeitig markieren (die besonderen immer). */
+    private static final int MAX_NORMAL = 120;
 
     @Override
     public void onHud(GuiGraphicsExtractor g, float partial) {
         if (!inGame()) return;
         Vec3 eye = mc.player.getEyePosition();
-        int labels = 0;
+        int labels = 0, normalDrawn = 0;
         // erst die normalen (unten), dann die besonderen (oben drauf)
         ItemEntity nearest = null;
         double nd = Double.MAX_VALUE;
@@ -89,6 +94,7 @@ public final class ItemESP extends Module {
                 AABB box = new AABB(p.x - 0.2, p.y, p.z - 0.2, p.x + 0.2, p.y + 0.4, p.z + 0.2);
                 ItemStack st = e.getItem();
                 if (!en.special()) {
+                    if (normalDrawn++ >= MAX_NORMAL) continue;
                     double[] r = Draw.worldBox(g, box, 0xC0FFFFFF, false);
                     if (r != null && names.on() && labels++ < 40) {
                         String t = "§7" + st.getHoverName().getString() + (st.getCount() > 1 ? " x" + st.getCount() : "");

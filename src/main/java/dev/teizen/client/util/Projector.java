@@ -23,6 +23,7 @@ public final class Projector {
     private static boolean ready;
     private static final Matrix4f viewProj = new Matrix4f();
     private static boolean useMatrix;
+    private static final Vector4f tmp = new Vector4f();
 
     private Projector() {}
 
@@ -64,7 +65,7 @@ public final class Projector {
         double depth = dx * fx + dy * fy + dz * fz;
         if (depth < 0.05) return null;
         if (useMatrix) {
-            Vector4f v = new Vector4f((float) dx, (float) dy, (float) dz, 1f).mul(viewProj);
+            Vector4f v = tmp.set((float) dx, (float) dy, (float) dz, 1f).mul(viewProj);
             if (v.w > 0.01f) {
                 double nx = v.x / v.w, ny = v.y / v.w;
                 return new double[]{(nx + 1) * halfW, (1 - ny) * halfH};

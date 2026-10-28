@@ -227,6 +227,58 @@ final class Round11Tests {
                 result("HUD-Editor: " + text + ", bleibt nach dem Schließen dort=" + yes(stays) + ", gespeichert=" + yes(inConfig) + ", Rechtsklick = zurück=" + yes(back) + " "
                         + ok(flag1 && flag2 && stays && inConfig && back));
                 HudLayout.resetAll();
+                dev.teizen.client.core.Config.save();
+                next();
+            }
+            // ---------------------------------------------- ESP-Leistung: viele Mobs, Items, Kisten + Linien – alt (Pixel-Linien) gegen neu
+            case 511 -> {
+                if (!after(10)) return;
+                dev.teizen.client.modules.PanicButton.panic();
+                cmd(String.format(Locale.ROOT, "tp @s %s -90 0", xyz(area, 0.5, 0, 0.5)));
+                cmd("kill @e[type=minecraft:husk]");
+                for (int i = 0; i < 30; i++) {
+                    double ang = i * Math.PI * 2 / 30;
+                    cmd("summon minecraft:husk " + xyz(area, 0.5 + Math.cos(ang) * 5, 0, 0.5 + Math.sin(ang) * 5) + " {NoAI:1b,PersistenceRequired:1b,Silent:1b,Invulnerable:1b}");
+                }
+                for (int i = 0; i < 40; i++)
+                    cmd("summon minecraft:item " + xyz(area, -4 + (i % 8), 0.2, -4 + (i / 8)) + " {Item:{id:\"minecraft:diamond\",count:1},PickupDelay:32767,Age:-32768}");
+                cmd("fill " + blk(area.offset(-6, 0, 5)) + " " + blk(area.offset(5, 0, 6)) + " minecraft:barrel");
+                t("///set itemesp filter diamond");
+                t("///set playeresp mobs an");
+                for (String m : new String[]{"playeresp", "itemesp", "storageesp", "nametags", "armoresp", "tracers"}) t("///" + m);
+                next();
+            }
+            case 512 -> {
+                if (!after(60)) return;
+                dev.teizen.client.util.Draw.legacyLines = true;
+                dev.teizen.client.gui.Hud.renderNanos = 0;
+                dev.teizen.client.gui.Hud.renderFrames = 0;
+                next();
+            }
+            case 513 -> {
+                if (!after(100)) return;
+                long f = Math.max(1, dev.teizen.client.gui.Hud.renderFrames);
+                h0 = dev.teizen.client.gui.Hud.renderNanos / (float) f / 1_000_000f;
+                d0 = mc.getFps();
+                dev.teizen.client.util.Draw.legacyLines = false;
+                dev.teizen.client.gui.Hud.renderNanos = 0;
+                dev.teizen.client.gui.Hud.renderFrames = 0;
+                next();
+            }
+            case 514 -> {
+                if (!after(100)) return;
+                long f = Math.max(1, dev.teizen.client.gui.Hud.renderFrames);
+                float now = dev.teizen.client.gui.Hud.renderNanos / (float) f / 1_000_000f;
+                int fps = mc.getFps();
+                shot("64-esp-viele");
+                var ie = TeizenClient.modules().get(dev.teizen.client.modules.ItemESP.class);
+                boolean faster = now < h0 * 0.8f;
+                result(String.format(Locale.ROOT, "ESP-Leistung (30 Mobs leuchten, %d Items, Fässer, Linien): HUD vorher %.2f ms/Bild (%d FPS), jetzt %.2f ms/Bild (%d FPS), schneller=%s %s",
+                        ie.total, h0, d0, now, fps, yes(faster), ok(faster && now < 6f)));
+                cmd("kill @e[type=minecraft:husk]");
+                cmd("kill @e[type=minecraft:item]");
+                cmd("fill " + blk(area.offset(-6, 0, 5)) + " " + blk(area.offset(5, 0, 6)) + " minecraft:air");
+                t("///set playeresp mobs aus");
                 dev.teizen.client.modules.PanicButton.panic();
                 for (String n : before) { Module m = TeizenClient.modules().byName(n); if (m != null && !m.isEnabled()) m.setEnabled(true); }
                 dev.teizen.client.core.Config.save();

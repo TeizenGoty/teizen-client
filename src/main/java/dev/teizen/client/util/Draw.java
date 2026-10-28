@@ -22,8 +22,19 @@ public final class Draw {
         g.fill(c - 1, b, c, d, argb);
     }
 
-    /** Linie aus kleinen Quadraten (Abstand 2px). */
+    /**
+     * Linie als EIN gedrehtes Rechteck (früher: hunderte 1-Pixel-Kästchen pro Linie -> starkes Ruckeln bei vielen Tracern).
+     * Halb durchsichtig wie vorher die gepunktete Linie.
+     */
     public static void line(GuiGraphicsExtractor g, double x1, double y1, double x2, double y2, int argb) {
+        if (legacyLines) { oldLine(g, x1, y1, x2, y2, argb); return; }
+        quadLine(g, x1, y1, x2, y2, 1f, alpha(argb, 0.75));
+    }
+
+    /** Nur für den Selbsttest: alte Pixel-Linien zum Vergleich messen. */
+    public static boolean legacyLines;
+
+    private static void oldLine(GuiGraphicsExtractor g, double x1, double y1, double x2, double y2, int argb) {
         double dx = x2 - x1, dy = y2 - y1;
         double len = Math.sqrt(dx * dx + dy * dy);
         if (len < 1) return;
@@ -31,8 +42,7 @@ public final class Draw {
         double sx = dx / steps, sy = dy / steps;
         double x = x1, y = y1;
         for (int i = 0; i <= steps; i++) {
-            int ix = (int) x, iy = (int) y;
-            g.fill(ix, iy, ix + 1, iy + 1, argb);
+            g.fill((int) x, (int) y, (int) x + 1, (int) y + 1, argb);
             x += sx; y += sy;
         }
     }
@@ -57,19 +67,28 @@ public final class Draw {
         return d <= 24 ? 1.0 : Math.max(0.3, 1.0 - (d - 24) / 200.0);
     }
 
-    /** Durchgehende 1-Pixel-Linie (für die Linie zum nächsten Ziel). */
+    /** Durchgehende 1-Pixel-Linie (für die Linie zum nächsten Ziel) – ein gedrehtes Rechteck. */
     public static void solidLine(GuiGraphicsExtractor g, double x1, double y1, double x2, double y2, int argb) {
+        if (legacyLines) { oldLine(g, x1, y1, x2, y2, argb); return; }
+        quadLine(g, x1, y1, x2, y2, 1f, argb);
+    }
+
+    /** Linie der Breite w als ein einziges gedrehtes Rechteck (schnell, egal wie lang). */
+    public static void quadLine(GuiGraphicsExtractor g, double x1, double y1, double x2, double y2, float w, int argb) {
         double dx = x2 - x1, dy = y2 - y1;
         double len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 1) return;
-        int steps = (int) Math.min(len, 1500);
-        double sx = dx / steps, sy = dy / steps;
-        double x = x1, y = y1;
-        for (int i = 0; i <= steps; i++) {
-            int ix = (int) x, iy = (int) y;
-            g.fill(ix, iy, ix + 1, iy + 1, argb);
-            x += sx; y += sy;
-        }
+        if (len < 0.5 || !Double.isFinite(len)) return;
+        // sehr weit aus dem Bild: auf eine sinnvolle Länge kürzen
+        double max = 4.0 * (g.guiWidth() + g.guiHeight());
+        if (len > max) { dx *= max / len; dy *= max / len; len = max; }
+        var pose = g.pose();
+        pose.pushMatrix();
+        pose.translate((float) x1, (float) y1);
+        pose.rotate((float) Math.atan2(dy, dx));
+        int l = (int) Math.ceil(len);
+        int hw = Math.max(1, Math.round(w));
+        g.fill(0, -hw / 2, l, -hw / 2 + hw, argb);
+        pose.popMatrix();
     }
 
     /** Tracer-Linie von der Bildschirmmitte zu einem Welt-Punkt (oder Pfeil am Rand, wenn dahinter). Weiter weg = blasser. */
@@ -86,25 +105,10 @@ public final class Draw {
         }
     }
 
-    /** Dicke Linie (3 Pixel breit, mit dunklem Rand). */
+    /** Dicke Linie (3 Pixel breit, mit dunklem Rand) – zwei gedrehte Rechtecke. */
     public static void thickLine(GuiGraphicsExtractor g, double x1, double y1, double x2, double y2, int argb) {
-        double dx = x2 - x1, dy = y2 - y1;
-        double len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 1) return;
-        int steps = (int) Math.min(len / 1.5, 1200);
-        double sx = dx / steps, sy = dy / steps;
-        double x = x1, y = y1;
-        for (int i = 0; i <= steps; i++) {
-            int ix = (int) x, iy = (int) y;
-            g.fill(ix - 2, iy - 2, ix + 2, iy + 2, 0x70000000);
-            x += sx; y += sy;
-        }
-        x = x1; y = y1;
-        for (int i = 0; i <= steps; i++) {
-            int ix = (int) x, iy = (int) y;
-            g.fill(ix - 1, iy - 1, ix + 2, iy + 2, argb);
-            x += sx; y += sy;
-        }
+        quadLine(g, x1, y1, x2, y2, 5f, 0x70000000);
+        quadLine(g, x1, y1, x2, y2, 3f, argb);
     }
 
     /**

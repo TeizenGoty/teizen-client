@@ -20,11 +20,15 @@ public final class PlayerESP extends Module {
         super("PlayerESP", Category.SICHT, "Zeigt Spieler durch Wände an.");
     }
 
+    private static final double MOB_GLOW_RANGE = 48;
+
     /** Wird vom Glowing-Mixin abgefragt. */
     public boolean shouldGlow(Entity e) {
-        if (!isEnabled() || !glow.on() || e == mc.player) return false;
-        if (e instanceof Player) return true;
-        return mobs.on() && e instanceof net.minecraft.world.entity.Mob;
+        if (!isEnabled() || !glow.on() || e == mc.player || mc.player == null) return false;
+        double d2 = mc.player.distanceToSqr(e);
+        if (e instanceof Player) return d2 <= range.num() * range.num();
+        // Mobs nur in der Nähe leuchten lassen: der Leucht-Umriss kostet pro Wesen Leistung
+        return mobs.on() && e instanceof net.minecraft.world.entity.Mob && d2 <= MOB_GLOW_RANGE * MOB_GLOW_RANGE;
     }
 
     @Override

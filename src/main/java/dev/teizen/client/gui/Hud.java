@@ -18,7 +18,20 @@ public final class Hud {
 
     private Hud() {}
 
+    /** Für den Selbsttest: wie lange das HUD (mit allen ESPs) zum Zeichnen braucht. */
+    public static long renderNanos, renderFrames;
+
     public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
+        long t0 = System.nanoTime();
+        try {
+            renderInner(g, delta);
+        } finally {
+            renderNanos += System.nanoTime() - t0;
+            renderFrames++;
+        }
+    }
+
+    private static void renderInner(GuiGraphicsExtractor g, DeltaTracker delta) {
         if (mc.player == null || mc.level == null) return;
         if (mc.gui.hud.isHidden()) return;
         HudLayout.frame();
