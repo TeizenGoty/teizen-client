@@ -9,6 +9,7 @@ public final class TridentBoost extends Module {
     private final Setting factor = add(Setting.number("staerke", "Wie viel stärker der Schwung ist (1 = normal)", 2, 1, 5));
 
     private boolean wasSpinning;
+    private int pending;
     public int boosts;
     public double lastSpeed;
 
@@ -20,12 +21,20 @@ public final class TridentBoost extends Module {
     public void onTick() {
         if (!inGame()) return;
         boolean spin = mc.player.isAutoSpinAttack();
-        if (spin && !wasSpinning) {
-            Vec3 v = mc.player.getDeltaMovement().scale(factor.num());
-            mc.player.setDeltaMovement(v);
-            lastSpeed = v.length();
-            boosts++;
+        if (spin && !wasSpinning) pending = 4;
+        // den Schwung verstärken, sobald er wirklich da ist (kommt je nach Version 0-2 Ticks nach dem Start)
+        if (spin && pending > 0) {
+            Vec3 d = mc.player.getDeltaMovement();
+            pending--;
+            if (d.length() > 0.6 || pending == 0) {
+                Vec3 v = d.scale(factor.num());
+                mc.player.setDeltaMovement(v);
+                lastSpeed = v.length();
+                boosts++;
+                pending = 0;
+            }
         }
+        if (!spin) pending = 0;
         wasSpinning = spin;
     }
 

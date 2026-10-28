@@ -335,7 +335,7 @@ public final class SelfTest {
                     st.applyKey(dev.teizen.client.compat.K.M);
                     boolean ok = TeizenClient.menuKey == dev.teizen.client.compat.K.M;
                     boolean saved = false;
-                    try { saved = java.nio.file.Files.readString(mc.gameDirectory.toPath().resolve("config/teizenclient.json")).contains("\"menuTaste\": " + dev.teizen.client.compat.K.M); } catch (Throwable ignored) {}
+                    try { saved = java.nio.file.Files.readString(mc.gameDirectory.toPath().resolve("config/teizenclient.json")).contains("\"menuTaste\": " + dev.teizen.client.compat.K.toGlfw(dev.teizen.client.compat.K.M)); } catch (Throwable ignored) {}
                     results.add("Menü-Taste ändern: " + (ok ? "ok (jetzt " + dev.teizen.client.gui.SettingsScreen.keyName(TeizenClient.menuKey) + ")" : "FEHLER") + ", gespeichert=" + saved);
                 } else {
                     results.add("Menü-Taste ändern: FEHLER (Einstellungen nicht offen: " + mc.gui.screen() + ")");
