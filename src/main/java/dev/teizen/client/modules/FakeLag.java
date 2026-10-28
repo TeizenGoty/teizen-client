@@ -16,7 +16,7 @@ import java.util.Deque;
  * (für andere springst du dann hin und her). Modus "stoesse": alles sammeln und auf einmal schicken.
  */
 public final class FakeLag extends Module {
-    private final Setting delay = add(Setting.number("verzoegerung", "Verzögerung in Millisekunden", 400, 50, 3000));
+    private final Setting delay = add(Setting.number("verzoegerung", "Verzögerung in Millisekunden (höher = mehr Lag)", 400, 50, 20000));
     private final Setting mode = add(Setting.choice("modus", "verzoegert = alles kommt später an, stoesse = gesammelt und auf einmal", "verzoegert", "verzoegert", "stoesse"));
 
     private record Held(Packet<?> packet, ChannelFutureListener listener, boolean flush, long time) {}

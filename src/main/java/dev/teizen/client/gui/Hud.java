@@ -48,6 +48,16 @@ public final class Hud {
             }
             Finder.hud(g);
         }
+        // Seed-Fortschritt (SeedCrackerX knackt noch): zeigt, wie viel bis zum Seed fehlt
+        String sp = dev.teizen.client.core.Seed.progressText;
+        if (dev.teizen.client.core.Seed.showProgress && sp != null) {
+            int ly = dev.teizen.client.compat.XaeroCompat.minimapInstalled() ? 2 : 14;
+            String t = "§b\uD83D\uDD11 Seed: §f" + sp;
+            HudLayout.report("seed", 2, ly, 4 + mc.font.width(t), ly + 10);
+            HudLayout.push(g, "seed");
+            g.text(mc.font, t, 3, ly, 0xFFFFFFFF, true);
+            HudLayout.pop(g);
+        }
 
         // Modul-Liste
         List<Module> on = new ArrayList<>();

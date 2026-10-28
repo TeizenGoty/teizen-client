@@ -181,7 +181,8 @@ public final class Seed {
     public static String whyUnknown() {
         if (crackerInstalled()) {
             double[] b = crackerBits();
-            String prog = b == null ? "" : " (" + Math.round(b[0]) + " von " + Math.round(b[1]) + " Bits)";
+            String prog = b == null || b[1] <= 0 ? "" : " (" + Math.round(b[0]) + " von " + Math.round(b[1]) + " Bits, "
+                    + (int) Math.round(100.0 * Math.min(b[0], b[1]) / b[1]) + "%)";
             return "SeedCrackerX sucht den Seed noch" + prog + ". Lauf herum und finde Iglus, Wüsten- oder Dschungeltempel, "
                     + "Hexenhütten, Schiffswracks, Außenposten oder Ozeanmonumente – sobald er gefunden ist, wird er automatisch benutzt.";
         }
@@ -190,10 +191,24 @@ public final class Seed {
     }
 
     private static int ticks;
+    /** Fortschritts-Text (z.B. "23/48 Bits – 48%"), oder null wenn gerade nichts zu knacken ist. Wird im HUD gezeigt. */
+    public static volatile String progressText;
+    /** HUD-Anzeige des Seed-Fortschritts an/aus (///seed hud). */
+    public static boolean showProgress = true;
+
+    private static void updateProgress() {
+        if (!crackerInstalled() || mc.player == null || known() != null) { progressText = null; return; }
+        double[] b = crackerBits();
+        if (b == null || b[1] <= 0) { progressText = null; return; }
+        int have = (int) Math.round(b[0]), want = (int) Math.round(b[1]);
+        int pct = (int) Math.round(100.0 * Math.min(have, want) / want);
+        progressText = have + "/" + want + " Bits – " + pct + "%";
+    }
 
     /** Jeden Tick: neuen Seed von SeedCrackerX übernehmen. */
     public static void tick() {
         if (++ticks % 20 != 0 || mc.player == null || !crackerInstalled()) return;
+        updateProgress();
         java.util.Set<Long> cracked = crackerSeeds();
         if (cracked.size() != 1) return;
         long s = cracked.iterator().next();

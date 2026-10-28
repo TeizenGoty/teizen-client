@@ -91,5 +91,6 @@
   "key.teizenclient.module.trajectories": "Trajectories toggle",
   "key.teizenclient.module.airplace": "AirPlace toggle",
   "key.teizenclient.module.autoclicker": "AutoClicker toggle",
-  "key.teizenclient.module.automend": "AutoMend toggle"
+  "key.teizenclient.module.automend": "AutoMend toggle",
+  "key.teizenclient.module.autorescue": "AutoRescue toggle"
 }

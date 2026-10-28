@@ -28,6 +28,7 @@ public final class HudLayout {
     static {
         NAMES.put("liste", "Cheat-Liste");
         NAMES.put("logo", "Teizen-Schrift");
+        NAMES.put("seed", "Seed-Fortschritt");
         NAMES.put("zaehler", "Spieler im Blick");
         NAMES.put("spielerliste", "Spieler-Liste");
         NAMES.put("beobachter", "Beobachter (AntiVanish)");
@@ -55,6 +56,7 @@ public final class HudLayout {
         return switch (id) {
             case "liste" -> new Box(sw - 70, 1, sw, 40);
             case "logo" -> new Box(2, 2, 75, 12);
+            case "seed" -> new Box(2, 14, 120, 24);
             case "zaehler" -> new Box(1, sh - 12, 30, sh - 1);
             case "spielerliste" -> new Box(4, 14, 120, 34);
             case "beobachter" -> new Box(sw - 100, 1, sw - 1, 22);

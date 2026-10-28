@@ -213,6 +213,16 @@ public final class Commands {
                 Module sf = mm.byName("structurefinder");
                 if (a.length == 1) { sf.toggle(); Config.save(); return; }
                 if (a[1].equalsIgnoreCase("aus") || a[1].equalsIgnoreCase("stop")) { sf.setEnabled(false); Chat.info("StructureFinder §caus"); return; }
+                if (a[1].equalsIgnoreCase("seed")) {
+                    if (a.length < 3) { Chat.error("///structurefinder seed <Zahl>  – eigenen Seed für die Karte eingeben"); return; }
+                    try {
+                        long sd = Long.parseLong(a[2]);
+                        dev.teizen.client.core.Seed.set(sd);
+                        dev.teizen.client.compat.SeedMapCompat.giveSeed(sd, true);
+                        Chat.ok("StructureFinder benutzt jetzt Seed §f" + sd + "§a. ///seedmap öffnet die Karte.");
+                    } catch (NumberFormatException e) { Chat.error("///structurefinder seed <Zahl>"); }
+                    return;
+                }
                 java.util.List<String> names = new java.util.ArrayList<>();
                 for (String n : Arrays.copyOfRange(a, 1, a.length)) {
                     for (String part : n.split(",")) {
@@ -238,6 +248,12 @@ public final class Commands {
             }
             case "save", "speichern" -> { Config.save(); Chat.ok("Gespeichert."); }
             case "seed" -> {
+                if (a.length >= 2 && (a[1].equalsIgnoreCase("hud") || a[1].equalsIgnoreCase("anzeige"))) {
+                    dev.teizen.client.core.Seed.showProgress = !dev.teizen.client.core.Seed.showProgress;
+                    Config.save();
+                    Chat.ok("Seed-Fortschritt im Bild: " + (dev.teizen.client.core.Seed.showProgress ? "§aan" : "§caus"));
+                    return;
+                }
                 if (a.length >= 2) {
                     try {
                         long sd = Long.parseLong(a[1]);

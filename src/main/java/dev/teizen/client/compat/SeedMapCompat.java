@@ -173,12 +173,15 @@ public final class SeedMapCompat {
         }
         String url = chunkbaseUrl(seed);
         lastUrl = url;
+        // Chunkbase kennt die neuen Versionen (26.x) noch nicht – nur bis ~1.21. Für die richtige Version: SeedMapper oder Seed Atlas.
+        dev.teizen.client.util.Chat.info("§eChunkbase geht nur bis ~1.21 – für " + dev.teizen.client.compat.V.MC
+                + " stimmen die Strukturen dort evtl. nicht. Installier §fSeedMapper§e oder §fSeed Atlas§e (zeigt die Karte im Spiel, richtige Version).");
         try {
             dev.teizen.client.util.Browser.open(url);
         } catch (Throwable t) {
             TeizenClient.LOG.warn("Browser konnte nicht geöffnet werden", t);
             return "Chunkbase (Adresse im Chat)";
         }
-        return "Chunkbase Seed Map im Browser";
+        return "Chunkbase Seed Map im Browser (nur bis ~1.21)";
     }
 }

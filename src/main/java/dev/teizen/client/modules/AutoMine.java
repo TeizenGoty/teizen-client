@@ -35,6 +35,7 @@ public final class AutoMine extends Module {
     private final Setting minHealth = add(Setting.number("minleben", "Stoppt bei so wenig Leben", 8, 1, 19));
     private final Setting nodes = add(Setting.number("suchtiefe", "Wie weit der Weg gesucht wird", 6000, 500, 40000));
     private final Setting collect = add(Setting.bool("einsammeln", "Abgebaute Erze einsammeln (nur Erze, nichts anderes)", true));
+    private final Setting collectAll = add(Setting.bool("alleerze", "Jedes Erz einsammeln, auch von anderen (nicht nur die ausgewählten)", true));
     private final Setting human = add(Setting.bool("menschlich", "Weich drehen wie ein echter Spieler (nicht ruckartig)", true));
     private final Setting turnSpeed = add(Setting.number("drehtempo", "Wie schnell gedreht wird (Grad pro Sekunde)", 260, 60, 1500));
 
@@ -332,6 +333,21 @@ public final class AutoMine extends Module {
     private final java.util.Set<Integer> ignoredItems = new java.util.HashSet<>();
     public int collected;
 
+    private static final java.util.Set<String> ANY_ORE_DROPS = java.util.Set.of(
+            "diamond", "emerald", "raw_iron", "raw_gold", "raw_copper", "gold_nugget", "redstone", "lapis_lazuli",
+            "coal", "quartz", "ancient_debris", "netherite_scrap", "amethyst_shard", "glowstone_dust");
+
+    /** Jeder Erz-Drop (jedes *_ore und die typischen Erz-Beutestücke), egal welches Erz gerade gesucht wird. */
+    public boolean isAnyOreDrop(net.minecraft.world.item.ItemStack st) {
+        String p = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).getPath();
+        return p.endsWith("_ore") || ANY_ORE_DROPS.contains(p);
+    }
+
+    /** Erz-Drop, das gerade eingesammelt werden soll (je nach Einstellung alle oder nur die gewählten). */
+    private boolean wantDrop(net.minecraft.world.item.ItemStack st) {
+        return collectAll.on() ? isAnyOreDrop(st) : isOreDrop(st);
+    }
+
     /** Ist das ein Erz-Drop (Diamant, Rohes Eisen, Kohle, ...) von den gewählten Erzen? */
     public boolean isOreDrop(net.minecraft.world.item.ItemStack st) {
         String p = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).getPath();
@@ -374,7 +390,7 @@ public final class AutoMine extends Module {
             retryLater.values().removeIf(t -> t <= now);
             double best = 64;
             for (var e : mc.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, mc.player.getBoundingBox().inflate(7, 3, 7))) {
-                if (!isOreDrop(e.getItem()) || ignoredItems.contains(e.getId()) || retryLater.containsKey(e.getId())) continue;
+                if (!wantDrop(e.getItem()) || ignoredItems.contains(e.getId()) || retryLater.containsKey(e.getId())) continue;
                 double d = e.distanceToSqr(mc.player);
                 if (d < best) { best = d; pickup = e; }
             }
@@ -411,6 +427,16 @@ public final class AutoMine extends Module {
         return true;
     }
 
+    /** Block direkt vor dem Spieler (in Blickrichtung zum Drop) auf Kopf- bzw. Fußhöhe. */
+    private BlockPos frontBlock(double dx, double dz) {
+        net.minecraft.core.Direction d = net.minecraft.core.Direction.getApproximateNearest(dx, 0, dz);
+        BlockPos feet = mc.player.blockPosition();
+        BlockPos f1 = feet.relative(d), f2 = feet.above().relative(d);
+        if (!MinePath.passable(mc.level, f2)) return f2;
+        if (!MinePath.passable(mc.level, f1)) return f1;
+        return null;
+    }
+
     /** Ohne Weg direkt zum Drop laufen; liegt er in einem Loch, den Block darüber wegmachen. */
     private boolean walkToDrop(Vec3 it, Vec3 me, double dx, double dz, double horiz) {
         BlockPos ib = pickup.blockPosition();
@@ -420,6 +446,17 @@ public final class AutoMine extends Module {
             lookAt(Vec3.atCenterOf(above));
             if (aimed()) Breaker.tick(above, false, true);
             return true;
+        }
+        // auf ~gleicher Höhe, aber eine Wand dazwischen -> die Wand wegbauen statt stehen zu bleiben
+        if (horiz > 0.8 && Math.abs(it.y - me.y) < 1.2) {
+            BlockPos wall = frontBlock(dx, dz);
+            if (wall != null && !MinePath.passable(mc.level, wall) && Breaker.canBreak(wall) && safeToDig(wall)) {
+                releaseKeys();
+                status = "gräbt zum Erz";
+                lookAt(Vec3.atCenterOf(wall));
+                if (aimed()) Breaker.tick(wall, false, true);
+                return true;
+            }
         }
         // Drop höher als man selbst (auf einer Stufe) -> hochspringen
         boolean jump = it.y > me.y + 0.6 && mc.player.onGround();

@@ -107,6 +107,7 @@ public final class ModuleManager {
         add(new FastUse());
         add(new AutoClicker());
         add(new AutoMend());
+        add(new AutoRescue());
         add(new NameProtect());
         add(new SkinChanger());
         add(new PanicButton());

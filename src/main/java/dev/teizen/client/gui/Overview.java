@@ -117,6 +117,15 @@ public final class Overview extends Screen {
 
     public List<Module> shownModules() { return shown(); }
 
+    /** Für den Selbsttest: Suchfeld und Mitte der ersten Zelle einer Kategorie. */
+    public SearchBox search() { return search; }
+
+    public double[] firstCellCenter(Module.Category cat) {
+        layout();
+        for (Cell c : cells) if (c.m().category == cat) return new double[]{c.x() + CELL_W / 2.0, c.y() + CELL_H / 2.0 + (TOP - scroll)};
+        return null;
+    }
+
     /** Suche setzen (Selbsttest). */
     public void setSearch(String q) { search.query = q; search.focused = !q.isEmpty(); scroll = 0; }
 
