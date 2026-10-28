@@ -90,8 +90,9 @@ public final class HudEditorScreen extends Screen {
         if (in(mx, my, resetX(), btnY(), BTN_W, BTN_H)) { HudLayout.resetAll(); Config.save(); return true; }
         String id = at(mx, my);
         if (id == null) return super.mouseClicked(e, doubleClick);
-        if (e.button() == 1) { HudLayout.reset(id); Config.save(); return true; }
-        if (e.button() == 0) startDrag(id, mx, my);
+        int button = dev.teizen.client.compat.V.mouse(e.button());
+        if (button == 1) { HudLayout.reset(id); Config.save(); return true; }
+        if (button == 0) startDrag(id, mx, my);
         return true;
     }
 

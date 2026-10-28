@@ -26,5 +26,9 @@ public interface Impl {
     int f(int i);
     int numpad(int d);
     int toGlfw(int code);
+    /** Maustaste aus dem Spiel -> 0 = links, 1 = rechts, 2 = Mitte (26.3 zählt anders: SDL). */
+    int mouseButton(int raw);
+    /** Umgekehrt: 0 = links, 1 = rechts, 2 = Mitte -> Wert, den das Spiel benutzt. */
+    int rawMouse(int logical);
     int fromGlfw(int glfw);
 }

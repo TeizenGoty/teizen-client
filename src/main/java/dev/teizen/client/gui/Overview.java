@@ -491,7 +491,7 @@ public final class Overview extends Screen {
         if (in(mx, my, sideX, hudButtonY(), SIDE_W, sbh() - 2)) { net.minecraft.client.Minecraft.getInstance().gui.setScreen(new HudEditorScreen(this)); return true; }
         if (mx >= sideX - 3) return true;
         int off = TOP - scroll;
-        int button = e.button();
+        int button = dev.teizen.client.compat.V.mouse(e.button());
         // aufgeklappter Bereich
         if (expanded != null && panelY >= 0 && in(mx, my, gridX, panelY + off, gridW, panelH)) {
             int y = panelY + off + 2;

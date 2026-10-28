@@ -644,7 +644,7 @@ final class Round9Tests {
                 if (!after(10)) return;
                 if (!(mc.gui.screen() instanceof dev.teizen.client.gui.Overview ov)) { result("Kategorie-Knöpfe: Übersicht nicht offen FEHLER"); SelfTest.jump(152); return; }
                 double[] c = ov.categoryButtonCenter(Module.Category.KAMPF);
-                ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(dev.teizen.client.compat.V.rawMouse(0), 0)), false);
                 List<Module> vis = ov.shownModules();
                 long kampf = TeizenClient.modules().inCategory(Module.Category.KAMPF).stream().filter(dev.teizen.client.core.ModuleManager::shown).count();
                 flag1 = flag1 && flag2;
@@ -657,7 +657,7 @@ final class Round9Tests {
                 shot("50-kategorie-kampf");
                 var ov = (dev.teizen.client.gui.Overview) mc.gui.screen();
                 double[] c = ov.categoryButtonCenter(Module.Category.BEWEGUNG);
-                ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(dev.teizen.client.compat.V.rawMouse(0), 0)), false);
                 boolean move = !ov.shownModules().isEmpty() && ov.shownModules().stream().allMatch(m -> m.category == Module.Category.BEWEGUNG);
                 text = text + "/" + (move ? "ja" : "nein");
                 next();
@@ -667,7 +667,7 @@ final class Round9Tests {
                 shot("51-kategorie-bewegung");
                 var ov = (dev.teizen.client.gui.Overview) mc.gui.screen();
                 double[] c = ov.categoryButtonCenter(null);
-                ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(dev.teizen.client.compat.V.rawMouse(0), 0)), false);
                 boolean all = ov.shownModules().size() == TeizenClient.modules().all().size();
                 mc.gui.setScreen(null);
                 t("///killaura");

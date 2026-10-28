@@ -58,7 +58,7 @@ final class Round11Tests {
     }
 
     private static void click(net.minecraft.client.gui.screens.Screen s, double[] c, int button) {
-        s.mouseClicked(new MouseButtonEvent(c[0], c[1], new MouseButtonInfo(button, 0)), false);
+        s.mouseClicked(new MouseButtonEvent(c[0], c[1], new MouseButtonInfo(dev.teizen.client.compat.V.rawMouse(button), 0)), false);
     }
 
     static void step(int step, BlockPos o) {

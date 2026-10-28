@@ -94,5 +94,7 @@ public final class Impl262 implements Impl {
 
     /** Für die Config: Codes werden immer als GLFW-Code gespeichert (gleiche Datei für 26.2 und 26.3). */
     @Override public int toGlfw(int code) { return code; }
+    @Override public int mouseButton(int raw) { return raw; }
+    @Override public int rawMouse(int logical) { return logical; }
     @Override public int fromGlfw(int glfw) { return glfw; }
 }

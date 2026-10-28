@@ -220,6 +220,22 @@ public final class Impl263 implements Impl {
     };
 
     /** Für die Config: Codes werden immer als GLFW-Code gespeichert (gleiche Datei für 26.2 und 26.3). */
+    @Override public int mouseButton(int raw) {
+        if (raw == InputConstants.MOUSE_BUTTON_LEFT) return 0;
+        if (raw == InputConstants.MOUSE_BUTTON_RIGHT) return 1;
+        if (raw == InputConstants.MOUSE_BUTTON_MIDDLE) return 2;
+        return 100 + raw;
+    }
+
+    @Override public int rawMouse(int logical) {
+        return switch (logical) {
+            case 0 -> InputConstants.MOUSE_BUTTON_LEFT;
+            case 1 -> InputConstants.MOUSE_BUTTON_RIGHT;
+            case 2 -> InputConstants.MOUSE_BUTTON_MIDDLE;
+            default -> logical;
+        };
+    }
+
     @Override public int toGlfw(int code) {
         if (code < 0) return code;
         for (int[] p : GLFW) if (p[1] == code) return p[0];

@@ -195,7 +195,7 @@ public final class ClickGui extends Screen {
         }
         if (search.click(mx, my)) return true;
         if (my < TOP - 3) return true;
-        int button = e.button();
+        int button = dev.teizen.client.compat.V.mouse(e.button());
         boolean shift = (e.modifiers() & K.MOD_SHIFT) != 0;
         List<Panel> panels = panels();
         int[][] pos = layout(panels);

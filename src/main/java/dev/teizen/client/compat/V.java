@@ -40,4 +40,8 @@ public final class V {
     public static void piercingAttack(ItemStack weapon, PiercingWeapon pw) { I.piercingAttack(weapon, pw); }
     public static float attackAnim(LivingEntity e, float partial) { return I.attackAnim(e, partial); }
     public static String layoutName(int code) { return I.layoutName(code); }
+    /** Maustaste -> 0 = links, 1 = rechts, 2 = Mitte (in 26.2 und 26.3 gleich). */
+    public static int mouse(int raw) { return I.mouseButton(raw); }
+    /** Für den Selbsttest: 0 = links, 1 = rechts, 2 = Mitte -> echter Wert der Version. */
+    public static int rawMouse(int logical) { return I.rawMouse(logical); }
 }

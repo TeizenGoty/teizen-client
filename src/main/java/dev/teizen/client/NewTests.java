@@ -750,7 +750,7 @@ final class NewTests {
                 // Knopf "OP-Cheats": versteckt alles, was OP braucht
                 if (ov != null) {
                     double[] oc = ov.opButtonCenter();
-                    ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(oc[0], oc[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                    ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(oc[0], oc[1], new net.minecraft.client.input.MouseButtonInfo(dev.teizen.client.compat.V.rawMouse(0), 0)), false);
                     List<Module> vis = ov.shownModules();
                     boolean noOp = vis.stream().noneMatch(Module::needsOp);
                     int opCount = (int) TeizenClient.modules().all().stream().filter(Module::needsOp).count();
@@ -1191,7 +1191,7 @@ final class NewTests {
                 Module xr = TeizenClient.modules().get(XRay.class);
                 ov.scrollTo(xr);
                 double[] cc = ov.cellCenter(xr);
-                if (cc != null) ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(cc[0], cc[1], new net.minecraft.client.input.MouseButtonInfo(1, 0)), false);
+                if (cc != null) ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(cc[0], cc[1], new net.minecraft.client.input.MouseButtonInfo(dev.teizen.client.compat.V.rawMouse(1), 0)), false);
                 next();
             }
             case 137 -> {
@@ -1702,7 +1702,7 @@ final class NewTests {
                 if (!after(10)) return;
                 if (mc.gui.screen() instanceof Overview ov) {
                     double[] pc = ov.panicCenter();
-                    ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(pc[0], pc[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+                    ov.mouseClicked(new net.minecraft.client.input.MouseButtonEvent(pc[0], pc[1], new net.minecraft.client.input.MouseButtonInfo(dev.teizen.client.compat.V.rawMouse(0), 0)), false);
                 }
                 int left = 0;
                 for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) left++;
