@@ -330,6 +330,9 @@ public final class AutoMine extends Module {
     // ------------------------------------------------------------ Erze einsammeln
     private net.minecraft.world.entity.item.ItemEntity pickup;
     private int pickupTicks;
+    /** Fortschritts-Wächter: wird der Drop nicht näher, nach kurzer Zeit aufgeben (sonst bleibt der Miner stehen). */
+    private double lastDropDist;
+    private int noProgress;
     private final java.util.Set<Integer> ignoredItems = new java.util.HashSet<>();
     public int collected;
 
@@ -379,11 +382,12 @@ public final class AutoMine extends Module {
     private boolean collectTick() {
         if (!collect.on()) return false;
         int now = mc.player.tickCount;
-        if (pickup != null && (!pickup.isAlive() || ++pickupTicks > (pickupDirect ? 80 : 220))) {
+        if (pickup != null && (!pickup.isAlive() || ++pickupTicks > (pickupDirect ? 60 : 140) || noProgress > 40)) {
             if (!pickup.isAlive()) collected++;
-            else ignoredItems.add(pickup.getId()); // kommt nicht ran -> weiter abbauen
+            else ignoredItems.add(pickup.getId()); // kommt nicht ran / kein Fortschritt -> weiter abbauen
             pickup = null;
             path = null;
+            noProgress = 0;
             releaseKeys();
         }
         if (pickup == null) {
@@ -398,12 +402,16 @@ public final class AutoMine extends Module {
             pickupTicks = 0;
             pickupDirect = false;
             path = null;
+            lastDropDist = Double.MAX_VALUE;
+            noProgress = 0;
             if (target != null) Breaker.stop();
         }
         Vec3 me = mc.player.position();
         Vec3 it = pickup.position();
         double dx = it.x - me.x, dz = it.z - me.z;
         double horiz = Math.sqrt(dx * dx + dz * dz);
+        double dist = horiz + Math.abs(it.y - me.y);
+        if (dist < lastDropDist - 0.05) { lastDropDist = dist; noProgress = 0; } else noProgress++;
         status = "sammelt " + pickup.getItem().getHoverName().getString();
         if (horiz < 1.6 && Math.abs(it.y - me.y) < 2.2) return walkToDrop(it, me, dx, dz, horiz);
         if (path == null || index >= path.size()) {
