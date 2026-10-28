@@ -1,0 +1,271 @@
+MC jar: /home/runner/.gradle/caches/fabric-loom/26.3/minecraft-merged.jar
+Compiled from "ClientClockManager.java"
+public class net.minecraft.client.ClientClockManager$ClientClockInstance implements net.minecraft.world.clock.ClockInstance {
+  private long totalTicks;
+
+  private float partialTick;
+
+  private float rate;
+
+  public net.minecraft.client.ClientClockManager$ClientClockInstance();
+    Code:
+         0: aload_0
+         1: invokespecial #19                 // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: fconst_1
+         6: putfield      #21                 // Field rate:F
+         9: return
+
+  public long totalTicks();
+    Code:
+         0: aload_0
+         1: getfield      #26                 // Field totalTicks:J
+         4: lreturn
+
+  public float partialTick();
+    Code:
+         0: aload_0
+         1: getfield      #29                 // Field partialTick:F
+         4: freturn
+
+  public float rate();
+    Code:
+         0: aload_0
+         1: getfield      #21                 // Field rate:F
+         4: freturn
+
+  public boolean isPaused();
+    Code:
+         0: aload_0
+         1: getfield      #21                 // Field rate:F
+         4: fconst_0
+         5: fcmpl
+         6: ifne          13
+         9: iconst_1
+        10: goto          14
+        13: iconst_0
+        14: ireturn
+}
+Compiled from "ClockInstance.java"
+public interface net.minecraft.world.clock.ClockInstance {
+  public abstract long totalTicks();
+  public abstract float partialTick();
+  public abstract float rate();
+  public abstract boolean isPaused();
+}
+== Klassen mit Swing/Input/Key/Uri
+com/mojang/blaze3d/platform/InputConstants$Key.class
+com/mojang/blaze3d/platform/InputConstants$Value.class
+com/mojang/blaze3d/platform/InputConstants.class
+com/mojang/blaze3d/platform/InputConstants$Type.class
+com/mojang/blaze3d/platform/Window$1.class
+com/mojang/blaze3d/platform/Window$FramebufferSize.class
+com/mojang/blaze3d/platform/Window$WindowInitFailed.class
+com/mojang/blaze3d/platform/WindowEventHandler.class
+com/mojang/blaze3d/platform/Window.class
+net/minecraft/client/KeyboardHandler$1.class
+net/minecraft/client/KeyboardHandler.class
+net/minecraft/client/gui/screens/dialog/input/
+net/minecraft/client/gui/screens/dialog/input/InputControlHandler$Output.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandler.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandlers$BooleanHandler.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandlers$NumberRangeHandler$1.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandlers$NumberRangeHandler$SliderImpl.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandlers$NumberRangeHandler.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandlers$SingleOptionHandler.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandlers$TextInputHandler$1.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandlers$BooleanHandler$1.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandlers.class
+net/minecraft/client/gui/screens/dialog/input/package-info.class
+net/minecraft/client/gui/screens/dialog/input/InputControlHandlers$TextInputHandler.class
+net/minecraft/client/input/
+net/minecraft/client/input/CharacterEvent.class
+net/minecraft/client/input/InputQuirks$1.class
+net/minecraft/client/input/InputQuirks.class
+net/minecraft/client/input/InputWithModifiers$Modifiers.class
+net/minecraft/client/input/InputWithModifiers.class
+net/minecraft/client/input/KeyEvent$Action.class
+net/minecraft/client/input/MouseButtonEvent.class
+net/minecraft/client/input/MouseButtonInfo$Action.class
+net/minecraft/client/input/MouseButtonInfo$MouseButton.class
+net/minecraft/client/input/MouseButtonInfo.class
+net/minecraft/client/input/PreeditEvent.class
+net/minecraft/client/input/package-info.class
+net/minecraft/client/input/KeyEvent.class
+net/minecraft/client/player/KeyboardInput.class
+net/minecraft/commands/arguments/SwingAnimationArgument.class
+net/minecraft/network/protocol/game/ClientboundSwingAnimationPacket.class
+net/minecraft/server/dialog/input/
+net/minecraft/server/dialog/input/BooleanInput.class
+net/minecraft/server/dialog/input/InputControl.class
+net/minecraft/server/dialog/input/InputControlTypes.class
+net/minecraft/server/dialog/input/NumberRangeInput$RangeInfo.class
+net/minecraft/server/dialog/input/NumberRangeInput.class
+net/minecraft/server/dialog/input/SingleOptionInput$Entry.class
+net/minecraft/server/dialog/input/SingleOptionInput.class
+net/minecraft/server/dialog/input/TextInput$MultilineOptions.class
+net/minecraft/server/dialog/input/TextInput.class
+net/minecraft/server/dialog/input/package-info.class
+net/minecraft/util/datafix/fixes/SwingAnimationComponentSplitFix.class
+net/minecraft/world/item/SwingAnimationType.class
+net/minecraft/world/item/component/SwingAnimation.class
+== Fenster-Bibliotheken (lwjgl/sdl)
+lwjgl-3.4.1-unsafe.jar
+lwjgl-3.4.3-natives-linux.jar
+lwjgl-3.4.3.jar
+lwjgl-freetype-3.4.1.jar
+lwjgl-freetype-3.4.3-natives-linux.jar
+lwjgl-freetype-3.4.3.jar
+lwjgl-glfw-3.4.1.jar
+lwjgl-jemalloc-3.4.1.jar
+lwjgl-jemalloc-3.4.3-natives-linux.jar
+lwjgl-jemalloc-3.4.3.jar
+lwjgl-openal-3.4.1.jar
+lwjgl-openal-3.4.3-natives-linux.jar
+lwjgl-openal-3.4.3.jar
+lwjgl-opengl-3.4.1.jar
+lwjgl-opengl-3.4.3-natives-linux.jar
+lwjgl-opengl-3.4.3.jar
+lwjgl-sdl-3.4.3-natives-linux.jar
+lwjgl-sdl-3.4.3.jar
+lwjgl-shaderc-3.4.1.jar
+lwjgl-shaderc-3.4.3-natives-linux.jar
+lwjgl-shaderc-3.4.3.jar
+lwjgl-spvc-3.4.1.jar
+lwjgl-spvc-3.4.3-natives-linux.jar
+lwjgl-spvc-3.4.3.jar
+lwjgl-stb-3.4.1.jar
+lwjgl-stb-3.4.3-natives-linux.jar
+lwjgl-stb-3.4.3.jar
+lwjgl-tinyfd-3.4.1.jar
+lwjgl-vma-3.4.1.jar
+lwjgl-vma-3.4.3-natives-linux.jar
+lwjgl-vma-3.4.3.jar
+lwjgl-vulkan-3.4.1.jar
+lwjgl-vulkan-3.4.3.jar
+-- /home/runner/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl-glfw/3.4.1/a782b1ddd175c9107bf300fd92920579ea65e2a4/lwjgl-glfw-3.4.1.jar
+org/lwjgl/glfw/GLFW.class
+-- /home/runner/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl-sdl/3.4.3/c02146735d6ff70d070c73532b435e5c893a346b/lwjgl-sdl-3.4.3.jar
+org/lwjgl/sdl/SDLKeyboard$Functions.class
+org/lwjgl/sdl/SDLKeyboard.class
+org/lwjgl/sdl/SDLKeycode.class
+org/lwjgl/sdl/SDLScancode.class
+org/lwjgl/sdl/SDL_KeyboardDeviceEvent$Buffer.class
+org/lwjgl/sdl/SDL_KeyboardDeviceEvent.class
+org/lwjgl/sdl/SDL_KeyboardEvent$Buffer.class
+org/lwjgl/sdl/SDL_KeyboardEvent.class
+Compiled from "SwingAnimationArgument.java"
+public class net.minecraft.commands.arguments.SwingAnimationArgument implements com.mojang.brigadier.arguments.ArgumentType<net.minecraft.world.item.SwingAnimationType> {
+  private static final java.util.Collection<java.lang.String> EXAMPLES;
+  private static final net.minecraft.world.item.SwingAnimationType[] VALUES;
+  private static final com.mojang.brigadier.exceptions.DynamicCommandExceptionType ERROR_INVALID;
+  public net.minecraft.commands.arguments.SwingAnimationArgument();
+  public net.minecraft.world.item.SwingAnimationType parse(com.mojang.brigadier.StringReader) throws com.mojang.brigadier.exceptions.CommandSyntaxException;
+  public <S> java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> listSuggestions(com.mojang.brigadier.context.CommandContext<S>, com.mojang.brigadier.suggestion.SuggestionsBuilder);
+  public java.util.Collection<java.lang.String> getExamples();
+  public static net.minecraft.commands.arguments.SwingAnimationArgument swingAnimationType();
+  public static net.minecraft.world.item.SwingAnimationType getSwingAnimationType(com.mojang.brigadier.context.CommandContext<net.minecraft.commands.CommandSourceStack>, java.lang.String) throws com.mojang.brigadier.exceptions.CommandSyntaxException;
+  public java.lang.Object parse(com.mojang.brigadier.StringReader) throws com.mojang.brigadier.exceptions.CommandSyntaxException;
+  private static com.mojang.brigadier.Message lambda$static$0(java.lang.Object);
+  static {};
+}
+Compiled from "ClientboundSwingAnimationPacket.java"
+public final class net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket extends java.lang.Record implements net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> {
+  private final int entityId;
+  private final net.minecraft.world.InteractionHand hand;
+  private final net.minecraft.world.item.component.SwingAnimation animation;
+  public static final net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket> STREAM_CODEC;
+  public net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket(net.minecraft.world.entity.Entity, net.minecraft.world.InteractionHand, net.minecraft.world.item.component.SwingAnimation);
+  public net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket(int, net.minecraft.world.InteractionHand, net.minecraft.world.item.component.SwingAnimation);
+  public net.minecraft.network.protocol.PacketType<net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket> type();
+  public void handle(net.minecraft.network.protocol.game.ClientGamePacketListener);
+  public final java.lang.String toString();
+  public final int hashCode();
+  public final boolean equals(java.lang.Object);
+  public int entityId();
+  public net.minecraft.world.InteractionHand hand();
+  public net.minecraft.world.item.component.SwingAnimation animation();
+  public void handle(net.minecraft.network.PacketListener);
+  static {};
+}
+Compiled from "SwingAnimationComponentSplitFix.java"
+public class net.minecraft.util.datafix.fixes.SwingAnimationComponentSplitFix extends com.mojang.datafixers.DataFix {
+  public net.minecraft.util.datafix.fixes.SwingAnimationComponentSplitFix(com.mojang.datafixers.schemas.Schema);
+  protected com.mojang.datafixers.TypeRewriteRule makeRule();
+  private static com.mojang.datafixers.Typed lambda$makeRule$0(com.mojang.datafixers.Typed);
+  private static com.mojang.serialization.Dynamic lambda$makeRule$1(com.mojang.serialization.Dynamic);
+}
+Compiled from "SwingAnimationType.java"
+public final class net.minecraft.world.item.SwingAnimationType extends java.lang.Enum<net.minecraft.world.item.SwingAnimationType> implements net.minecraft.util.StringRepresentable {
+  public static final net.minecraft.world.item.SwingAnimationType NONE;
+  public static final net.minecraft.world.item.SwingAnimationType WHACK;
+  public static final net.minecraft.world.item.SwingAnimationType STAB;
+  private static final java.util.function.IntFunction<net.minecraft.world.item.SwingAnimationType> BY_ID;
+  public static final net.minecraft.util.StringRepresentable$EnumCodec<net.minecraft.world.item.SwingAnimationType> CODEC;
+  public static final net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.world.item.SwingAnimationType> STREAM_CODEC;
+  private final int id;
+  private final java.lang.String name;
+  private static final net.minecraft.world.item.SwingAnimationType[] $VALUES;
+  public static net.minecraft.world.item.SwingAnimationType[] values();
+  public static net.minecraft.world.item.SwingAnimationType valueOf(java.lang.String);
+  private net.minecraft.world.item.SwingAnimationType(int, java.lang.String);
+  public int getId();
+  public java.lang.String getSerializedName();
+  public static net.minecraft.world.item.SwingAnimationType byName(java.lang.String, net.minecraft.world.item.SwingAnimationType);
+  private static net.minecraft.world.item.SwingAnimationType[] $values();
+  static {};
+}
+Compiled from "SwingAnimation.java"
+public final class net.minecraft.world.item.component.SwingAnimation extends java.lang.Record {
+  private final net.minecraft.world.item.SwingAnimationType type;
+  private final int duration;
+  public static final net.minecraft.world.item.component.SwingAnimation DEFAULT;
+  public static final com.mojang.serialization.Codec<net.minecraft.world.item.component.SwingAnimation> CODEC;
+  public static final net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, net.minecraft.world.item.component.SwingAnimation> STREAM_CODEC;
+  public net.minecraft.world.item.component.SwingAnimation(net.minecraft.world.item.SwingAnimationType, int);
+  public final java.lang.String toString();
+  public final int hashCode();
+  public final boolean equals(java.lang.Object);
+  public net.minecraft.world.item.SwingAnimationType type();
+  public int duration();
+  private static com.mojang.datafixers.kinds.App lambda$static$0(com.mojang.serialization.codecs.RecordCodecBuilder$Instance);
+  static {};
+}
+== Items mit SPEAR/MACE
+  public static final net.minecraft.world.item.Item MACE;
+  public static final net.minecraft.world.item.Item WOODEN_SPEAR;
+  public static final net.minecraft.world.item.Item STONE_SPEAR;
+  public static final net.minecraft.world.item.Item COPPER_SPEAR;
+  public static final net.minecraft.world.item.Item IRON_SPEAR;
+  public static final net.minecraft.world.item.Item GOLDEN_SPEAR;
+  public static final net.minecraft.world.item.Item DIAMOND_SPEAR;
+  public static final net.minecraft.world.item.Item NETHERITE_SPEAR;
+== DataComponents (Waffen)
+  public static final net.minecraft.core.component.DataComponentType<java.lang.Float> MINIMUM_ATTACK_CHARGE;
+  public static final net.minecraft.core.component.DataComponentType<net.minecraft.world.item.component.Weapon> WEAPON;
+  public static final net.minecraft.core.component.DataComponentType<net.minecraft.world.item.component.AttackRange> ATTACK_RANGE;
+  public static final net.minecraft.core.component.DataComponentType<net.minecraft.world.item.component.BlocksAttacks> BLOCKS_ATTACKS;
+  public static final net.minecraft.core.component.DataComponentType<net.minecraft.world.item.component.PiercingWeapon> PIERCING_WEAPON;
+  public static final net.minecraft.core.component.DataComponentType<net.minecraft.world.item.component.KineticWeapon> KINETIC_WEAPON;
+  public static final net.minecraft.core.component.DataComponentType<net.minecraft.world.item.component.SwingAnimation> ATTACK_ANIMATION;
+  public static final net.minecraft.core.component.DataComponentType<net.minecraft.world.item.component.SwingAnimation> INTERACT_ANIMATION;
+== ItemTags AXES
+  public static final net.minecraft.tags.TagKey<net.minecraft.world.item.Item> SWORDS;
+  public static final net.minecraft.tags.TagKey<net.minecraft.world.item.Item> AXES;
+  public static final net.minecraft.tags.TagKey<net.minecraft.world.item.Item> PICKAXES;
+  public static final net.minecraft.tags.TagKey<net.minecraft.world.item.Item> SPEARS;
+== Speer-Komponenten (Items.<clinit>)
+2193:  public static final net.minecraft.world.item.Item IRON_SPEAR;
+12445:      20487: invokevirtual #8858              // Method net/minecraft/world/item/Item$Properties.spear:(Lnet/minecraft/world/item/ToolMaterial;FFFFFFFFF)Lnet/minecraft/world/item/Item$Properties;
+12462:      20536: invokevirtual #8858              // Method net/minecraft/world/item/Item$Properties.spear:(Lnet/minecraft/world/item/ToolMaterial;FFFFFFFFF)Lnet/minecraft/world/item/Item$Properties;
+12479:      20585: invokevirtual #8858              // Method net/minecraft/world/item/Item$Properties.spear:(Lnet/minecraft/world/item/ToolMaterial;FFFFFFFFF)Lnet/minecraft/world/item/Item$Properties;
+12482:      20594: getstatic     #8884              // Field net/minecraft/references/ItemIds.IRON_SPEAR:Lnet/minecraft/resources/ResourceKey;
+12496:      20634: invokevirtual #8858              // Method net/minecraft/world/item/Item$Properties.spear:(Lnet/minecraft/world/item/ToolMaterial;FFFFFFFFF)Lnet/minecraft/world/item/Item$Properties;
+12498:      20640: putstatic     #8893              // Field IRON_SPEAR:Lnet/minecraft/world/item/Item;
+12513:      20683: invokevirtual #8858              // Method net/minecraft/world/item/Item$Properties.spear:(Lnet/minecraft/world/item/ToolMaterial;FFFFFFFFF)Lnet/minecraft/world/item/Item$Properties;
+12530:      20732: invokevirtual #8858              // Method net/minecraft/world/item/Item$Properties.spear:(Lnet/minecraft/world/item/ToolMaterial;FFFFFFFFF)Lnet/minecraft/world/item/Item$Properties;
+12547:      20781: invokevirtual #8858              // Method net/minecraft/world/item/Item$Properties.spear:(Lnet/minecraft/world/item/ToolMaterial;FFFFFFFFF)Lnet/minecraft/world/item/Item$Properties;
+  public net.minecraft.world.item.Item$Properties spear(net.minecraft.world.item.ToolMaterial, float, float, float, float, float, float, float, float, float);
+    Code:
+         0: aload_0
+         1: aload_1
