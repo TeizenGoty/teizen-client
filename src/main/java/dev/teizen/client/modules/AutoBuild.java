@@ -61,9 +61,12 @@ public final class AutoBuild extends Module {
     private final Setting slot = add(Setting.number("slot", "Hotbar-Slot (1-9) für Blöcke aus dem Inventar", 9, 1, 9));
     private final Setting showMissing = add(Setting.bool("fehlend", "Fehlende Items im Chat melden", true));
     private final Setting airPlace = add(Setting.bool("luft", "Auch ohne Stütze bauen (in die Luft klicken)", true));
+    private final Setting autoWalk = add(Setting.bool("laufen", "Von selbst zum Bau laufen (du musst nichts tun)", true));
     private final Setting dig = add(Setting.bool("abbauen", "Was nicht zur Schematic passt abbauen (Erde wo Luft sein soll = Loch graben, falsche Blöcke weg)", true));
 
     private BlockPos digging;
+    private BlockPos walkTarget;
+    private int walkScan;
     private int digTicks;
     public int dugTotal;
     private java.util.List<int[]> boxes = java.util.List.of();
@@ -98,6 +101,14 @@ public final class AutoBuild extends Module {
     protected void onDisable() {
         if (digging != null) dev.teizen.client.util.Breaker.stop();
         digging = null;
+        walkTarget = null;
+        releaseWalkKeys();
+    }
+
+    private void releaseWalkKeys() {
+        if (mc.options == null) return;
+        mc.options.keyUp.setDown(false);
+        mc.options.keyJump.setDown(false);
     }
 
     private boolean inSchematic(BlockPos p) {
@@ -204,6 +215,53 @@ public final class AutoBuild extends Module {
             }
         }
         if (done > 0) wait = delay.integer();
+        // nichts in Reichweite gebaut -> von selbst zur nächsten Baustelle laufen
+        if (autoWalk.on() && done == 0) walkToWork(me, eye);
+        else releaseWalkKeys();
+    }
+
+    /** Zur nächsten noch offenen Schematic-Stelle laufen, damit man selbst nichts tun muss. */
+    private void walkToWork(BlockPos me, Vec3 eye) {
+        if (mc.gui.screen() != null) { releaseWalkKeys(); return; }
+        if (walkTarget == null || !isWork(walkTarget) || --walkScan <= 0) {
+            walkTarget = findWork(me);
+            walkScan = 10;
+        }
+        if (walkTarget == null) { releaseWalkKeys(); return; }
+        Vec3 c = Vec3.atBottomCenterOf(walkTarget);
+        double dx = c.x - mc.player.getX(), dz = c.z - mc.player.getZ();
+        double horiz = Math.sqrt(dx * dx + dz * dz);
+        if (horiz < 0.6) { releaseWalkKeys(); return; } // nah genug – der Bau-/Grab-Teil macht den Rest
+        float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
+        mc.player.setYRot(yaw);
+        mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(yaw, mc.player.getXRot(), mc.player.onGround(), mc.player.horizontalCollision));
+        mc.options.keyUp.setDown(true);
+        // hoch, wenn die Stelle über uns liegt oder etwas im Weg ist
+        boolean stepUp = c.y > mc.player.getY() + 0.6 || mc.player.horizontalCollision;
+        mc.options.keyJump.setDown(stepUp && mc.player.onGround());
+        mc.player.setSprinting(horiz > 2);
+    }
+
+    /** Ist an dieser Stelle noch etwas zu tun (bauen oder – wenn an – abbauen)? */
+    private boolean isWork(BlockPos p) {
+        BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+        if (want == null) return false;
+        BlockState have = mc.level.getBlockState(p);
+        if (!want.isAir()) return have != want && (have.canBeReplaced() || needsSecondSlab(have, want)) && placeable(want);
+        return dig.on() && !have.isAir() && have.getFluidState().isEmpty() && !p.equals(mc.player.blockPosition().below());
+    }
+
+    /** Nächste offene Stelle im Umkreis (bis 14 Blöcke), oder null. */
+    private BlockPos findWork(BlockPos me) {
+        BlockPos best = null;
+        double bd = Double.MAX_VALUE;
+        int R = 14;
+        for (BlockPos p : BlockPos.betweenClosed(me.offset(-R, -R, -R), me.offset(R, R, R))) {
+            if (!isWork(p)) continue;
+            double d = p.distSqr(me);
+            if (d < bd) { bd = d; best = p.immutable(); }
+        }
+        return best;
     }
 
     private static boolean needsSecondSlab(BlockState have, BlockState want) {

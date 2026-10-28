@@ -15,9 +15,21 @@ public final class ElytraFly extends Module {
     private final Setting up = add(Setting.number("hoch", "Tempo nach oben/unten (Blöcke pro Tick)", 0.8, 0.05, 3));
     private final Setting hover = add(Setting.bool("schweben", "Ohne Taste in der Luft stehen bleiben", true));
     private final Setting pitch = add(Setting.bool("blickhoehe", "Beim Vorwärtsfliegen auch der Blick-Höhe folgen (hoch/runter schauen)", false));
+    private final Setting auto = add(Setting.bool("auto", "Elytra in der Luft von selbst öffnen (dann kann man sofort schweben)", true));
 
     public ElytraFly() {
         super("ElytraFly", Category.BEWEGUNG, "Elytra-Flug ohne Raketen: fliegen wie mit Fly.");
+    }
+
+    @Override
+    public void onTick() {
+        if (!inGame() || !auto.on()) return;
+        var p = mc.player;
+        boolean hasElytra = p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).is(net.minecraft.world.item.Items.ELYTRA);
+        if (hasElytra && !p.onGround() && !p.isFallFlying() && !p.isInWater() && !p.isInLava() && !p.getAbilities().flying) {
+            p.connection.send(new net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket(
+                    p, net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket.Action.START_FALL_FLYING));
+        }
     }
 
     /** Mixin (Elytra-Physik): unsere Geschwindigkeit statt der normalen, oder null. */

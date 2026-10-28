@@ -263,6 +263,7 @@ public final class SelfTest {
                 log("Schematic-Welt: " + c[2] + " Blöcke im Hologramm");
                 shot("08a-hologramm");
                 Commands.handle("///autobuild range 6");
+                Commands.handle("///set autobuild laufen aus");
                 Commands.handle("///autobuild");
                 next();
             }

@@ -29,6 +29,7 @@ final class Round11Tests {
     private static boolean flag1, flag2;
     private static String text = "";
     private static int n0;
+    private static float maxY;
     private static BlockPos wrongPos;
     /** Was vor Runde 11 an war (danach wieder so herstellen, z.B. AutoTotem für den CombatLog-Test). */
     private static final java.util.List<String> before = new java.util.ArrayList<>();
@@ -304,6 +305,7 @@ final class Round11Tests {
                 cmd("item replace entity @s hotbar.0 with minecraft:diamond_pickaxe");
                 cmd("item replace entity @s hotbar.1 with minecraft:diamond_shovel");
                 for (String it : new String[]{"stone_bricks 32", "oak_stairs 8", "oak_log 8", "oak_slab 8", "glass 8", "chest 2", "furnace 2", "torch 8"}) cmd("give @s minecraft:" + it);
+                t("///set autobuild laufen aus");
                 cmd("attribute @s minecraft:block_interaction_range base set 6");
                 // überall, wo die Schematic Luft will: Erde hin (= Loch muss gegraben werden); ein richtiger Block -> Goldblock (falsch)
                 n0 = 0;
@@ -370,6 +372,63 @@ final class Round11Tests {
                 next();
             }
             case 521 -> {
+                if (!after(5)) return;
+                dev.teizen.client.modules.PanicButton.panic();
+                // ---- HighJump (mit OP): springt wirklich höher, kein Zurückziehen
+                area = o.offset(40, 0, 40);
+                cmd("fill " + blk(area.offset(-2, -1, -2)) + " " + blk(area.offset(2, -1, 2)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-2, 0, -2)) + " " + blk(area.offset(2, 20, 2)) + " minecraft:air");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY(), area.getZ() + 0.5));
+                t("///set highjump hoehe 5");
+                next();
+            }
+            case 522 -> {
+                if (!after(20)) return;
+                h0 = (float) mc.player.getY();
+                maxY = h0;
+                t("///highjump");
+                mc.options.keyJump.setDown(true);
+                n0 = 0;
+                next();
+            }
+            case 523 -> {
+                maxY = Math.max(maxY, (float) mc.player.getY());
+                if (!after(40)) return;
+                mc.options.keyJump.setDown(false);
+                float rise = maxY - h0;
+                t("///highjump");
+                result("HighJump (hoehe 5, mit OP): hochgekommen " + String.format(Locale.ROOT, "%.1f", rise) + " Blöcke (normal ~1.25) " + ok(rise > 3));
+                next();
+            }
+            case 524 -> {
+                if (!after(10)) return;
+                // ---- AutoClutch: Sturz aus großer Höhe, Wassereimer rettet
+                area = o.offset(40, 0, 60);
+                cmd("fill " + blk(area.offset(-3, -1, -3)) + " " + blk(area.offset(3, -1, 3)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-3, 0, -3)) + " " + blk(area.offset(3, 40, 3)) + " minecraft:air");
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:water_bucket");
+                cmd("effect give @s minecraft:instant_health 1 10");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 90", area.getX() + 0.5, area.getY() + 30, area.getZ() + 0.5));
+                var ac = TeizenClient.modules().get(dev.teizen.client.modules.AutoClutch.class);
+                ac.setEnabled(true);
+                n0 = ac.clutches;
+                flag1 = false;
+                next();
+            }
+            case 525 -> {
+                if (mc.player.onGround()) flag1 = true;
+                if (!flag1 && !after(120)) return;
+                var ac = TeizenClient.modules().get(dev.teizen.client.modules.AutoClutch.class);
+                float hp = mc.player.getHealth();
+                boolean survived = mc.player.isAlive() && hp > 6;
+                shot("68-autoclutch");
+                result("AutoClutch: Sturz aus 30 Blöcken, Wasser gesetzt=" + yes(ac.clutches > n0) + ", gelandet=" + yes(flag1)
+                        + ", Leben übrig " + String.format(Locale.ROOT, "%.0f", hp) + " " + ok(ac.clutches > n0 && survived));
+                ac.setEnabled(false);
+                next();
+            }
+            case 526 -> {
                 if (!after(5)) return;
                 dev.teizen.client.modules.PanicButton.panic();
                 for (String n : before) { Module m = TeizenClient.modules().byName(n); if (m != null && !m.isEnabled()) m.setEnabled(true); }

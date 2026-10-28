@@ -62,6 +62,7 @@ public final class ModuleManager {
         add(new BoatNoclip());
         add(new Spider());
         add(new ClickTP());
+        add(new AutoClutch());
         add(new TridentBoost());
         // Sicht
         add(new PlayerESP());

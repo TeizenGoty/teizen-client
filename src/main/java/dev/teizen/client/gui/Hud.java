@@ -95,7 +95,9 @@ public final class Hud {
     }
 
     /** Größe der Liste oben rechts (1 = normal, 0 = ausblenden). */
-    public static float scale = 0.6f;
+    public static float scale = 0.45f;
+    /** Zuletzt sichtbare Größe – für den An/Aus-Schalter (///hud). */
+    public static float lastScale = 0.45f;
 
     private static String label(Module m) {
         String i = m.info();

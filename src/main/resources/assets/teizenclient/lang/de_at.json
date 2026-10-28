@@ -92,5 +92,6 @@
   "key.teizenclient.module.airplace": "AirPlace an/aus",
   "key.teizenclient.module.autoclicker": "AutoClicker an/aus",
   "key.teizenclient.module.automend": "AutoMend an/aus",
-  "key.teizenclient.module.autorescue": "AutoRescue an/aus"
+  "key.teizenclient.module.autorescue": "AutoRescue an/aus",
+  "key.teizenclient.module.autoclutch": "AutoClutch an/aus"
 }

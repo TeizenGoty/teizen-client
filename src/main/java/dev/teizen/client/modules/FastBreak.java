@@ -10,7 +10,7 @@ import dev.teizen.client.util.Op;
  * und mit OP / in der eigenen Welt zusätzlich schneller über das Abbau-Tempo-Attribut.
  */
 public final class FastBreak extends Module {
-    private final Setting factor = add(Setting.number("faktor", "Wie viel schneller (mit OP/eigene Welt, 1 = normal)", 3, 1, 20));
+    private final Setting factor = add(Setting.number("faktor", "Wie viel schneller (mit OP/eigene Welt, 1 = normal)", 6, 1, 50));
     private final Setting early = add(Setting.number("ab", "Block bricht schon ab diesem Fortschritt (0.7 = 70 %)", 0.7, 0.7, 1));
     private final Setting noDelay = add(Setting.bool("keinepause", "Keine Pause zwischen zwei Blöcken", true));
 

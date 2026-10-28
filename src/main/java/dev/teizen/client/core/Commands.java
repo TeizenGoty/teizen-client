@@ -298,11 +298,18 @@ public final class Commands {
                 if (a.length >= 2 && (a[1].equalsIgnoreCase("reset") || a[1].equalsIgnoreCase("zuruecksetzen"))) {
                     dev.teizen.client.gui.HudLayout.resetAll(); Config.save(); Chat.ok("Alle HUD-Teile wieder an ihrem Standard-Platz."); return;
                 }
-                if (a.length < 2) { Chat.info("Liste oben rechts: Größe §f" + dev.teizen.client.gui.Hud.scale + "§7. Ändern: ///hud 0.5 (0 = aus, 1 = normal)"); return; }
+                if (a.length < 2) {
+                    // kein Wert -> an/aus schalten
+                    if (dev.teizen.client.gui.Hud.scale > 0.01f) { dev.teizen.client.gui.Hud.lastScale = dev.teizen.client.gui.Hud.scale; dev.teizen.client.gui.Hud.scale = 0; Chat.ok("Liste oben rechts §caus§a. Wieder an: §f///hud an§a oder ///hud <Größe>"); }
+                    else { dev.teizen.client.gui.Hud.scale = dev.teizen.client.gui.Hud.lastScale > 0.01f ? dev.teizen.client.gui.Hud.lastScale : 0.45f; Chat.ok("Liste oben rechts §aan§a (Größe " + dev.teizen.client.gui.Hud.scale + "). Kleiner/größer: ///hud 0.4"); }
+                    Config.save();
+                    return;
+                }
                 try {
                     float v = Float.parseFloat(a[1].replace(',', '.'));
                     if (a[1].equalsIgnoreCase("aus")) v = 0;
                     dev.teizen.client.gui.Hud.scale = Math.max(0f, Math.min(2f, v));
+                    if (dev.teizen.client.gui.Hud.scale > 0.01f) dev.teizen.client.gui.Hud.lastScale = dev.teizen.client.gui.Hud.scale;
                     Config.save();
                     Chat.ok(dev.teizen.client.gui.Hud.scale == 0 ? "Liste oben rechts ausgeblendet." : "Liste oben rechts: Größe " + dev.teizen.client.gui.Hud.scale);
                 } catch (NumberFormatException ex) {
