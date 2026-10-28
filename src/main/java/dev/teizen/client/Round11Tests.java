@@ -28,6 +28,8 @@ final class Round11Tests {
     private static HudLayout.Box box0;
     private static boolean flag1, flag2;
     private static String text = "";
+    private static int n0;
+    private static BlockPos wrongPos;
     /** Was vor Runde 11 an war (danach wieder so herstellen, z.B. AutoTotem für den CombatLog-Test). */
     private static final java.util.List<String> before = new java.util.ArrayList<>();
 
@@ -279,6 +281,73 @@ final class Round11Tests {
                 cmd("kill @e[type=minecraft:item]");
                 cmd("fill " + blk(area.offset(-6, 0, 5)) + " " + blk(area.offset(5, 0, 6)) + " minecraft:air");
                 t("///set playeresp mobs aus");
+                dev.teizen.client.modules.PanicButton.panic();
+                next();
+            }
+            // ---------------------------------------------- AutoBuild baut auch ab: Erde wo die Schematic Luft hat (Loch), falsche Blöcke weg
+            case 515 -> {
+                if (!after(10)) return;
+                BlockPos b = SelfTest.buildOrigin();
+                if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica") || dev.teizen.client.compat.LitematicaCompat.placementCount() == 0) {
+                    result("AutoBuild abbauen: Litematica/Schematic nicht da – übersprungen");
+                    SelfTest.jump(519);
+                    return;
+                }
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 60", b.getX() + 2.5, b.getY() + 3, b.getZ() + 2.5));
+                next();
+            }
+            case 516 -> {
+                if (!after(30)) return;
+                BlockPos b = SelfTest.buildOrigin();
+                cmd("setblock " + (b.getX() + 2) + " " + (b.getY() + 2) + " " + (b.getZ() + 2) + " minecraft:barrier");
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:diamond_pickaxe");
+                cmd("item replace entity @s hotbar.1 with minecraft:diamond_shovel");
+                for (String it : new String[]{"stone_bricks 32", "oak_stairs 8", "oak_log 8", "oak_slab 8", "glass 8", "chest 2", "furnace 2", "torch 8"}) cmd("give @s minecraft:" + it);
+                cmd("attribute @s minecraft:block_interaction_range base set 6");
+                // überall, wo die Schematic Luft will: Erde hin (= Loch muss gegraben werden); ein richtiger Block -> Goldblock (falsch)
+                n0 = 0;
+                wrongPos = null;
+                for (BlockPos p : BlockPos.betweenClosed(b.getX(), b.getY(), b.getZ(), b.getX() + 4, b.getY() + 1, b.getZ() + 4)) {
+                    var want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+                    if (want == null) continue;
+                    if (want.isAir()) { cmd("setblock " + blk(p) + " minecraft:dirt"); n0++; }
+                    else if (wrongPos == null && want.isCollisionShapeFullBlock(mc.level, p)) { wrongPos = p.immutable(); cmd("setblock " + blk(p) + " minecraft:gold_block"); }
+                }
+                next();
+            }
+            case 517 -> {
+                if (!after(20)) return;
+                d0 = TeizenClient.modules().get(dev.teizen.client.modules.AutoBuild.class).dugTotal;
+                t("///autobuild");
+                shot("65-autobuild-vorher");
+                next();
+            }
+            case 518 -> {
+                BlockPos b = SelfTest.buildOrigin();
+                int air = 0, airOk = 0, blocks = 0, blocksOk = 0;
+                for (BlockPos p : BlockPos.betweenClosed(b.getX(), b.getY(), b.getZ(), b.getX() + 4, b.getY() + 1, b.getZ() + 4)) {
+                    var want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+                    if (want == null) continue;
+                    var have = mc.level.getBlockState(p);
+                    if (want.isAir()) { air++; if (have.isAir()) airOk++; }
+                    else { blocks++; if (have == want) blocksOk++; }
+                }
+                boolean done = airOk == air && blocksOk == blocks;
+                if (!done && !after(900)) return;
+                var ab = TeizenClient.modules().get(dev.teizen.client.modules.AutoBuild.class);
+                boolean wrongFixed = wrongPos != null && mc.level.getBlockState(wrongPos) == dev.teizen.client.compat.LitematicaCompat.schematicState(wrongPos);
+                boolean underFeet = !mc.level.getBlockState(mc.player.blockPosition().below()).isAir();
+                shot("66-autobuild-abgebaut");
+                result("AutoBuild abbauen: Erde wo Luft sein soll " + airOk + "/" + air + " weggegraben (" + n0 + " hingesetzt), falscher Block (Gold) ersetzt=" + yes(wrongFixed)
+                        + ", alle Blöcke richtig " + blocksOk + "/" + blocks + ", Boden unter mir noch da=" + yes(underFeet) + " (nach " + SelfTest.local() + " Ticks) "
+                        + ok(n0 > 0 && done && wrongFixed && underFeet));
+                if (ab.isEnabled()) t("///autobuild");
+                cmd("attribute @s minecraft:block_interaction_range base reset");
+                next();
+            }
+            case 519 -> {
+                if (!after(5)) return;
                 dev.teizen.client.modules.PanicButton.panic();
                 for (String n : before) { Module m = TeizenClient.modules().byName(n); if (m != null && !m.isEnabled()) m.setEnabled(true); }
                 dev.teizen.client.core.Config.save();
