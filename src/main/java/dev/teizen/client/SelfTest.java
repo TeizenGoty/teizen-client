@@ -77,6 +77,8 @@ public final class SelfTest {
     }
 
     private static int bx, by, bz;
+    /** Wo die Test-Schematic (5x2x5) liegt. */
+    static BlockPos buildOrigin() { return new BlockPos(bx, by, bz); }
 
     /** Vergleicht Welt und Hologramm. @return {richtig, falsch, gesamt} */
     private static int[] compareBuild(boolean report) {

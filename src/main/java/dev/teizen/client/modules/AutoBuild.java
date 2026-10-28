@@ -61,6 +61,12 @@ public final class AutoBuild extends Module {
     private final Setting slot = add(Setting.number("slot", "Hotbar-Slot (1-9) für Blöcke aus dem Inventar", 9, 1, 9));
     private final Setting showMissing = add(Setting.bool("fehlend", "Fehlende Items im Chat melden", true));
     private final Setting airPlace = add(Setting.bool("luft", "Auch ohne Stütze bauen (in die Luft klicken)", true));
+    private final Setting dig = add(Setting.bool("abbauen", "Was nicht zur Schematic passt abbauen (Erde wo Luft sein soll = Loch graben, falsche Blöcke weg)", true));
+
+    private BlockPos digging;
+    private int digTicks;
+    public int dugTotal;
+    private java.util.List<int[]> boxes = java.util.List.of();
 
     private final Map<BlockPos, Integer> cooldown = new HashMap<>();
     private final List<BlockPos> lastPlaced = new ArrayList<>();
@@ -84,6 +90,68 @@ public final class AutoBuild extends Module {
         }
         cooldown.clear();
         placedTotal = 0;
+        dugTotal = 0;
+        digging = null;
+    }
+
+    @Override
+    protected void onDisable() {
+        if (digging != null) dev.teizen.client.util.Breaker.stop();
+        digging = null;
+    }
+
+    private boolean inSchematic(BlockPos p) {
+        for (int[] b : boxes)
+            if (p.getX() >= b[0] && p.getX() <= b[3] && p.getY() >= b[1] && p.getY() <= b[4] && p.getZ() >= b[2] && p.getZ() <= b[5]) return true;
+        return false;
+    }
+
+    /** Muss dieser Block weg? (Schematic will dort Luft oder einen anderen Block, der nicht einfach drüber gebaut werden kann) */
+    private boolean mustDig(BlockPos p) {
+        if (!inSchematic(p)) return false;
+        BlockState have = mc.level.getBlockState(p);
+        if (have.isAir() || !have.getFluidState().isEmpty()) return false;
+        BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+        if (want == null || have == want) return false;
+        if (!want.isAir()) {
+            if (have.getBlock() == want.getBlock()) return false; // nur andere Drehung/Zustand -> nicht abreißen
+            if (have.canBeReplaced() || needsSecondSlab(have, want)) return false;
+        }
+        if (!dev.teizen.client.util.Breaker.canBreak(p)) return false;
+        // nicht unter den eigenen Füßen graben und nichts, wo Wasser/Lava nachlaufen würde
+        if (p.equals(mc.player.blockPosition().below())) return false;
+        return dev.teizen.client.util.MinePath.canClear(mc.level, p);
+    }
+
+    /** Einen Tick abbauen. @return true wenn gerade abgebaut wird (dann diesen Tick nicht bauen) */
+    private boolean digTick(double r, BlockPos me, int ri, Vec3 eye) {
+        if (digging != null) {
+            if (!mustDig(digging) || eye.distanceToSqr(Vec3.atCenterOf(digging)) > r * r || ++digTicks > 200) {
+                if (mc.level.getBlockState(digging).isAir()) dugTotal++;
+                dev.teizen.client.util.Breaker.stop();
+                digging = null;
+            }
+        }
+        if (digging == null) {
+            BlockPos best = null;
+            double bd = Double.MAX_VALUE;
+            for (BlockPos p : BlockPos.betweenClosed(me.offset(-ri, -ri, -ri), me.offset(ri, ri + 1, ri))) {
+                if (eye.distanceToSqr(Vec3.atCenterOf(p)) > r * r || !mustDig(p)) continue;
+                // von oben nach unten graben, dann der nächste
+                double score = -p.getY() * 1000.0 + p.distSqr(me);
+                if (score < bd) { bd = score; best = p.immutable(); }
+            }
+            if (best == null) return false;
+            digging = best;
+            digTicks = 0;
+        }
+        boolean gone = dev.teizen.client.util.Breaker.tick(digging, true, true);
+        if (gone) {
+            dugTotal++;
+            lastPlaced.add(digging);
+            digging = null;
+        }
+        return true;
     }
 
     @Override
@@ -98,6 +166,14 @@ public final class AutoBuild extends Module {
         BlockPos me = mc.player.blockPosition();
         int ri = (int) Math.ceil(r);
         Vec3 eye = mc.player.getEyePosition();
+        if (dig.on()) {
+            try {
+                boxes = dev.teizen.client.compat.LitematicaCompat.regionBoxes();
+            } catch (Throwable t) {
+                boxes = java.util.List.of();
+            }
+            if (digTick(r, me, ri, eye)) return;
+        }
         List<BlockPos> todo = new ArrayList<>();
         for (BlockPos p : BlockPos.betweenClosed(me.offset(-ri, -ri, -ri), me.offset(ri, ri + 1, ri))) {
             if (eye.distanceToSqr(Vec3.atCenterOf(p)) > r * r) continue;

@@ -53,4 +53,19 @@ public final class LitematicaCompat {
     public static boolean hasSchematic() {
         return SchematicWorldHandler.getSchematicWorld() != null;
     }
+
+    /** Alle Bereiche (min/max x,y,z) der eingeschalteten Platzierungen – einmal pro Tick holen. */
+    public static java.util.List<int[]> regionBoxes() {
+        java.util.List<int[]> out = new java.util.ArrayList<>();
+        for (SchematicPlacement pl : DataManager.getSchematicPlacementManager().getAllSchematicsPlacements()) {
+            if (!pl.isEnabled() || !pl.isRenderingEnabled()) continue;
+            for (fi.dy.masa.litematica.selection.Box b : pl.getSubRegionBoxes(fi.dy.masa.litematica.schematic.placement.SubRegionPlacement.RequiredEnabled.PLACEMENT_ENABLED).values()) {
+                BlockPos a = b.getPos1(), c = b.getPos2();
+                if (a == null || c == null) continue;
+                out.add(new int[]{Math.min(a.getX(), c.getX()), Math.min(a.getY(), c.getY()), Math.min(a.getZ(), c.getZ()),
+                        Math.max(a.getX(), c.getX()), Math.max(a.getY(), c.getY()), Math.max(a.getZ(), c.getZ())});
+            }
+        }
+        return out;
+    }
 }
