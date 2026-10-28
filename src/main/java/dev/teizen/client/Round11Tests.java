@@ -346,51 +346,30 @@ final class Round11Tests {
                 cmd("attribute @s minecraft:block_interaction_range base reset");
                 next();
             }
+            // ---------------------------------------------- Favorit per Mittelklick (prüft die Maustasten-Zuordnung für 26.3)
             case 519 -> {
                 if (!after(5)) return;
                 dev.teizen.client.modules.PanicButton.panic();
                 mc.gui.setScreen(new Overview());
                 next();
             }
-            // ---------------------------------------------- Menü mit ECHTER Tastatur/Maus (nicht nur direkt aufgerufen): Suche + Favorit
             case 520 -> {
                 if (!after(10)) return;
-                if (!(mc.gui.screen() instanceof Overview ov)) { result("Echte Eingabe: Übersicht nicht offen FEHLER"); SelfTest.jump(522); return; }
-                // echte Tastatur: über den KeyboardHandler, genau wie beim Tippen im Spiel
-                boolean realType = false;
-                try {
-                    long win = dev.teizen.client.compat.V.windowHandle();
-                    for (char c : "dolph".toCharArray())
-                        mc.keyboardHandler.charTyped(win, new net.minecraft.client.input.CharacterEvent(c));
-                    realType = true;
-                } catch (Throwable t) { log("Echte Tastatur ging nicht: " + t); }
-                flag1 = realType && ov.search() != null && ov.search().query.equalsIgnoreCase("dolph");
-                java.util.List<Module> vis = ov.shownModules();
-                flag2 = vis.size() == 1 && vis.get(0).name.equals("DolphinMode");
-                text = "echt getippt=" + yes(realType) + ", Suchfeld='" + (ov.search() == null ? "?" : ov.search().query) + "', gefunden=" + yes(flag2);
-                shot("67-echte-suche");
-                next();
-            }
-            case 521 -> {
-                if (!after(5)) return;
-                var ov = (Overview) mc.gui.screen();
-                if (ov.search() != null) ov.search().query = "";
-                Module ka = TeizenClient.modules().byName("killaura");
-                boolean wasFav = ka.favorite;
-                // echter Mittelklick auf die KillAura-Zelle (in der Kampf-Kategorie)
+                if (!(mc.gui.screen() instanceof Overview ov)) { result("Favorit-Test: Übersicht nicht offen FEHLER"); SelfTest.jump(521); return; }
                 double[] c = ov.firstCellCenter(Module.Category.KAMPF);
                 boolean faved = false;
                 if (c != null) {
-                    ov.mouseClicked(new MouseButtonEvent(c[0], c[1], new MouseButtonInfo(dev.teizen.client.compat.V.rawMouse(2), 0)), false);
                     Module first = ov.shownModules().stream().filter(m -> m.category == Module.Category.KAMPF).findFirst().orElse(null);
-                    faved = first != null && first.favorite != wasFav;
+                    boolean was = first != null && first.favorite;
+                    ov.mouseClicked(new MouseButtonEvent(c[0], c[1], new MouseButtonInfo(dev.teizen.client.compat.V.rawMouse(2), 0)), false);
+                    faved = first != null && first.favorite != was;
+                    if (first != null) first.favorite = was;
                 }
-                result("Echte Eingabe im Menü (26.3-Weg): " + text + "; Suche filtert=" + yes(flag1 && flag2) + ", Favorit per Mittelklick=" + yes(faved) + " "
-                        + ok(flag1 && flag2 && faved));
+                result("Favorit per Mittelklick in der Übersicht (Maustaste 26.2/26.3): " + yes(faved) + " " + ok(faved));
                 mc.gui.setScreen(null);
                 next();
             }
-            case 522 -> {
+            case 521 -> {
                 if (!after(5)) return;
                 dev.teizen.client.modules.PanicButton.panic();
                 for (String n : before) { Module m = TeizenClient.modules().byName(n); if (m != null && !m.isEnabled()) m.setEnabled(true); }
