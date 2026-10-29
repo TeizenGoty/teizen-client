@@ -857,7 +857,7 @@ final class Round11Tests {
             // ---------------------------------------------- AutoMine: keine Erze -> Suchtunnel; Hunger -> isst selbst
             case 561 -> {
                 if (!after(20)) return;
-                area = o.offset(-80, 90, 80);
+                area = o.offset(-40, 90, 30); // nah genug, damit die Chunks geladen sind
                 cmd("fill " + blk(area.offset(-15, -1, -15)) + " " + blk(area.offset(15, 2, 15)) + " minecraft:stone");
                 cmd("fill " + blk(area) + " " + blk(area.above()) + " minecraft:air");
                 cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY(), area.getZ() + 0.5));
@@ -886,8 +886,8 @@ final class Round11Tests {
                 for (int i = 0; i < 36; i++) if (mc.player.getInventory().getItem(i).is(net.minecraft.world.item.Items.BREAD)) bread += mc.player.getInventory().getItem(i).getCount();
                 int food = mc.player.getFoodData().getFoodLevel();
                 shot("75-automine-tunnel-essen");
-                result(String.format(Locale.ROOT, "AutoMine ohne Erze: Suchtunnel %.1f Blöcke gegraben (Schritte %d); Hunger vorher %d -> jetzt %d, Brot 8 -> %d %s",
-                        moved, am.tunnelSteps - n0, d0, food, bread, ok(moved >= 4 && bread < 8 && food > d0)));
+                result(String.format(Locale.ROOT, "AutoMine ohne Erze: Suchtunnel %.1f Blöcke gegraben (Schritte %d); Hunger nach dem Hunger-Effekt %d -> jetzt %d, Brot 8 -> %d %s",
+                        moved, am.tunnelSteps - n0, d0, food, bread, ok(moved >= 4 && bread < 8 && food >= 15)));
                 t("///mine stop");
                 am.ores.setText(text);
                 cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));

@@ -115,20 +115,30 @@ public final class Fly extends Module {
                 }
             }
         }
-        // Lavaschutz: diesen Tick in Lava gesunken -> zurück auf die Höhe vom letzten Paket
-        if (f != null && f.isEnabled() && f.lavaGuard.on() && p.getAbilities().flying && !Double.isNaN(sentY) && p.getY() < sentY
-                && fluidIn(p.getBoundingBox(), true)) {
-            var back = p.getBoundingBox().move(0, sentY - p.getY(), 0);
-            if (mc.level.noCollision(p, back) && !fluidIn(back, true)) {
-                p.setPos(p.getX(), sentY, p.getZ());
-                p.setDeltaMovement(p.getDeltaMovement().x, 0, p.getDeltaMovement().z);
-                f.lavaSaves++;
+        // Lavaschutz: nach der Bewegung dieses Ticks, BEVOR das Paket rausgeht – ist man in/kurz über Lava,
+        // sofort knapp über die Oberfläche setzen (der Server sieht einen nie in der Lava)
+        if (f != null && f.isEnabled() && f.lavaGuard.on() && p.getAbilities().flying) {
+            double top = lavaTop(p.getBoundingBox());
+            if (!Double.isNaN(top) && p.getY() < top + 0.3) {
+                var up = p.getBoundingBox().move(0, top + 0.3 - p.getY(), 0);
+                if (mc.level.noCollision(p, up)) {
+                    p.setPos(p.getX(), top + 0.3, p.getZ());
+                    p.setDeltaMovement(p.getDeltaMovement().x, Math.max(0, p.getDeltaMovement().y), p.getDeltaMovement().z);
+                    p.clearFire();
+                    f.lavaSaves++;
+                }
             }
         }
         // Fallschutz: beim Runtergehen sagt das NORMALE Bewegungs-Paket "am Boden" -> der Server zählt keine
         // Fallhöhe (vorher ein Extra-Paket pro Tick: mit Sprint fällt man >3 Blöcke/Tick -> trotzdem Schaden)
         // Die Anti-Kick-Absenkung immer als "am Boden" melden: sonst sammelt der Server beim Schweben Fallhöhe an
         // und man stirbt beim nächsten Runterfliegen mitten in der Luft (vorher so passiert)
+        // Der Server rechnet Fallschaden pro Paket: mehr als 3 Blöcke in EINEM Tick = Schaden, auch mit "am Boden".
+        // Darum beim Fliegen mit Fallschutz höchstens 2.9 Blöcke pro Tick sinken.
+        if (f != null && f.isEnabled() && f.noFall.on() && !Double.isNaN(sentY) && sentY - p.getY() > 2.9 && !p.isFallFlying()) {
+            p.setPos(p.getX(), sentY - 2.9, p.getZ());
+            p.setDeltaMovement(p.getDeltaMovement().x, Math.max(p.getDeltaMovement().y, -2.9), p.getDeltaMovement().z);
+        }
         boolean falling = !p.onGround() && !Double.isNaN(sentY) && p.getY() < sentY - 0.001;
         if (!falling) fallStartY = Double.NaN;
         else if (Double.isNaN(fallStartY)) fallStartY = sentY;
@@ -145,6 +155,11 @@ public final class Fly extends Module {
                 && fallStartY - p.getY() >= nf.from();
         boolean flyWants = f != null && (f.noFall.on() || dipPacket) && (f.isEnabled() || f.guardUntilGround);
         // nie beim Elytra-Gleiten ("am Boden" würde das Gleiten beim Server beenden)
+        if (noFallWants && sentY - p.getY() > 2.9 && mc.level.noCollision(p, p.getBoundingBox().move(0, sentY - 2.9 - p.getY(), 0))) {
+            // sehr langer Sturz (> 3 Blöcke pro Tick) -> etwas bremsen, sonst Schaden pro Paket
+            p.setPos(p.getX(), sentY - 2.9, p.getZ());
+            p.setDeltaMovement(p.getDeltaMovement().x, -2.9, p.getDeltaMovement().z);
+        }
         if ((flyWants || noFallWants) && !p.isCreative() && !p.isSpectator() && !p.isFallFlying() && falling) {
             p.setOnGround(true);
             groundSpoofed = true;
@@ -160,6 +175,24 @@ public final class Fly extends Module {
     private static double fallStartY = Double.NaN;
     /** Wie oft der Lavaschutz einen gerettet hat (Selbsttest). */
     public int lavaSaves;
+
+    /** Oberkante der Lava in/unter diesem Bereich (bis 1 Block unter den Füßen), oder NaN. */
+    private static double lavaTop(net.minecraft.world.phys.AABB b) {
+        if (mc.level == null) return Double.NaN;
+        double top = Double.NaN;
+        for (net.minecraft.core.BlockPos q : net.minecraft.core.BlockPos.betweenClosed(
+                (int) Math.floor(b.minX), (int) Math.floor(b.minY - 1.0), (int) Math.floor(b.minZ),
+                (int) Math.floor(b.maxX - 1e-7), (int) Math.floor(b.maxY - 1e-7), (int) Math.floor(b.maxZ - 1e-7))) {
+            var fs = mc.level.getFluidState(q);
+            if (fs.isEmpty() || !fs.is(net.minecraft.tags.FluidTags.LAVA)) continue;
+            // ganze Lava-Säule nach oben verfolgen
+            net.minecraft.core.BlockPos t = q.immutable();
+            while (mc.level.getFluidState(t.above()).is(net.minecraft.tags.FluidTags.LAVA)) t = t.above();
+            double y = t.getY() + 1.0;
+            if (Double.isNaN(top) || y > top) top = y;
+        }
+        return top;
+    }
 
     /** Ist in diesem Bereich Flüssigkeit (nur Lava, wenn lavaOnly)? */
     private static boolean fluidIn(net.minecraft.world.phys.AABB b, boolean lavaOnly) {

@@ -288,8 +288,16 @@ public final class AutoMine extends Module {
     private boolean canPlace() { return placeBlocks.on() && Inv.findAny(AutoMine::throwaway) >= 0; }
 
     /** Einen Block für den Weg setzen. @return false wenn es nicht geht (dann neuen Weg suchen) */
+    private MinePath.Step placeStep;
+    private int placeTicks;
+
     private boolean placeTick(MinePath.Step step) {
         BlockPos at = step.place();
+        if (step != placeStep) { placeStep = step; placeTicks = 0; }
+        if (++placeTicks > 80) { placeStep = null; mc.options.keyShift.setDown(false); mc.options.keyJump.setDown(false); return false; } // hängt -> neuen Weg
+        if (dev.teizen.client.SelfTest.ACTIVE && placeTicks % 10 == 1)
+            dev.teizen.client.TeizenClient.LOG.info("AutoMine setzt " + step.kind() + " bei " + at.toShortString() + ": y=" + String.format(java.util.Locale.ROOT, "%.2f", mc.player.getY())
+                    + " amBoden=" + mc.player.onGround() + " gezielt=" + aimed() + " Hand=" + mc.player.getMainHandItem().getItem() + " Schritt " + index + "/" + (path == null ? -1 : path.size()));
         if (!Inv.ensureInHand(AutoMine::throwaway)) return false;
         mc.options.keyUp.setDown(false);
         mc.options.keyShift.setDown(true); // schleichen: nicht von der Kante fallen, keine Kisten öffnen

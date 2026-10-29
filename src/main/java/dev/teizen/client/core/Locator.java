@@ -207,7 +207,7 @@ public final class Locator {
         dev.teizen.client.compat.SeedMapCompat.giveSeed(seed, false);
         String name = r.arg.replace("#", "").replace("minecraft:", "");
         if (name.equals("ruined_portal") && mc.level.dimension() == net.minecraft.world.level.Level.NETHER) name = "ruined_portal_nether";
-        String cmd = name.equals("stronghold") ? "sm:locate feature stronghold" : "sm:locate feature structure " + name;
+        String cmd = "sm:locate feature " + name; // SeedMapper: "sm:locate feature village" / "feature stronghold"
         pending = r;
         pendingTicks = 0;
         viaSeed = true;
