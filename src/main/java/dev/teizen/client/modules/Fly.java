@@ -124,13 +124,13 @@ public final class Fly extends Module {
         // (nicht nur beim Fliegen: berührt man den Boden unter der Lava, schaltet Minecraft das Fliegen kurz aus)
         if (f != null && f.isEnabled() && f.lavaGuard.on() && !p.isCreative()) {
             double top = lavaTop(p.getBoundingBox());
-            if (!Double.isNaN(top) && p.getY() < top + 0.3) {
-                var up = p.getBoundingBox().move(0, top + 0.3 - p.getY(), 0);
+            if (!Double.isNaN(top) && p.getY() < top + LAVA_GAP) {
+                var up = p.getBoundingBox().move(0, top + LAVA_GAP - p.getY(), 0);
                 if (dev.teizen.client.SelfTest.ACTIVE && f.lavaSaves % 5 == 0)
                     dev.teizen.client.TeizenClient.LOG.info(String.format(java.util.Locale.ROOT, "Lavaschutz: y %.3f -> %.3f (Oberkante %.2f, frei=%s, gesendet zuletzt %.3f, gedippt=%s)",
-                            p.getY(), top + 0.3, top, mc.level.noCollision(p, up), sentY, !Double.isNaN(restoreY)));
+                            p.getY(), top + LAVA_GAP, top, mc.level.noCollision(p, up), sentY, !Double.isNaN(restoreY)));
                 if (mc.level.noCollision(p, up)) {
-                    p.setPos(p.getX(), top + 0.3, p.getZ());
+                    p.setPos(p.getX(), top + LAVA_GAP, p.getZ());
                     p.setDeltaMovement(p.getDeltaMovement().x, Math.max(0, p.getDeltaMovement().y), p.getDeltaMovement().z);
                     p.clearFire();
                     f.lavaSaves++;
@@ -181,6 +181,8 @@ public final class Fly extends Module {
     private static boolean dipPacket;
     /** Höhe, bei der der aktuelle Fall angefangen hat (für NoFall "ab"). */
     private static double fallStartY = Double.NaN;
+    /** Abstand über der Lava: der Server brennt einen schon knapp (0.3) über der Lava an -> 1 Block Abstand. */
+    private static final double LAVA_GAP = 1.0;
     /** Wie oft die Bewegung vor der Lava gestoppt wurde (Selbsttest). */
     public int lavaStops;
 
@@ -192,7 +194,7 @@ public final class Fly extends Module {
         var b = mc.player.getBoundingBox();
         double top = lavaTop(b.expandTowards(mv.x, mv.y, mv.z));
         if (Double.isNaN(top)) return mv;
-        double floor = top + 0.3;
+        double floor = top + LAVA_GAP;
         double y = mc.player.getY();
         if (y < floor - 1e-4) return mv; // schon drin -> beforeSendPosition holt einen raus
         if (y + mv.y >= floor) return mv;
@@ -208,7 +210,7 @@ public final class Fly extends Module {
         if (mc.level == null) return Double.NaN;
         double top = Double.NaN;
         for (net.minecraft.core.BlockPos q : net.minecraft.core.BlockPos.betweenClosed(
-                (int) Math.floor(b.minX), (int) Math.floor(b.minY - 1.0), (int) Math.floor(b.minZ),
+                (int) Math.floor(b.minX), (int) Math.floor(b.minY - LAVA_GAP - 1.0), (int) Math.floor(b.minZ),
                 (int) Math.floor(b.maxX - 1e-7), (int) Math.floor(b.maxY - 1e-7), (int) Math.floor(b.maxZ - 1e-7))) {
             var fs = mc.level.getFluidState(q);
             if (fs.isEmpty() || !fs.is(net.minecraft.tags.FluidTags.LAVA)) continue;

@@ -887,7 +887,9 @@ final class Round11Tests {
             }
             // ---------------------------------------------- AutoMine: keine Erze -> Suchtunnel; Hunger -> isst selbst
             case 561 -> {
-                if (!after(20)) return;
+                // erst hin (Chunks laden), dann bauen – sonst "That position is not loaded"
+                if (SelfTest.ticksInStep() == 1) cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() - 39.5, o.getY() + 95, o.getZ() + 30.5));
+                if (!after(60)) return;
                 area = o.offset(-40, 90, 30); // nah genug, damit die Chunks geladen sind
                 cmd("fill " + blk(area.offset(-15, -1, -15)) + " " + blk(area.offset(15, 2, 15)) + " minecraft:stone");
                 cmd("fill " + blk(area) + " " + blk(area.above()) + " minecraft:air");
