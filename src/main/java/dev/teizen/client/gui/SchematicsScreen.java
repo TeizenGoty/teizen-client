@@ -24,6 +24,16 @@ import java.util.Locale;
  * (Hologramm + AutoBuild) oder sofort einfügen (mit OP). Öffnen mit ///schematics.
  */
 public final class SchematicsScreen extends Screen {
+    /** Texteingabe für dieses Menü eingeschaltet (26.3 braucht das, siehe TextFocus). */
+    private boolean textOn;
+
+    @Override
+    public void removed() {
+        TextFocus.off();
+        textOn = false;
+        super.removed();
+    }
+
     private static final int ROW_H = 16, TOP = 56;
 
     private final Screen parent;
@@ -63,6 +73,7 @@ public final class SchematicsScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
+        if (!textOn) { textOn = true; TextFocus.on(); } // 26.3: sonst kommen keine Buchstaben an
         Font font = getFont();
         g.fill(0, 0, width, height, 0xE0140A26);
         listBottom = height - 18;

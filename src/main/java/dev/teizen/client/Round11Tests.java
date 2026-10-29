@@ -38,6 +38,56 @@ final class Round11Tests {
     private Round11Tests() {}
 
     /** Fly-AntiKick-Test: Server hat uns rausgeworfen ("schwebt zu lange") -> Ergebnis melden, Test beenden. */
+    /** Chatfenster öffnen (Konstruktor per Reflection, Parameter je nach Version). */
+    private static void openChat() {
+        try {
+            for (var ctor : net.minecraft.client.gui.screens.ChatScreen.class.getConstructors()) {
+                Class<?>[] ps = ctor.getParameterTypes();
+                if (ps.length == 0 || ps[0] != String.class) continue;
+                Object[] args = new Object[ps.length];
+                args[0] = "";
+                for (int i = 1; i < ps.length; i++) args[i] = ps[i] == boolean.class ? Boolean.FALSE : null;
+                mc.gui.setScreen((net.minecraft.client.gui.screens.Screen) ctor.newInstance(args));
+                return;
+            }
+        } catch (Throwable t) {
+            log("Chatfenster öffnen fehlgeschlagen: " + t);
+        }
+    }
+
+    /** Text im Eingabefeld des offenen Chatfensters. */
+    private static String chatInput() {
+        if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.ChatScreen cs)) return "(kein Chat offen)";
+        for (Class<?> c = cs.getClass(); c != null; c = c.getSuperclass()) {
+            for (var f : c.getDeclaredFields()) {
+                if (f.getType() != net.minecraft.client.gui.components.EditBox.class) continue;
+                try {
+                    f.setAccessible(true);
+                    return ((net.minecraft.client.gui.components.EditBox) f.get(cs)).getValue();
+                } catch (Throwable ignored) {}
+            }
+        }
+        return "(Feld nicht gefunden)";
+    }
+
+    private static java.nio.file.Path typeFile(String n) { return mc.gameDirectory.toPath().resolve(n); }
+
+    /** Bittet ci/typer.sh, diesen Text wie eine echte Tastatur zu tippen. @return false wenn es kein CI-Tipper gibt */
+    private static boolean requestTyping(String s) {
+        if (System.getenv("CI") == null) return false;
+        try {
+            java.nio.file.Files.deleteIfExists(typeFile("teizen-typed.txt"));
+            java.nio.file.Files.writeString(typeFile("teizen-type.txt"), s);
+            log("Echt-Tippen angefordert: '" + s + "'");
+            return true;
+        } catch (Throwable t) {
+            log("Echt-Tippen anfordern ging nicht: " + t);
+            return false;
+        }
+    }
+
+    private static boolean typingDone() { return java.nio.file.Files.exists(typeFile("teizen-typed.txt")); }
+
     private static void flyLog() {
         Module fl = TeizenClient.modules().byName("fly");
         log(String.format(Locale.ROOT, "Fly-AntiKick %d: y=%.2f fliegt=%s an=%s Durchgänge=%d", SelfTest.local(), mc.player.getY(),
@@ -523,6 +573,41 @@ final class Round11Tests {
                 t("///set fly doppelsprung an");
                 result(String.format(Locale.ROOT, "Fly-AntiKick: 140 Ticks hoch + 100 Ticks schweben, rausgeworfen=nein, AntiKick-Durchgänge=%d, Höhe beim Schweben verändert um %.2f %s",
                         sent, drift, ok(sent > 0 && Math.abs(drift) < 0.3f)));
+                SelfTest.jump(534);
+            }
+            // ---------------------------------------------- Echtes Tippen (xdotool = echte Tastatur): kommen Buchstaben im Menü an? (26.3/SDL)
+            case 534 -> {
+                if (!after(20)) return;
+                openChat();
+                next();
+            }
+            case 535 -> {
+                if (!after(20)) return;
+                text = "";
+                if (!requestTyping("abc")) { result("Echt-Tippen: Testtastatur nicht da – übersprungen"); mc.gui.setScreen(null); SelfTest.jump(526); return; }
+                next();
+            }
+            case 536 -> {
+                if (!typingDone() && !after(200)) return;
+                text = chatInput();
+                log("Echt-Tippen in den Vanilla-Chat: '" + text + "'");
+                mc.gui.setScreen(new Overview());
+                next();
+            }
+            case 537 -> {
+                if (!after(20)) return;
+                requestTyping("velo");
+                next();
+            }
+            case 538 -> {
+                if (!typingDone() && !after(200)) return;
+                if (!after(10) && !typingDone()) return;
+                String q = mc.gui.screen() instanceof Overview ov ? ov.search().query : "(Übersicht nicht offen)";
+                shot("70-echt-tippen");
+                boolean control = text.contains("abc");
+                if (!control) result("Echt-Tippen: Testtastatur kam nicht mal im Vanilla-Chat an (Chat='" + text + "', Suche='" + q + "') – übersprungen");
+                else result("Echt-Tippen (echte Tastatur): Vanilla-Chat='" + text + "', Teizen-Suche='" + q + "' " + ok(q.contains("velo")));
+                mc.gui.setScreen(null);
                 SelfTest.jump(526);
             }
             case 526 -> {

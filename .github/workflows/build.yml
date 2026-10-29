@@ -90,7 +90,7 @@ jobs:
         run: |
           set +e
           sudo apt-get update -qq >/dev/null 2>&1
-          sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-vulkan-drivers libglx-mesa0 >/dev/null 2>&1
+          sudo apt-get install -y -qq xvfb xdotool libgl1-mesa-dri mesa-vulkan-drivers libglx-mesa0 >/dev/null 2>&1
           mkdir -p run-server && cd run-server
           python3 - <<'PY'
           import json, urllib.request
@@ -134,7 +134,8 @@ jobs:
           printf "onboardAccessibility:false\nskipMultiplayerWarning:true\njoinedFirstServer:true\ntutorialStep:none\nguiScale:2\nrenderDistance:5\nsimulationDistance:5\nsoundCategory_master:0.0\n" > run/options.txt
           export LIBGL_ALWAYS_SOFTWARE=1
           if [ -s ci/selftest-from.txt ]; then export TEIZEN_SELFTEST_FROM=$(cat ci/selftest-from.txt); echo "Selbsttest ab Schritt $TEIZEN_SELFTEST_FROM"; fi
-          timeout 1800 xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew runClient -Pminecraft_version=$MCV -PuseJar=$PWD/dist/teizen-client-1.0.0.jar --no-daemon > client-log.txt 2>&1
+          # ci/typer.sh tippt im selben virtuellen Bildschirm wie eine echte Tastatur, wenn der Selbsttest das anfordert
+          timeout 1800 xvfb-run -a -s "-screen 0 1280x720x24" bash -c 'bash ci/typer.sh & T=$!; ./gradlew runClient -Pminecraft_version=$MCV -PuseJar=$PWD/dist/teizen-client-1.0.0.jar --no-daemon; R=$?; kill $T; exit $R' > client-log.txt 2>&1
           echo "Client beendet mit $?"
           echo "stop" >&3
           sleep 5
@@ -157,6 +158,10 @@ jobs:
             grep -v '^#' ci/dump-classes.txt | grep -v '^$' | while read c; do
               javap -p -cp "$CP" "$c" >> api-dump.txt 2>&1
             done
+            # Bytecode: wie Minecraft die Texteingabe ein-/ausschaltet (26.3/SDL)
+            for c in com.mojang.blaze3d.platform.TextInputManager; do javap -c -p -cp "$CP" "$c" >> bytecode-dump.txt 2>&1; done
+            javap -c -p -cp "$CP" net.minecraft.client.gui.components.EditBox | awk '/setFocused\(boolean\)|onTextInputFocusChange/{p=1} p{print} /^$/{p=0}' >> bytecode-dump.txt 2>&1
+            javap -c -p -cp "$CP" net.minecraft.client.Minecraft | awk '/onTextInputFocusChange|public void setScreen/{p=1} p{print} /^$/{p=0}' >> bytecode-dump.txt 2>&1
           fi
       - name: Publish CI output
         if: always()
@@ -165,6 +170,7 @@ jobs:
           mkdir -p /tmp/ciout && cd /tmp/ciout
           git init -q -b $OUT
           cp $GITHUB_WORKSPACE/build-log.txt $GITHUB_WORKSPACE/api-dump.txt . 2>/dev/null
+          cp $GITHUB_WORKSPACE/bytecode-dump.txt $GITHUB_WORKSPACE/typer-log.txt . 2>/dev/null
           cp $GITHUB_WORKSPACE/all-classes.txt . 2>/dev/null
           cp $GITHUB_WORKSPACE/dist/*.jar . 2>/dev/null
           cp $GITHUB_WORKSPACE/client-log.txt $GITHUB_WORKSPACE/server-log.txt . 2>/dev/null

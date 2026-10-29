@@ -27,6 +27,16 @@ import java.util.Set;
  * Übersichts-Taste (Standard O) wechselt zur Übersicht.
  */
 public final class ClickGui extends Screen {
+    /** Texteingabe für dieses Menü eingeschaltet (26.3 braucht das, siehe TextFocus). */
+    private boolean textOn;
+
+    @Override
+    public void removed() {
+        TextFocus.off();
+        textOn = false;
+        super.removed();
+    }
+
     private static final int COL_W = 118, ROW_H = 13, HEAD_H = 16, TOP = 34;
     private static final int HEAD = 0xFF5B1FB8, FAV_HEAD = 0xFFB8861F, SEARCH_HEAD = 0xFF1F8AB8, ON = 0xFF7A2CF0, OFF = 0xC0201236;
     private static final Set<String> expanded = new HashSet<>();
@@ -104,6 +114,7 @@ public final class ClickGui extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
+        if (!textOn) { textOn = true; TextFocus.on(); } // 26.3: sonst kommen keine Buchstaben an
         var font = getFont();
         g.fill(0, 0, width, height, 0x60000000);
 

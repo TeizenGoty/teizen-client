@@ -27,6 +27,16 @@ import java.util.List;
  * Lupe oben: einfach lostippen. Roter Knopf: alles aus.
  */
 public final class Overview extends Screen {
+    /** Texteingabe für dieses Menü eingeschaltet (26.3 braucht das, siehe TextFocus). */
+    private boolean textOn;
+
+    @Override
+    public void removed() {
+        TextFocus.off();
+        textOn = false;
+        super.removed();
+    }
+
     private static final int CELL_W = 124, CELL_H = 24, GAP = 4, TOP = 44, HEAD_H = 14, ROW_H = 13;
     private static final int ON = 0xFF6A24D8, OFF = 0xC0201236, HOVER = 0xD0362060;
 
@@ -253,6 +263,7 @@ public final class Overview extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
+        if (!textOn) { textOn = true; TextFocus.on(); } // 26.3: sonst kommen keine Buchstaben an
         var font = getFont();
         layout();
         int maxS = maxScroll();
