@@ -618,35 +618,56 @@ final class Round11Tests {
                 String p0 = dev.teizen.client.core.Seed.progressNow();
                 log("Seed-Anzeige vorher: " + p0);
                 flag1 = p0 != null && !p0.isBlank();
-                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
-                sf.ownSeed.setText("teizen"); // wie im Menü eingetippt (Text-Seed wie bei Minecraft)
+                n0 = dev.teizen.client.core.Seed.corrections;
+                // richtiger Seed als Text (Test-Welt hat level-seed=teizen)
+                TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class).ownSeed.setText("teizen");
                 next();
             }
             case 540 -> {
-                if (!after(45)) return;
+                if (!after(60)) return;
                 Long k = dev.teizen.client.core.Seed.known();
-                flag2 = k != null && k == (long) "teizen".hashCode();
+                flag2 = k != null && k == (long) "teizen".hashCode() && dev.teizen.client.core.Seed.manualVerified()
+                        && dev.teizen.client.core.Seed.corrections == n0;
                 text = String.valueOf(dev.teizen.client.core.Seed.progressNow());
-                TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class).ownSeed.setText("-4172144997902289642");
+                // jetzt ein FALSCHER Seed -> muss vom Server (/seed) verbessert werden
+                TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class).ownSeed.setText("12345");
                 next();
             }
             case 541 -> {
-                if (!after(45)) return;
+                if (!after(60)) return;
+                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
                 Long k = dev.teizen.client.core.Seed.known();
-                boolean num = k != null && k == -4172144997902289642L;
-                boolean stored = dev.teizen.client.core.Seed.MANUAL.containsValue(-4172144997902289642L);
-                String hud = String.valueOf(dev.teizen.client.core.Seed.progressNow());
-                TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class).ownSeed.setText("");
-                result("Seed: Anzeige im Bild=" + yes(flag1) + ", eigener Seed per Menü-Feld: Text 'teizen'=" + yes(flag2) + ", Zahl=" + yes(num)
-                        + ", gespeichert=" + yes(stored) + ", Anzeige jetzt '" + hud.replaceAll("§.", "") + "' " + ok(flag1 && flag2 && num && stored && hud.contains("bekannt")));
+                boolean fixed = k != null && seed0 != null && k.longValue() == seed0.longValue() && dev.teizen.client.core.Seed.corrections > n0
+                        && sf.ownSeed.str().equals(String.valueOf(seed0));
+                String hud = String.valueOf(dev.teizen.client.core.Seed.progressNow()).replaceAll("§.", "");
+                result("Seed im Menü: Anzeige im Bild=" + yes(flag1) + ", richtiger Seed 'teizen' bestätigt=" + yes(flag2) + " (" + text.replaceAll("§.", "")
+                        + "), falscher Seed 12345 -> vom Server verbessert auf " + k + "=" + yes(fixed) + ", Feld zeigt jetzt '" + sf.ownSeed.str() + "', Anzeige '" + hud + "' "
+                        + ok(flag1 && flag2 && fixed && hud.contains("geprüft")));
+                // ohne Server-Seed: falscher Seed -> SeedCracker findet den echten -> verbessert
+                dev.teizen.client.core.Seed.forceNoServerSeed = true;
+                n0 = dev.teizen.client.core.Seed.corrections;
+                sf.ownSeed.setText("999");
+                dev.teizen.client.core.Seed.crackerTestSeed(1234567890123L, true);
                 next();
             }
             case 542 -> {
+                if (!after(60)) return;
+                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+                Long k = dev.teizen.client.core.Seed.known();
+                boolean byCracker = k != null && k == 1234567890123L && dev.teizen.client.core.Seed.corrections > n0;
+                dev.teizen.client.core.Seed.crackerTestSeed(1234567890123L, false);
+                dev.teizen.client.core.Seed.forceNoServerSeed = false;
+                sf.ownSeed.setText("");
+                flag2 = byCracker;
+                text = String.valueOf(k);
+                SelfTest.jump(5420);
+            }
+            case 5420 -> {
                 if (!after(45)) return;
                 boolean removed = dev.teizen.client.core.Seed.manual() == null;
-                String p1 = String.valueOf(dev.teizen.client.core.Seed.progressNow()).replaceAll("§.", "");
-                result("Seed: Menü-Feld leeren entfernt den eigenen Seed=" + yes(removed) + ", Anzeige danach '" + p1 + "', Restzeit-Format: "
-                        + dev.teizen.client.core.Seed.durationText(45_000) + " / " + dev.teizen.client.core.Seed.durationText(750_000) + " / " + dev.teizen.client.core.Seed.durationText(4_000_000) + " " + ok(removed));
+                result("Seed ohne Server: falscher Seed 999 -> vom SeedCracker verbessert auf " + text + "=" + yes(flag2) + ", Feld leeren entfernt ihn=" + yes(removed)
+                        + ", Restzeit-Format: " + dev.teizen.client.core.Seed.durationText(45_000) + " / " + dev.teizen.client.core.Seed.durationText(750_000) + " "
+                        + ok(flag2 && removed));
                 if (seed0 != null) dev.teizen.client.core.Seed.set(seed0);
                 SelfTest.jump(543);
             }

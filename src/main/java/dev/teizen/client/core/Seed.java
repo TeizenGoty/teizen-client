@@ -51,6 +51,7 @@ public final class Seed {
 
     /** Seed von Hand (Menü / ///seed): gilt für diese Welt und wird nicht vom SeedCracker ersetzt. */
     public static void setManual(long s) {
+        VERIFIED.remove(worldKey()); // neue Eingabe -> neu prüfen
         set(s);
         MANUAL.put(worldKey(), s);
         Config.save();
@@ -58,6 +59,7 @@ public final class Seed {
 
     /** Eigenen Seed dieser Welt wieder entfernen. */
     public static void clearManual() {
+        VERIFIED.remove(worldKey());
         if (MANUAL.remove(worldKey()) != null) { seed = null; Config.save(); }
     }
 
@@ -98,6 +100,93 @@ public final class Seed {
             }
             done(found);
         }, () -> done(null));
+    }
+
+    /** Den ECHTEN Seed fragen (eigene Welt / OP), egal was eingegeben ist. */
+    private static void realSeed(Consumer<Long> cb) {
+        IntegratedServer server = mc.getSingleplayerServer();
+        if (server != null) {
+            server.execute(() -> { long s = server.overworld().getSeed(); mc.execute(() -> cb.accept(s)); });
+            return;
+        }
+        ServerQuery.command("seed", "commands.seed.success", msg -> {
+            Matcher m = NUM.matcher(msg.getString());
+            Long found = null;
+            while (m.find()) {
+                try { found = Long.parseLong(m.group()); } catch (NumberFormatException ignored) { }
+            }
+            cb.accept(found);
+        }, () -> cb.accept(null));
+    }
+
+    // ------------------------------------------------------------ eigener Seed: prüfen und verbessern
+    /** Welten, deren eingegebener Seed bestätigt ist (Server oder SeedCracker). */
+    private static final java.util.Set<String> VERIFIED = new java.util.HashSet<>();
+    private static String serverChecked;
+    /** Selbsttest: so tun, als gäbe es kein /seed (Prüfung nur über den SeedCracker). */
+    public static boolean forceNoServerSeed;
+    /** Wie oft ein falscher Seed verbessert/entfernt wurde (Selbsttest). */
+    public static int corrections;
+
+    public static boolean manualVerified() { return VERIFIED.contains(worldKey()); }
+
+    /** Eingegebenen Seed mit einem sicheren Seed vergleichen: gleich -> bestätigt, sonst ersetzen. */
+    private static void checkAgainst(long real, String from) {
+        Long man = manual();
+        if (man == null) return;
+        String w = worldKey();
+        if (man == real) {
+            if (VERIFIED.add(w)) Chat.ok("Dein Seed stimmt ✔ (" + from + ").");
+            return;
+        }
+        setManual(real);
+        VERIFIED.add(w);
+        corrections++;
+        var sf = dev.teizen.client.TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+        if (sf != null) sf.rememberSeed(real);
+        dev.teizen.client.compat.SeedMapCompat.giveSeed(real, true, sf == null ? List.of() : sf.structures.selected());
+        Chat.ok("Dein Seed §f" + man + "§a war falsch – automatisch verbessert auf §f" + real + "§a (" + from + ").");
+    }
+
+    private static void verifyManual() {
+        Long man = manual();
+        String w = worldKey();
+        if (man == null || VERIFIED.contains(w)) return;
+        // 1) eigene Welt / OP: den echten Seed fragen
+        String key = w + ":" + man;
+        if (!forceNoServerSeed && !key.equals(serverChecked) && (mc.getSingleplayerServer() != null || ServerQuery.allowed("seed"))) {
+            serverChecked = key;
+            realSeed(real -> { if (real != null) checkAgainst(real, "vom Server"); });
+            return;
+        }
+        // 2) SeedCracker: ganzer Seed gefunden -> vergleichen; sonst Struktur-Seed (untere 48 Bit) prüfen
+        if (!crackerInstalled()) return;
+        java.util.Set<Long> ws = crackerSeeds();
+        if (ws.size() == 1) { checkAgainst(ws.iterator().next(), "vom SeedCracker"); return; }
+        java.util.Set<Long> ss = crackerStructureSeeds();
+        if (!ss.isEmpty() && !ss.contains(man & ((1L << 48) - 1))) {
+            clearManual();
+            corrections++;
+            var sf = dev.teizen.client.TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+            if (sf != null) sf.forgetSeed();
+            Chat.error("Dein Seed §f" + man + "§c passt nicht zu den Strukturen hier – entfernt. Der SeedCracker sucht weiter und trägt den richtigen automatisch ein.");
+        }
+    }
+
+    /** Struktur-Seeds (untere 48 Bit), die SeedCrackerX schon gefunden hat. */
+    @SuppressWarnings("unchecked")
+    public static java.util.Set<Long> crackerStructureSeeds() {
+        if (!crackerInstalled()) return java.util.Set.of();
+        try {
+            Object tm = timeMachine();
+            Object ss = tm.getClass().getField("structureSeeds").get(tm);
+            if (ss instanceof java.util.Collection<?> c) {
+                java.util.Set<Long> out = new java.util.HashSet<>();
+                for (Object o : new ArrayList<>(c)) if (o instanceof Long l) out.add(l);
+                return out;
+            }
+        } catch (Throwable ignored) { }
+        return java.util.Set.of();
     }
 
     // ------------------------------------------------------------ SeedCrackerX (findet den Seed ohne OP)
@@ -258,7 +347,12 @@ public final class Seed {
     private static void updateProgress() {
         if (mc.player == null) { progressText = null; return; }
         Long k = known();
-        if (k != null) { progressText = "§a" + k + " §7(bekannt)"; return; }
+        if (k != null) {
+            boolean man = manual() != null;
+            progressText = man && !manualVerified() ? "§e" + k + " §7(eingegeben, wird geprüft)"
+                    : "§a" + k + " §7(" + (man ? "eingegeben, geprüft ✔" : "bekannt") + ")";
+            return;
+        }
         if (!crackerInstalled()) { progressText = "§cunbekannt §7– ///seed <Zahl> oder StructureFinder → seed"; return; }
         String wk = worldKey();
         if (!wk.equals(rateWorld)) { rateWorld = wk; firstHave = -1; }
@@ -300,11 +394,12 @@ public final class Seed {
             autoFetched = worldKey();
             fetch(sd -> {});
         }
-        // Seed bekannt -> SeedCrackerX pausieren (keine Meldungen, keine Arbeit); unbekannt -> wieder an
-        crackerActive(known() == null);
-        updateProgress();
         var sfOwn = dev.teizen.client.TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
         if (sfOwn != null) sfOwn.applyOwnSeed();
+        verifyManual();
+        // Seed sicher bekannt -> SeedCrackerX pausieren; unbekannt oder eingegeben-aber-ungeprüft -> weiter knacken
+        crackerActive(known() == null || (manual() != null && !manualVerified()));
+        updateProgress();
         if (!crackerInstalled()) return;
         if (MANUAL.containsKey(worldKey())) return; // eigener Seed hat Vorrang
         java.util.Set<Long> cracked = crackerSeeds();

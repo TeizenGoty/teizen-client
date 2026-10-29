@@ -33,7 +33,7 @@ public final class StructureFinder extends Module {
     private final Setting mapMode = add(Setting.choice("seedmap", "Welche Karte: auto = SeedMapper, sonst Seed Atlas (Xaero), sonst Chunkbase im Browser",
             "auto", "auto", "seedmapper", "seedatlas", "chunkbase"));
     /** Eigener Seed (Zahl oder Text wie bei Minecraft) – gilt für die Welt, in der du ihn eingibst. */
-    public final Setting ownSeed = add(Setting.text("seed", "Eigenen Seed eingeben (Zahl oder Text wie bei Minecraft) – gilt für diese Welt/diesen Server; leer = wieder entfernen", ""));
+    public final Setting ownSeed = add(Setting.text("seed", "Eigenen Seed eingeben (Zahl oder Text wie bei Minecraft). Wird sofort benutzt und automatisch geprüft – falsch = wird verbessert. Leer = entfernen", ""));
     private final Setting openMap = add(Setting.action("karte", "Seed holen und die Seed-Karte mit allen Strukturen öffnen", "Seedmap öffnen",
             this::openSeedMap));
 
@@ -96,6 +96,13 @@ public final class StructureFinder extends Module {
         dev.teizen.client.core.Seed.setManual(s);
         dev.teizen.client.compat.SeedMapCompat.giveSeed(s, true, structures.selected());
         Chat.ok("Eigener Seed: §f" + s + "§a – gilt für diese Welt, für Strukturen und die Seed-Karte (///seedmap).");
+    }
+
+    /** Falscher Seed wurde entfernt: Feld leeren (ohne es als Eingabe zu werten). */
+    public void forgetSeed() {
+        seedWorld = dev.teizen.client.core.Seed.worldKey();
+        appliedSeed = "";
+        ownSeed.setText("");
     }
 
     /** Seed von außen (///seed, ///structurefinder seed) auch im Menü-Feld zeigen. */
