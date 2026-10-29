@@ -155,7 +155,11 @@ public final class AutoMine extends Module {
         }
 
         // Erz in Reichweite? -> abbauen (oder die Blöcke davor wegmachen)
-        if (Breaker.inReach(target)) {
+        // beim Hochbauen erst fertig bauen: im Sprung ist das Erz kurz "in Reichweite", nach der Landung nicht mehr
+        // (vorher hing er so ewig zwischen Abbauen und Hochbauen fest)
+        boolean building = path != null && index < path.size() && path.get(index).place() != null
+                && MinePath.passable(mc.level, path.get(index).place());
+        if (!building && Breaker.inReach(target)) {
             if (canSee(target)) {
                 releaseKeys();
                 status = "baut ab";

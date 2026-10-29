@@ -746,7 +746,7 @@ final class Round11Tests {
             // ---------------------------------------------- Fly über Lava mit Shift runter: Lavaschutz, nie in Lava
             case 549 -> {
                 if (!after(20)) return;
-                area = o.offset(-60, 0, 60);
+                area = o.offset(-25, 0, 25);
                 cmd("fill " + blk(area.offset(-4, -2, -4)) + " " + blk(area.offset(4, -2, 4)) + " minecraft:stone");
                 cmd("fill " + blk(area.offset(-4, -1, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:lava");
                 cmd("fill " + blk(area.offset(-4, 0, -4)) + " " + blk(area.offset(4, 30, 4)) + " minecraft:air");
@@ -769,6 +769,12 @@ final class Round11Tests {
             case 551 -> {
                 // war man wirklich in Lava? Dann brennt man (vom Server) oder verliert Leben
                 if (mc.player.isOnFire() || mc.player.getHealth() < h0 - 0.01f || mc.player.isDeadOrDying()) flag1 = true;
+                if (SelfTest.ticksInStep() == 11 || SelfTest.ticksInStep() == 31) {
+                    cmd("data get entity @s Pos");
+                    cmd("execute at @s if block ~ ~ ~ minecraft:lava run say Server: Füße in Lava");
+                    cmd("execute at @s if block ~ ~-1 ~ minecraft:lava run say Server: Lava unter den Füßen");
+                    cmd("data get entity @s OnGround");
+                }
                 if (SelfTest.ticksInStep() < 60) TeizenClient.LOG.info(String.format(Locale.ROOT, "Lava-Test t=%d y=%.3f inLava=%s brennt=%s Leben=%.1f fliegt=%s amBoden=%s",
                         SelfTest.ticksInStep(), mc.player.getY(), mc.player.isInLava(), mc.player.isOnFire(), mc.player.getHealth(), mc.player.getAbilities().flying, mc.player.onGround()));
                 if (!after(120)) return;
