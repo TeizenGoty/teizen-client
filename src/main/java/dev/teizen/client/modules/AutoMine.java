@@ -44,6 +44,7 @@ public final class AutoMine extends Module {
     private final BlockScanner scanner = new BlockScanner(s -> blocks.contains(s.getBlock()), 3, 32);
 
     private BlockPos target;
+    private int dropWait;
     private List<MinePath.Step> path;
     private int index;
     private int stuck;
@@ -73,6 +74,7 @@ public final class AutoMine extends Module {
         collected = 0;
         ignoredItems.clear();
         retryLater.clear();
+        dropTries.clear();
         failed.clear();
         if (blocks.isEmpty()) Chat.error("Keine gültigen Erze in: " + ores.str());
         else Chat.info("AutoMine sucht: §f" + ores.str());
@@ -120,9 +122,11 @@ public final class AutoMine extends Module {
         if (target != null && !blocks.contains(mc.level.getBlockState(target).getBlock())) {
             Breaker.stop();
             reset();
+            dropWait = 7; // kurz warten, bis der Drop da ist (sonst läuft er schon zum nächsten Erz)
         }
         // erst die Erze einsammeln, die herumliegen (auch wenn schon das nächste Erz ausgesucht ist)
         if (collectTick()) return;
+        if (dropWait > 0) { dropWait--; releaseKeys(); status = "wartet auf Drop"; return; }
         if (target == null) {
             if (!pickTarget()) {
                 releaseKeys();
@@ -211,13 +215,49 @@ public final class AutoMine extends Module {
         if (list.isEmpty()) return false;
         BlockPos me = mc.player.blockPosition();
         list.removeIf(p -> failed.getOrDefault(p, 0) >= 2);
-        list.sort(Comparator.comparingDouble(p -> p.distSqr(me) + Math.abs(p.getY() - me.getY()) * 6));
         if (list.isEmpty()) return false;
+        // große Adern zuerst: Weg geteilt durch Adergröße (4er-Ader in 10 m schlägt Einzelblock in 5 m)
+        Map<BlockPos, Integer> vein = veinSizes(list);
+        list.sort(Comparator.comparingDouble(p -> Math.sqrt(p.distSqr(me) + Math.abs(p.getY() - me.getY()) * 6)
+                / Math.min(vein.getOrDefault(p, 1), 8)));
         target = list.get(0);
         path = null;
         status = "läuft zu " + Ids.path(mc.level.getBlockState(target).getBlock());
         return true;
     }
+
+    /** Erz-Art ohne Deepslate (deepslate_diamond_ore und diamond_ore = gleiche Ader). */
+    private String family(BlockPos p) {
+        return Ids.path(mc.level.getBlockState(p).getBlock()).replace("deepslate_", "");
+    }
+
+    /** Für jeden Erzblock: wie groß seine Ader ist (zusammenhängende gleiche Erze, auch diagonal). */
+    private Map<BlockPos, Integer> veinSizes(List<BlockPos> ores) {
+        Set<BlockPos> all = new HashSet<>(ores);
+        Map<BlockPos, Integer> out = new HashMap<>();
+        for (BlockPos start : ores) {
+            if (out.containsKey(start)) continue;
+            String fam = family(start);
+            List<BlockPos> group = new ArrayList<>();
+            java.util.ArrayDeque<BlockPos> todo = new java.util.ArrayDeque<>();
+            todo.add(start);
+            Set<BlockPos> seen = new HashSet<>();
+            seen.add(start);
+            while (!todo.isEmpty() && group.size() < 64) {
+                BlockPos c = todo.poll();
+                group.add(c);
+                for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) for (int dz = -1; dz <= 1; dz++) {
+                    BlockPos n = c.offset(dx, dy, dz);
+                    if (all.contains(n) && seen.add(n) && family(n).equals(fam)) todo.add(n);
+                }
+            }
+            for (BlockPos g : group) out.put(g, group.size());
+        }
+        return out;
+    }
+
+    /** Für den Selbsttest: aktuelles Ziel. */
+    public BlockPos currentTarget() { return target; }
 
     private void follow() {
         MinePath.Step step = path.get(index);
@@ -382,9 +422,14 @@ public final class AutoMine extends Module {
     private boolean collectTick() {
         if (!collect.on()) return false;
         int now = mc.player.tickCount;
-        if (pickup != null && (!pickup.isAlive() || ++pickupTicks > (pickupDirect ? 60 : 140) || noProgress > 40)) {
+        if (pickup != null && (!pickup.isAlive() || ++pickupTicks > (pickupDirect ? 120 : 300) || noProgress > 60)) {
             if (!pickup.isAlive()) collected++;
-            else ignoredItems.add(pickup.getId()); // kommt nicht ran / kein Fortschritt -> weiter abbauen
+            else {
+                // kommt gerade nicht ran: später nochmal; erst nach 4 Versuchen liegen lassen
+                int tries = dropTries.merge(pickup.getId(), 1, Integer::sum);
+                if (tries >= 4) ignoredItems.add(pickup.getId());
+                else retryLater.put(pickup.getId(), now + 40);
+            }
             pickup = null;
             path = null;
             noProgress = 0;
@@ -392,8 +437,8 @@ public final class AutoMine extends Module {
         }
         if (pickup == null) {
             retryLater.values().removeIf(t -> t <= now);
-            double best = 64;
-            for (var e : mc.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, mc.player.getBoundingBox().inflate(7, 3, 7))) {
+            double best = 12 * 12;
+            for (var e : mc.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, mc.player.getBoundingBox().inflate(10, 6, 10))) {
                 if (!wantDrop(e.getItem()) || ignoredItems.contains(e.getId()) || retryLater.containsKey(e.getId())) continue;
                 double d = e.distanceToSqr(mc.player);
                 if (d < best) { best = d; pickup = e; }
@@ -413,7 +458,7 @@ public final class AutoMine extends Module {
         double dist = horiz + Math.abs(it.y - me.y);
         if (dist < lastDropDist - 0.05) { lastDropDist = dist; noProgress = 0; } else noProgress++;
         status = "sammelt " + pickup.getItem().getHoverName().getString();
-        if (horiz < 1.6 && Math.abs(it.y - me.y) < 2.2) return walkToDrop(it, me, dx, dz, horiz);
+        if (horiz < 1.6 && Math.abs(it.y - me.y) < 2.2) return digIsProgress(walkToDrop(it, me, dx, dz, horiz));
         if (path == null || index >= path.size()) {
             path = MinePath.find(mc.player.blockPosition(), pickup.blockPosition().above(), 2.2, Math.min(3000, nodes.integer()));
             index = 0;
@@ -423,7 +468,7 @@ public final class AutoMine extends Module {
                 // schon ganz nah (Weg leer) oder kein Weg, aber nah dran -> direkt hinlaufen
                 if ((alreadyThere || horiz < 3.5) && Math.abs(it.y - me.y) < 3) {
                     pickupDirect = true;
-                    return walkToDrop(it, me, dx, dz, horiz);
+                    return digIsProgress(walkToDrop(it, me, dx, dz, horiz));
                 }
                 // weiter weg und kein Weg -> erst weiter abbauen, später nochmal versuchen
                 retryLater.put(pickup.getId(), now + 100);
@@ -432,8 +477,18 @@ public final class AutoMine extends Module {
             }
         }
         follow();
+        digIsProgress(true);
         return true;
     }
+
+    /** Graben zum Drop ist Fortschritt (vorher: nach 2 s "kommt nicht näher" -> Diamant liegen gelassen). */
+    private boolean digIsProgress(boolean r) {
+        if (status.startsWith("gräbt")) { noProgress = 0; pickupTicks = Math.max(0, pickupTicks - 1); }
+        return r;
+    }
+
+    /** Wie oft ein Drop schon nicht erreicht wurde. */
+    private final java.util.Map<Integer, Integer> dropTries = new java.util.HashMap<>();
 
     /** Block direkt vor dem Spieler (in Blickrichtung zum Drop) auf Kopf- bzw. Fußhöhe. */
     private BlockPos frontBlock(double dx, double dz) {
@@ -451,6 +506,7 @@ public final class AutoMine extends Module {
         BlockPos above = ib.above();
         if (it.y < me.y - 0.4 && !MinePath.passable(mc.level, above) && Breaker.canBreak(above) && safeToDig(above)) {
             releaseKeys();
+            status = "gräbt zum Erz";
             lookAt(Vec3.atCenterOf(above));
             if (aimed()) Breaker.tick(above, false, true);
             return true;

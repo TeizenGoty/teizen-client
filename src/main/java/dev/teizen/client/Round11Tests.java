@@ -761,6 +761,36 @@ final class Round11Tests {
                 cmd("effect clear @s minecraft:fire_resistance");
                 result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter: in Lava/brennt=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx %s",
                         yes(flag1), above, h0, hp, saves, ok(!flag1 && hp >= h0 - 0.01f && above > 0)));
+                SelfTest.jump(552);
+            }
+            // ---------------------------------------------- AutoMine: große Ader (4 Diamanten, 10 m) vor Einzelblock (5 m)
+            case 552 -> {
+                if (!after(20)) return;
+                area = o.offset(-60, 90, -60);
+                cmd("fill " + blk(area.offset(-14, -2, -4)) + " " + blk(area.offset(8, 4, 4)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-1, 0, -1)) + " " + blk(area.offset(1, 1, 1)) + " minecraft:air");
+                cmd("setblock " + blk(area.offset(5, 0, 0)) + " minecraft:diamond_ore");
+                cmd("fill " + blk(area.offset(-11, 0, 0)) + " " + blk(area.offset(-10, 1, 0)) + " minecraft:diamond_ore");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY(), area.getZ() + 0.5));
+                text = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class).ores.str();
+                next();
+            }
+            case 553 -> {
+                if (!after(30)) return;
+                t("///mine diamond");
+                next();
+            }
+            case 554 -> {
+                var am = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class);
+                BlockPos tg = am.currentTarget();
+                if (tg == null && !after(300)) return;
+                boolean vein = tg != null && tg.getX() <= area.getX() - 9;
+                result("AutoMine Ader-Wahl: Einzel-Diamant 5 m, 4er-Ader 10 m -> Ziel " + (tg == null ? "-" : tg.toShortString())
+                        + " = " + (tg == null ? "keins" : vein ? "Ader" : "Einzelblock") + " " + ok(vein));
+                t("///mine stop");
+                am.ores.setText(text);
+                cmd("fill " + blk(area.offset(-14, -2, -4)) + " " + blk(area.offset(8, 4, 4)) + " minecraft:air");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
                 SelfTest.jump(526);
             }
             case 526 -> {
