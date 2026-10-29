@@ -2,6 +2,7 @@ package dev.teizen.client.modules;
 
 import dev.teizen.client.core.Module;
 import dev.teizen.client.core.Setting;
+import dev.teizen.client.util.Inv;
 import net.minecraft.world.entity.player.Abilities;
 
 /**
@@ -134,7 +135,15 @@ public final class Fly extends Module {
         else if (Double.isNaN(fallStartY)) fallStartY = sentY;
         // NoFall nutzt denselben Weg (vorher Extra-Paket erst ab 2 Blöcken -> bei schnellem Fall trotzdem Schaden in der Luft)
         NoFall nf = dev.teizen.client.TeizenClient.modules().get(NoFall.class);
-        boolean noFallWants = nf != null && nf.isEnabled() && falling && fallStartY - p.getY() >= nf.from();
+        // Fallhöhe, die der Server VOR diesem Paket schon gespeichert hat (Client rechnet genauso mit)
+        double storedFall = Math.max(0, p.fallDistance - (Double.isNaN(sentY) ? 0 : sentY - p.getY()));
+        MaceSwap ms = dev.teizen.client.TeizenClient.modules().get(MaceSwap.class);
+        boolean maceDive = ms != null && ms.isEnabled() && Inv.findHotbar(dev.teizen.client.util.WeaponSwap::isMace) >= 0;
+        // nur "am Boden" melden, solange gespeichert < 3 Blöcke (= kein Schaden). Schon mehr gespeichert (z.B. nach
+        // einem Elytra-Sturz) -> nichts tun, sonst gäbe es den Fallschaden sofort MITTEN IN DER LUFT. Mace-PvP: der
+        // Streitkolben braucht die Fallhöhe, der Treffer setzt sie beim Server selbst zurück.
+        boolean noFallWants = nf != null && nf.isEnabled() && falling && !maceDive && storedFall < 2.9
+                && fallStartY - p.getY() >= nf.from();
         boolean flyWants = f != null && (f.noFall.on() || dipPacket) && (f.isEnabled() || f.guardUntilGround);
         // nie beim Elytra-Gleiten ("am Boden" würde das Gleiten beim Server beenden)
         if ((flyWants || noFallWants) && !p.isCreative() && !p.isSpectator() && !p.isFallFlying() && falling) {

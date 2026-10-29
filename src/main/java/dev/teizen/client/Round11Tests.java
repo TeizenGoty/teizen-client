@@ -943,6 +943,33 @@ final class Round11Tests {
                         yes(flag1), h0, hp, nf.saved - n0, ok(flag1 && hp >= h0 - 0.01f && nf.saved > n0)));
                 nf.setEnabled(false);
                 cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
+                SelfTest.jump(569);
+            }
+            // ---------------------------------------------- NoFall nach langem Sturz (wie nach Elytra/Mace): kein Schaden mitten in der Luft
+            case 569 -> {
+                if (!after(10)) return;
+                area = o.offset(100, 0, 120);
+                cmd("fill " + blk(area.offset(-3, -4, -3)) + " " + blk(area.offset(3, -4, 3)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-3, -3, -3)) + " " + blk(area.offset(3, -1, 3)) + " minecraft:water");
+                cmd("fill " + blk(area.offset(-3, 0, -3)) + " " + blk(area.offset(3, 75, 3)) + " minecraft:air");
+                cmd("effect give @s minecraft:instant_health 1 10");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY() + 70, area.getZ() + 0.5));
+                TeizenClient.modules().get(dev.teizen.client.modules.NoFall.class).setEnabled(false);
+                flag1 = false;
+                next();
+            }
+            case 570 -> {
+                if (SelfTest.local() == 10) h0 = mc.player.getHealth();
+                if (SelfTest.local() == 25) TeizenClient.modules().get(dev.teizen.client.modules.NoFall.class).setEnabled(true); // erst jetzt an: schon >3 Blöcke gespeichert
+                if (SelfTest.local() > 25 && !mc.player.isInWater() && mc.player.getHealth() < h0 - 0.01f) flag1 = true; // Schaden in der Luft
+                if (!mc.player.isInWater() && !after(200)) return;
+                float hp = mc.player.getHealth();
+                var nf = TeizenClient.modules().get(dev.teizen.client.modules.NoFall.class);
+                shot("77-nofall-langer-sturz");
+                result(String.format(Locale.ROOT, "NoFall nach langem Sturz (wie Elytra/Mace): Schaden in der Luft=%s, im Wasser gelandet=%s, Leben %.1f -> %.1f %s",
+                        yes(flag1), yes(mc.player.isInWater()), h0, hp, ok(!flag1 && mc.player.isInWater() && hp >= h0 - 0.01f)));
+                nf.setEnabled(false);
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
                 SelfTest.jump(526);
             }
             case 526 -> {
