@@ -61,6 +61,9 @@ public final class Config {
             root.addProperty("hudGroesse", dev.teizen.client.gui.Hud.scale);
             root.addProperty("hudLetzte", dev.teizen.client.gui.Hud.lastScale);
             root.addProperty("seedProgressHud", dev.teizen.client.core.Seed.showProgress);
+            JsonObject ms = new JsonObject();
+            for (var e : dev.teizen.client.core.Seed.MANUAL.entrySet()) ms.addProperty(e.getKey(), e.getValue());
+            root.add("eigeneSeeds", ms);
             root.add("profile", Profiles.toJson());
             root.add("hudPositionen", dev.teizen.client.gui.HudLayout.toJson());
             Files.writeString(file(), GSON.toJson(root), StandardCharsets.UTF_8);
@@ -80,6 +83,7 @@ public final class Config {
             if (root.has("hudGroesse")) dev.teizen.client.gui.Hud.scale = Math.max(0f, Math.min(2f, root.get("hudGroesse").getAsFloat()));
             if (root.has("hudLetzte")) dev.teizen.client.gui.Hud.lastScale = Math.max(0.1f, Math.min(2f, root.get("hudLetzte").getAsFloat()));
             if (root.has("seedProgressHud")) dev.teizen.client.core.Seed.showProgress = root.get("seedProgressHud").getAsBoolean();
+            if (root.has("eigeneSeeds")) for (var e : root.getAsJsonObject("eigeneSeeds").entrySet()) dev.teizen.client.core.Seed.MANUAL.put(e.getKey(), e.getValue().getAsLong());
             if (root.has("profile")) Profiles.fromJson(root.getAsJsonObject("profile"));
             if (root.has("hudPositionen")) dev.teizen.client.gui.HudLayout.fromJson(root.getAsJsonObject("hudPositionen"));
             if (root.has("freunde")) for (JsonElement e : root.getAsJsonArray("freunde")) Friends.add(e.getAsString());

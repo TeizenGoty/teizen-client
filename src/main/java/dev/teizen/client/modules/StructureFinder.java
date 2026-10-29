@@ -31,6 +31,8 @@ public final class StructureFinder extends Module {
     private final Setting autoSeed = add(Setting.bool("autoseed", "Seed automatisch holen und an SeedMapper / Seed Atlas geben (Server: OP)", true));
     private final Setting mapMode = add(Setting.choice("seedmap", "Welche Karte: auto = SeedMapper, sonst Seed Atlas (Xaero), sonst Chunkbase im Browser",
             "auto", "auto", "seedmapper", "seedatlas", "chunkbase"));
+    /** Eigener Seed (Zahl oder Text wie bei Minecraft) – gilt für die Welt, in der du ihn eingibst. */
+    public final Setting ownSeed = add(Setting.text("seed", "Eigenen Seed eingeben (Zahl oder Text wie bei Minecraft) – gilt für diese Welt/diesen Server; leer = wieder entfernen", ""));
     private final Setting openMap = add(Setting.action("karte", "Seed holen und die Seed-Karte mit allen Strukturen öffnen", "Seedmap öffnen",
             this::openSeedMap));
 
@@ -68,6 +70,38 @@ public final class StructureFinder extends Module {
                 });
             }
         }
+    }
+
+    private String appliedSeed = "";
+    private String seedWorld;
+
+    /** Läuft jede Sekunde (auch wenn StructureFinder aus ist): eingetippten Seed übernehmen. */
+    public void applyOwnSeed() {
+        if (!inGame()) return;
+        String w = dev.teizen.client.core.Seed.worldKey();
+        if (!w.equals(seedWorld)) {
+            // andere Welt: Feld zeigt den eigenen Seed DIESER Welt (oder leer)
+            seedWorld = w;
+            Long m = dev.teizen.client.core.Seed.manual();
+            appliedSeed = m == null ? "" : String.valueOf(m);
+            ownSeed.setText(appliedSeed);
+            return;
+        }
+        String t = ownSeed.str() == null ? "" : ownSeed.str().trim();
+        if (t.equals(appliedSeed)) return;
+        appliedSeed = t;
+        if (t.isEmpty()) { dev.teizen.client.core.Seed.clearManual(); Chat.info("Eigener Seed für diese Welt entfernt."); return; }
+        long s = dev.teizen.client.core.Seed.parse(t);
+        dev.teizen.client.core.Seed.setManual(s);
+        dev.teizen.client.compat.SeedMapCompat.giveSeed(s, true, structures.selected());
+        Chat.ok("Eigener Seed: §f" + s + "§a – gilt für diese Welt, für Strukturen und die Seed-Karte (///seedmap).");
+    }
+
+    /** Seed von außen (///seed, ///structurefinder seed) auch im Menü-Feld zeigen. */
+    public void rememberSeed(long s) {
+        seedWorld = dev.teizen.client.core.Seed.worldKey();
+        appliedSeed = String.valueOf(s);
+        ownSeed.setText(appliedSeed);
     }
 
     /** Seed holen und die Seed-Karte öffnen (Knopf im Menü, ///seedmap). */

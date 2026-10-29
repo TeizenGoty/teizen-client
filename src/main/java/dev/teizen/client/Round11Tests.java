@@ -31,6 +31,7 @@ final class Round11Tests {
     private static int n0;
     private static float maxY;
     private static BlockPos wrongPos;
+    private static Long seed0;
     private static java.util.List<int[]> pasteRegion = java.util.List.of();
     /** Was vor Runde 11 an war (danach wieder so herstellen, z.B. AutoTotem für den CombatLog-Test). */
     private static final java.util.List<String> before = new java.util.ArrayList<>();
@@ -608,6 +609,45 @@ final class Round11Tests {
                 if (!control) result("Echt-Tippen: Testtastatur kam nicht mal im Vanilla-Chat an (Chat='" + text + "', Suche='" + q + "') – übersprungen");
                 else result("Echt-Tippen (echte Tastatur): Vanilla-Chat='" + text + "', Teizen-Suche='" + q + "' " + ok(q.contains("velo")));
                 mc.gui.setScreen(null);
+                SelfTest.jump(539);
+            }
+            // ---------------------------------------------- Seed: Anzeige zeigt immer etwas + eigener Seed im StructureFinder-Menü
+            case 539 -> {
+                if (!after(10)) return;
+                seed0 = dev.teizen.client.core.Seed.known();
+                String p0 = dev.teizen.client.core.Seed.progressNow();
+                log("Seed-Anzeige vorher: " + p0);
+                flag1 = p0 != null && !p0.isBlank();
+                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+                sf.ownSeed.setText("teizen"); // wie im Menü eingetippt (Text-Seed wie bei Minecraft)
+                next();
+            }
+            case 540 -> {
+                if (!after(45)) return;
+                Long k = dev.teizen.client.core.Seed.known();
+                flag2 = k != null && k == (long) "teizen".hashCode();
+                text = String.valueOf(dev.teizen.client.core.Seed.progressNow());
+                TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class).ownSeed.setText("-4172144997902289642");
+                next();
+            }
+            case 541 -> {
+                if (!after(45)) return;
+                Long k = dev.teizen.client.core.Seed.known();
+                boolean num = k != null && k == -4172144997902289642L;
+                boolean stored = dev.teizen.client.core.Seed.MANUAL.containsValue(-4172144997902289642L);
+                String hud = String.valueOf(dev.teizen.client.core.Seed.progressNow());
+                TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class).ownSeed.setText("");
+                result("Seed: Anzeige im Bild=" + yes(flag1) + ", eigener Seed per Menü-Feld: Text 'teizen'=" + yes(flag2) + ", Zahl=" + yes(num)
+                        + ", gespeichert=" + yes(stored) + ", Anzeige jetzt '" + hud.replaceAll("§.", "") + "' " + ok(flag1 && flag2 && num && stored && hud.contains("bekannt")));
+                next();
+            }
+            case 542 -> {
+                if (!after(45)) return;
+                boolean removed = dev.teizen.client.core.Seed.manual() == null;
+                String p1 = String.valueOf(dev.teizen.client.core.Seed.progressNow()).replaceAll("§.", "");
+                result("Seed: Menü-Feld leeren entfernt den eigenen Seed=" + yes(removed) + ", Anzeige danach '" + p1 + "', Restzeit-Format: "
+                        + dev.teizen.client.core.Seed.durationText(45_000) + " / " + dev.teizen.client.core.Seed.durationText(750_000) + " / " + dev.teizen.client.core.Seed.durationText(4_000_000) + " " + ok(removed));
+                if (seed0 != null) dev.teizen.client.core.Seed.set(seed0);
                 SelfTest.jump(526);
             }
             case 526 -> {

@@ -28,7 +28,7 @@ public final class Seed {
     private Seed() {}
 
     /** Welche Welt / welcher Server gerade offen ist (damit ein alter Seed nicht für eine andere Welt gilt). */
-    private static String worldKey() {
+    public static String worldKey() {
         if (mc.getSingleplayerServer() != null) return "sp:" + mc.getSingleplayerServer().getWorldData().getLevelName();
         var s = mc.getCurrentServer();
         return s != null ? "mp:" + s.ip : "?";
@@ -36,7 +36,7 @@ public final class Seed {
 
     /** Bekannter Seed dieser Welt, oder null. */
     public static Long known() {
-        if (!worldKey().equals(world)) { seed = null; world = worldKey(); }
+        if (!worldKey().equals(world)) { world = worldKey(); seed = MANUAL.get(world); }
         return seed;
     }
 
@@ -44,6 +44,29 @@ public final class Seed {
     public static void set(long s) {
         world = worldKey();
         seed = s;
+    }
+
+    /** Von Hand eingegebene Seeds pro Welt/Server (wird gespeichert; hat Vorrang vor SeedCrackerX). */
+    public static final java.util.Map<String, Long> MANUAL = new java.util.LinkedHashMap<>();
+
+    /** Seed von Hand (Menü / ///seed): gilt für diese Welt und wird nicht vom SeedCracker ersetzt. */
+    public static void setManual(long s) {
+        set(s);
+        MANUAL.put(worldKey(), s);
+        Config.save();
+    }
+
+    /** Eigenen Seed dieser Welt wieder entfernen. */
+    public static void clearManual() {
+        if (MANUAL.remove(worldKey()) != null) { seed = null; Config.save(); }
+    }
+
+    public static Long manual() { return MANUAL.get(worldKey()); }
+
+    /** Aus Text wie bei Minecraft: Zahl = Zahl, sonst der Text-Hash. */
+    public static long parse(String t) {
+        t = t.trim();
+        try { return Long.parseLong(t); } catch (NumberFormatException e) { return t.hashCode(); }
     }
 
     /** Seed holen (falls noch unbekannt); die Antwort kommt an {@code cb} (null = ging nicht). */
@@ -196,19 +219,55 @@ public final class Seed {
     /** HUD-Anzeige des Seed-Fortschritts an/aus (///seed hud). */
     public static boolean showProgress = true;
 
+    /** Für die Restzeit: ab wann und mit wie vielen Bits in dieser Welt gezählt wird. */
+    private static String rateWorld;
+    private static double firstHave = -1;
+    private static long firstTime;
+
     private static void updateProgress() {
-        if (!crackerInstalled() || mc.player == null || known() != null) { progressText = null; return; }
+        if (mc.player == null) { progressText = null; return; }
+        Long k = known();
+        if (k != null) { progressText = "§a" + k + " §7(bekannt)"; return; }
+        if (!crackerInstalled()) { progressText = "§cunbekannt §7– ///seed <Zahl> oder StructureFinder → seed"; return; }
+        String wk = worldKey();
+        if (!wk.equals(rateWorld)) { rateWorld = wk; firstHave = -1; }
         double[] b = crackerBits();
-        if (b == null || b[1] <= 0) { progressText = null; return; }
+        if (b == null || b[1] <= 0) { progressText = "§esucht… §7lauf zu Tempeln, Iglus, Hexenhütten, Schiffswracks"; return; }
         int have = (int) Math.round(b[0]), want = (int) Math.round(b[1]);
         int pct = (int) Math.round(100.0 * Math.min(have, want) / want);
-        progressText = have + "/" + want + " Bits – " + pct + "%";
+        long now = System.currentTimeMillis();
+        if (firstHave < 0) { firstHave = have; firstTime = now; }
+        String eta;
+        if (have >= want) eta = "§arechnet gleich fertig…";
+        else if (have > firstHave && now - firstTime > 5000) {
+            double perMs = (have - firstHave) / (double) (now - firstTime);
+            eta = "§7noch ca. §f" + duration((long) ((want - have) / perMs));
+        } else eta = "§7Restzeit: sobald du Strukturen findest";
+        progressText = "§f" + have + "/" + want + " Bits §7(" + pct + "%) · " + eta;
     }
+
+    /** "45 Sek", "12 Min", "1 Std 5 Min". */
+    static String duration(long ms) {
+        long sec = Math.max(1, ms / 1000);
+        if (sec < 60) return sec + " Sek";
+        long min = (sec + 30) / 60;
+        if (min < 60) return min + " Min";
+        return (min / 60) + " Std " + (min % 60) + " Min";
+    }
+
+    public static String durationText(long ms) { return duration(ms); }
+
+    /** Für Selbsttest/Befehl: aktueller Fortschritt sofort ausrechnen. */
+    public static String progressNow() { updateProgress(); return progressText; }
 
     /** Jeden Tick: neuen Seed von SeedCrackerX übernehmen. */
     public static void tick() {
-        if (++ticks % 20 != 0 || mc.player == null || !crackerInstalled()) return;
+        if (++ticks % 20 != 0 || mc.player == null) return;
         updateProgress();
+        var sfOwn = dev.teizen.client.TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+        if (sfOwn != null) sfOwn.applyOwnSeed();
+        if (!crackerInstalled()) return;
+        if (MANUAL.containsKey(worldKey())) return; // eigener Seed hat Vorrang
         java.util.Set<Long> cracked = crackerSeeds();
         if (cracked.size() != 1) return;
         long s = cracked.iterator().next();

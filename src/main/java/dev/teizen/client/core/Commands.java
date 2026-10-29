@@ -217,7 +217,8 @@ public final class Commands {
                     if (a.length < 3) { Chat.error("///structurefinder seed <Zahl>  – eigenen Seed für die Karte eingeben"); return; }
                     try {
                         long sd = Long.parseLong(a[2]);
-                        dev.teizen.client.core.Seed.set(sd);
+                        dev.teizen.client.core.Seed.setManual(sd);
+                        mm.get(dev.teizen.client.modules.StructureFinder.class).rememberSeed(sd);
                         dev.teizen.client.compat.SeedMapCompat.giveSeed(sd, true);
                         Chat.ok("StructureFinder benutzt jetzt Seed §f" + sd + "§a. ///seedmap öffnet die Karte.");
                     } catch (NumberFormatException e) { Chat.error("///structurefinder seed <Zahl>"); }
@@ -257,7 +258,8 @@ public final class Commands {
                 if (a.length >= 2) {
                     try {
                         long sd = Long.parseLong(a[1]);
-                        Seed.set(sd);
+                        Seed.setManual(sd);
+                        mm.get(dev.teizen.client.modules.StructureFinder.class).rememberSeed(sd);
                         dev.teizen.client.compat.SeedMapCompat.giveSeed(sd, true);
                         Chat.ok("Seed gespeichert: §f" + sd + "§a. ///seedmap öffnet die Karte.");
                     } catch (NumberFormatException e) {
