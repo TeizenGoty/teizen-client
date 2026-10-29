@@ -913,6 +913,36 @@ final class Round11Tests {
                 Boolean run = dev.teizen.client.core.Seed.crackerRunning();
                 result("Doppelte Taste: Fly lag auf Vorwärts -> Taste entfernt=" + yes(removed) + "; Seed bekannt (" + k + ") -> SeedCrackerX läuft="
                         + run + " " + ok(removed && k != null && Boolean.FALSE.equals(run)));
+                SelfTest.jump(567);
+            }
+            // ---------------------------------------------- NoFall: 40 Blöcke freier Fall auf Stein -> kein Schaden
+            case 567 -> {
+                if (!after(10)) return;
+                dev.teizen.client.modules.PanicButton.panic();
+                area = o.offset(100, 0, 100);
+                cmd("fill " + blk(area.offset(-2, -1, -2)) + " " + blk(area.offset(2, -1, 2)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-2, 0, -2)) + " " + blk(area.offset(2, 45, 2)) + " minecraft:air");
+                cmd("effect give @s minecraft:instant_health 1 10");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY() + 40, area.getZ() + 0.5));
+                var nf = TeizenClient.modules().get(dev.teizen.client.modules.NoFall.class);
+                nf.setEnabled(true);
+                n0 = nf.saved;
+                flag1 = false;
+                flag2 = false;
+                next();
+            }
+            case 568 -> {
+                if (SelfTest.local() == 15) h0 = mc.player.getHealth();
+                if (!mc.player.onGround()) flag2 = true;
+                if (flag2 && mc.player.onGround()) flag1 = true;
+                if (!(flag1 && SelfTest.local() > 40) && !after(160)) return;
+                var nf = TeizenClient.modules().get(dev.teizen.client.modules.NoFall.class);
+                float hp = mc.player.getHealth();
+                shot("76-nofall");
+                result(String.format(Locale.ROOT, "NoFall: 40 Blöcke Fall, gelandet=%s, Leben %.1f -> %.1f, 'am Boden'-Pakete=%d %s",
+                        yes(flag1), h0, hp, nf.saved - n0, ok(flag1 && hp >= h0 - 0.01f && nf.saved > n0)));
+                nf.setEnabled(false);
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
                 SelfTest.jump(526);
             }
             case 526 -> {

@@ -129,17 +129,27 @@ public final class Fly extends Module {
         // Fallhöhe (vorher ein Extra-Paket pro Tick: mit Sprint fällt man >3 Blöcke/Tick -> trotzdem Schaden)
         // Die Anti-Kick-Absenkung immer als "am Boden" melden: sonst sammelt der Server beim Schweben Fallhöhe an
         // und man stirbt beim nächsten Runterfliegen mitten in der Luft (vorher so passiert)
-        if (f != null && (f.noFall.on() || dipPacket) && (f.isEnabled() || f.guardUntilGround) && !p.isCreative() && !p.isSpectator()
-                && !p.onGround() && !Double.isNaN(sentY) && p.getY() < sentY - 0.001) {
+        boolean falling = !p.onGround() && !Double.isNaN(sentY) && p.getY() < sentY - 0.001;
+        if (!falling) fallStartY = Double.NaN;
+        else if (Double.isNaN(fallStartY)) fallStartY = sentY;
+        // NoFall nutzt denselben Weg (vorher Extra-Paket erst ab 2 Blöcken -> bei schnellem Fall trotzdem Schaden in der Luft)
+        NoFall nf = dev.teizen.client.TeizenClient.modules().get(NoFall.class);
+        boolean noFallWants = nf != null && nf.isEnabled() && falling && fallStartY - p.getY() >= nf.from();
+        boolean flyWants = f != null && (f.noFall.on() || dipPacket) && (f.isEnabled() || f.guardUntilGround);
+        // nie beim Elytra-Gleiten ("am Boden" würde das Gleiten beim Server beenden)
+        if ((flyWants || noFallWants) && !p.isCreative() && !p.isSpectator() && !p.isFallFlying() && falling) {
             p.setOnGround(true);
             groundSpoofed = true;
-            f.groundPackets++;
+            if (f != null) f.groundPackets++;
+            if (noFallWants) nf.saved++;
         }
         dipPacket = false;
         sentY = p.getY();
     }
 
     private static boolean dipPacket;
+    /** Höhe, bei der der aktuelle Fall angefangen hat (für NoFall "ab"). */
+    private static double fallStartY = Double.NaN;
     /** Wie oft der Lavaschutz einen gerettet hat (Selbsttest). */
     public int lavaSaves;
 
