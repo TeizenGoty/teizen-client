@@ -1,0 +1,18 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+def mcVersion = System.getenv('MC_VERSION') ?: project.minecraft_version
+
+dependencies {
+    minecraft "com.mojang:minecraft:${mcVersion}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+}
+
+loom {
+    runs {
+        client {
+            programArgs '--quickPlayMultiplayer', 'localhost:25565'
+        }
+    }
+}

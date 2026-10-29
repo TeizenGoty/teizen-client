@@ -1,0 +1,118 @@
+name: packtest
+on:
+  push:
+    branches: [packtest]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: packtest
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mc: ["26.3", "26.2"]
+    env:
+      MC_VERSION: ${{ matrix.mc }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Pack im echten Spiel testen
+        timeout-minutes: 25
+        run: |
+          set +e
+          chmod +x ./gradlew
+          sudo apt-get update -qq >/dev/null 2>&1
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-vulkan-drivers libglx-mesa0 imagemagick x11-utils >/dev/null 2>&1
+          mkdir -p out/shots
+          # --- Server
+          mkdir -p srv && cd srv
+          python3 - <<'PY'
+          import json, os, urllib.request
+          m = json.load(urllib.request.urlopen("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"))
+          v = [x for x in m["versions"] if x["id"] == os.environ["MC_VERSION"]][0]
+          d = json.load(urllib.request.urlopen(v["url"]))
+          urllib.request.urlretrieve(d["downloads"]["server"]["url"], "server.jar")
+          print("server.jar ok", os.environ["MC_VERSION"])
+          PY
+          echo "eula=true" > eula.txt
+          printf "online-mode=false\ndifficulty=peaceful\nspawn-protection=0\nview-distance=5\nsimulation-distance=5\nlevel-seed=teizen\ngenerate-structures=false\n" > server.properties
+          mkfifo in
+          (java -Xmx2G -jar server.jar nogui < in > ../out/server-log.txt 2>&1 &)
+          exec 3>in
+          cd ..
+          for i in $(seq 1 150); do grep -q 'Done (' out/server-log.txt && break; sleep 2; done
+          # --- Client vorbereiten
+          mkdir -p run/resourcepacks
+          cp Teizens_Texture_Pack_26.3.zip run/resourcepacks/
+          printf 'onboardAccessibility:false\nskipMultiplayerWarning:true\njoinedFirstServer:true\ntutorialStep:none\nguiScale:2\nrenderDistance:5\nsimulationDistance:5\nsoundCategory_master:0.0\nimprovedTransparency:true\nresourcePacks:["vanilla","file/Teizens_Texture_Pack_26.3.zip"]\nincompatibleResourcePacks:[]\n' > run/options.txt
+          Xvfb :99 -screen 0 1280x720x24 >/dev/null 2>&1 &
+          export DISPLAY=:99
+          export LIBGL_ALWAYS_SOFTWARE=1
+          (./gradlew runClient --no-daemon > out/client-log.txt 2>&1; echo "CLIENT ENDE $?" >> out/client-log.txt) &
+          shot() { import -window root "out/shots/$1.png" 2>/dev/null || xwd -root -silent | convert xwd:- "out/shots/$1.png"; echo "Bild $1"; }
+          c() { echo "$1" >&3; sleep 1; }
+          # Titelbildschirm
+          for i in $(seq 1 300); do grep -q "Reloading ResourceManager\|Loaded .* recipes\|Connecting to" out/client-log.txt run/logs/latest.log 2>/dev/null && break; sleep 2; done
+          sleep 20; shot 00-titel
+          # warten bis der Spieler drin ist
+          for i in $(seq 1 200); do grep -q "joined the game" out/server-log.txt && break; sleep 2; done
+          sleep 25
+          c "time set noon"; c "weather clear"
+          c "execute as @a at @s run tp @s ~ ~ ~ 0 15"
+          c "give @a minecraft:totem_of_undying"
+          c "execute at @a run fill ~-4 ~-1 ~1 ~4 ~-1 ~9 minecraft:grass_block"
+          c "execute at @a run fill ~-4 ~ ~1 ~4 ~4 ~9 minecraft:air"
+          c "execute at @a run setblock ~-2 ~ ~3 minecraft:poppy"
+          c "execute at @a run setblock ~-1 ~ ~3 minecraft:dandelion"
+          c "execute at @a run setblock ~1 ~ ~3 minecraft:torch"
+          c "execute at @a run setblock ~2 ~ ~3 minecraft:short_grass"
+          c "execute at @a run setblock ~-3 ~ ~5 minecraft:lantern"
+          c "execute at @a run setblock ~3 ~ ~5 minecraft:campfire"
+          c "execute at @a run setblock ~0 ~ ~5 minecraft:redstone_wire"
+          c "execute at @a run setblock ~-3 ~-1 ~7 minecraft:farmland"
+          c "execute at @a run setblock ~-3 ~ ~7 minecraft:wheat[age=7]"
+          c "execute at @a run setblock ~-2 ~-1 ~7 minecraft:dirt_path"
+          c "execute at @a run summon minecraft:zombie ~-1.5 ~ ~7 {NoAI:1b,Rotation:[180f,0f]}"
+          c "execute at @a run summon minecraft:spider ~1.5 ~ ~7 {NoAI:1b,Rotation:[180f,0f]}"
+          c "execute at @a run summon minecraft:enderman ~3 ~ ~8 {NoAI:1b,Rotation:[180f,0f]}"
+          c "execute at @a run summon minecraft:allay ~0 ~1 ~6 {NoAI:1b,Rotation:[180f,0f]}"
+          sleep 8; shot 01-tag
+          c "time set midnight"
+          sleep 6; shot 02-nacht
+          c "execute at @a run setblock ~ ~ ~2 minecraft:stone"
+          c "execute as @a at @s run tp @s ~ ~ ~ 0 32"
+          sleep 6; shot 03-umrandung
+          c "execute as @a at @s run tp @s ~ ~ ~ 0 0"
+          c "give @a minecraft:diamond_sword"
+          c "give @a minecraft:red_stained_glass"
+          c "execute as @a run item replace entity @s weapon.mainhand with minecraft:red_stained_glass"
+          sleep 5; shot 04-glas
+          c "execute at @a run fill ~-6 ~-6 ~-6 ~6 ~-2 ~6 minecraft:air"
+          c "execute as @a at @s run tp @s ~ ~-5 ~ 0 10"
+          sleep 6; shot 05-hoehle
+          # beenden
+          pkill -f "net.fabricmc.devlaunchinjector" ; pkill -f "KnotClient"; sleep 3; pkill -f java
+          echo "stop" >&3
+          sleep 3
+          cp run/logs/latest.log out/client-latest.log 2>/dev/null
+          cp -r run/crash-reports out/ 2>/dev/null
+          ls out/shots
+      - name: Ergebnis veröffentlichen
+        if: always()
+        run: |
+          set +e
+          cd out
+          echo "${GITHUB_SHA} ${MC_VERSION}" > commit.txt
+          git init -q
+          git config user.name "packtest"
+          git config user.email "packtest@users.noreply.github.com"
+          git add -A && git commit -q -m "packtest ${MC_VERSION} ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:packtest-out-${MC_VERSION}
