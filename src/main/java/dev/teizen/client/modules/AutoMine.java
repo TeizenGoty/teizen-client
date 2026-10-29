@@ -7,6 +7,7 @@ import dev.teizen.client.util.Breaker;
 import dev.teizen.client.util.Chat;
 import dev.teizen.client.util.Draw;
 import dev.teizen.client.util.Ids;
+import dev.teizen.client.util.Inv;
 import dev.teizen.client.util.MinePath;
 import dev.teizen.client.util.Rot;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -36,6 +37,9 @@ public final class AutoMine extends Module {
     private final Setting nodes = add(Setting.number("suchtiefe", "Wie weit der Weg gesucht wird", 6000, 500, 40000));
     private final Setting collect = add(Setting.bool("einsammeln", "Abgebaute Erze einsammeln (nur Erze, nichts anderes)", true));
     private final Setting collectAll = add(Setting.bool("alleerze", "Jedes Erz einsammeln, auch von anderen (nicht nur die ausgewählten)", true));
+    private final Setting placeBlocks = add(Setting.bool("bloecke", "Blöcke setzen: Lücken überbrücken und hochbauen (nimmt Cobblestone, Deepslate, Erde, Netherrack …)", true));
+    private final Setting tunnel = add(Setting.bool("tunnel", "Keine Erze in der Nähe -> auf dieser Höhe einen Suchtunnel graben statt stehen zu bleiben", true));
+    private final Setting eat = add(Setting.bool("essen", "Bei Hunger automatisch essen (wie AutoEat, auch aus dem Inventar)", true));
     private final Setting human = add(Setting.bool("menschlich", "Weich drehen wie ein echter Spieler (nicht ruckartig)", true));
     private final Setting turnSpeed = add(Setting.number("drehtempo", "Wie schnell gedreht wird (Grad pro Sekunde)", 260, 60, 1500));
 
@@ -75,6 +79,8 @@ public final class AutoMine extends Module {
         ignoredItems.clear();
         retryLater.clear();
         dropTries.clear();
+        tunnelDir = null;
+        tunnelling = false;
         failed.clear();
         if (blocks.isEmpty()) Chat.error("Keine gültigen Erze in: " + ores.str());
         else Chat.info("AutoMine sucht: §f" + ores.str());
@@ -85,6 +91,7 @@ public final class AutoMine extends Module {
         releaseKeys();
         Breaker.stop();
         reset();
+        dev.teizen.client.TeizenClient.modules().get(AutoEat.class).stopEating();
     }
 
     private void reset() {
@@ -117,6 +124,16 @@ public final class AutoMine extends Module {
             return;
         }
         if (mc.gui.screen() != null) { releaseKeys(); return; }
+        // Hunger? Erst essen (AutoEat eingebaut)
+        if (eat.on()) {
+            var ae = dev.teizen.client.TeizenClient.modules().get(AutoEat.class);
+            if (ae.isEnabled() ? ae.isEating() : ae.eatIfHungry()) {
+                releaseKeys();
+                Breaker.stop();
+                status = "isst";
+                return;
+            }
+        }
 
         // Ziel prüfen / neues Ziel wählen
         if (target != null && !blocks.contains(mc.level.getBlockState(target).getBlock())) {
@@ -129,6 +146,7 @@ public final class AutoMine extends Module {
         if (dropWait > 0) { dropWait--; releaseKeys(); status = "wartet auf Drop"; return; }
         if (target == null) {
             if (!pickTarget()) {
+                if (tunnel.on() && scanner.finishedOnce() && tunnelTick()) return;
                 releaseKeys();
                 status = scanner.finishedOnce() ? "keine Erze in der Nähe" : "sucht";
                 if (scanner.finishedOnce() && ++idleMsg % 200 == 1) Chat.info("AutoMine: keine passenden Erze in der Nähe – lauf ein Stück weiter.");
@@ -161,8 +179,9 @@ public final class AutoMine extends Module {
             return;
         }
 
+        tunnelling = false;
         if (path == null || index >= path.size()) {
-            path = MinePath.find(mc.player.blockPosition(), target, mc.player.blockInteractionRange(), nodes.integer());
+            path = MinePath.find(mc.player.blockPosition(), target, mc.player.blockInteractionRange(), nodes.integer(), canPlace());
             index = 0;
             if (path == null || path.isEmpty()) {
                 failed.merge(target, 2, Integer::sum);
@@ -256,6 +275,91 @@ public final class AutoMine extends Module {
         return out;
     }
 
+    // ------------------------------------------------------------ Blöcke setzen
+    private static final Set<String> THROWAWAY = Set.of("cobblestone", "cobbled_deepslate", "dirt", "coarse_dirt", "netherrack",
+            "stone", "deepslate", "andesite", "diorite", "granite", "tuff", "blackstone", "basalt", "end_stone", "calcite");
+    public int placed;
+
+    private static boolean throwaway(net.minecraft.world.item.ItemStack st) {
+        return st.getItem() instanceof net.minecraft.world.item.BlockItem
+                && THROWAWAY.contains(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).getPath());
+    }
+
+    private boolean canPlace() { return placeBlocks.on() && Inv.findAny(AutoMine::throwaway) >= 0; }
+
+    /** Einen Block für den Weg setzen. @return false wenn es nicht geht (dann neuen Weg suchen) */
+    private boolean placeTick(MinePath.Step step) {
+        BlockPos at = step.place();
+        if (!Inv.ensureInHand(AutoMine::throwaway)) return false;
+        mc.options.keyUp.setDown(false);
+        mc.options.keyShift.setDown(true); // schleichen: nicht von der Kante fallen, keine Kisten öffnen
+        status = "setzt Block";
+        if (step.kind() == MinePath.Kind.PILLAR) {
+            // hochbauen: nach unten schauen, springen, oben angekommen unter sich setzen
+            aim(mc.player.getYRot(), 90f);
+            if (!aimed()) return true;
+            if (mc.player.onGround() && mc.player.getY() < at.getY() + 0.5) { mc.options.keyJump.setDown(true); return true; }
+            mc.options.keyJump.setDown(false);
+            if (mc.player.getY() < at.getY() + 1.0) return true;
+            return clickFace(at.below(), net.minecraft.core.Direction.UP, at);
+        }
+        // Brücke: an die Seite eines festen Nachbarn klicken (meist der Block, auf dem man steht)
+        for (net.minecraft.core.Direction d : new net.minecraft.core.Direction[]{net.minecraft.core.Direction.DOWN,
+                net.minecraft.core.Direction.NORTH, net.minecraft.core.Direction.SOUTH, net.minecraft.core.Direction.EAST, net.minecraft.core.Direction.WEST}) {
+            BlockPos nb = at.relative(d);
+            if (!MinePath.solidFloor(mc.level, nb)) continue;
+            Vec3 hit = Vec3.atCenterOf(nb).add(-d.getStepX() * 0.5, -d.getStepY() * 0.5, -d.getStepZ() * 0.5);
+            lookAt(hit);
+            if (!aimed()) return true;
+            return clickFace(nb, d.getOpposite(), at);
+        }
+        return false;
+    }
+
+    private boolean clickFace(BlockPos on, net.minecraft.core.Direction face, BlockPos expect) {
+        Vec3 hit = Vec3.atCenterOf(on).add(face.getStepX() * 0.5, face.getStepY() * 0.5, face.getStepZ() * 0.5);
+        var res = mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND,
+                new net.minecraft.world.phys.BlockHitResult(hit, face, on, false));
+        if (res.consumesAction()) {
+            dev.teizen.client.compat.V.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+            placed++;
+        }
+        mc.options.keyShift.setDown(false);
+        return true;
+    }
+
+    // ------------------------------------------------------------ Suchtunnel
+    private boolean tunnelling;
+    private net.minecraft.core.Direction tunnelDir;
+    private int tunnelFails;
+    public int tunnelSteps;
+
+    /** Keine Erze in Reichweite: auf dieser Höhe geradeaus einen 1x2-Tunnel graben (Scanner findet unterwegs neue Erze). */
+    private boolean tunnelTick() {
+        if (!tunnelling || path == null || index >= path.size()) {
+            if (tunnelDir == null) tunnelDir = mc.player.getDirection();
+            BlockPos feet = mc.player.blockPosition();
+            BlockPos goal = feet.relative(tunnelDir, 12);
+            path = MinePath.find(feet, goal, 1.5, Math.min(4000, nodes.integer()), canPlace());
+            index = 0;
+            if (path == null || path.isEmpty()) {
+                // da geht's nicht weiter (Lava, Wasser, Grundgestein) -> andere Richtung
+                tunnelDir = tunnelDir.getClockWise();
+                path = null;
+                if (++tunnelFails > 4) { tunnelFails = 0; return false; }
+                return true;
+            }
+            tunnelFails = 0;
+            if (!tunnelling) Chat.info("AutoMine: keine Erze in der Nähe – grabe einen Suchtunnel nach §f" + tunnelDir.getName() + "§7.");
+            tunnelling = true;
+        }
+        int before = index;
+        follow();
+        if (index > before) tunnelSteps++;
+        if (status.equals("gräbt")) status = "gräbt Suchtunnel";
+        return true;
+    }
+
     /** Für den Selbsttest: aktuelles Ziel. */
     public BlockPos currentTarget() { return target; }
 
@@ -274,7 +378,12 @@ public final class AutoMine extends Module {
                 return;
             }
         }
-        // 2) Hinlaufen
+        // 2) Block setzen (Brücke / beim Hochbauen unter sich)
+        if (step.place() != null && MinePath.passable(mc.level, step.place())) {
+            if (!placeTick(step)) { path = null; }
+            return;
+        }
+        // 3) Hinlaufen
         BlockPos dest = step.pos();
         Vec3 center = Vec3.atBottomCenterOf(dest);
         Vec3 me = mc.player.position();
@@ -460,7 +569,7 @@ public final class AutoMine extends Module {
         status = "sammelt " + pickup.getItem().getHoverName().getString();
         if (horiz < 1.6 && Math.abs(it.y - me.y) < 2.2) return digIsProgress(walkToDrop(it, me, dx, dz, horiz));
         if (path == null || index >= path.size()) {
-            path = MinePath.find(mc.player.blockPosition(), pickup.blockPosition().above(), 2.2, Math.min(3000, nodes.integer()));
+            path = MinePath.find(mc.player.blockPosition(), pickup.blockPosition().above(), 2.2, Math.min(3000, nodes.integer()), canPlace());
             index = 0;
             if (path == null || path.isEmpty()) {
                 boolean alreadyThere = path != null;

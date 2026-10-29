@@ -23,9 +23,12 @@ public final class MinePath {
     private static final Minecraft mc = Minecraft.getInstance();
     private static final Direction[] HORIZONTAL = {Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST};
 
-    public enum Kind { WALK, UP, DOWN, DIG_DOWN }
+    public enum Kind { WALK, UP, DOWN, DIG_DOWN, PILLAR }
 
-    public record Step(BlockPos pos, Kind kind, List<BlockPos> clear) {}
+    /** Ein Schritt; {@code place} = hier vorher einen Block hinsetzen (Brücke / unter sich beim Hochbauen), sonst null. */
+    public record Step(BlockPos pos, Kind kind, List<BlockPos> clear, BlockPos place) {
+        public Step(BlockPos pos, Kind kind, List<BlockPos> clear) { this(pos, kind, clear, null); }
+    }
 
     private record Node(BlockPos pos, double g, double f) {}
 
@@ -85,6 +88,11 @@ public final class MinePath {
      * Sucht einen Weg von {@code start} (Füße) zu einer Position, von der aus {@code target} in Reichweite ist.
      */
     public static List<Step> find(BlockPos start, BlockPos target, double reach, int maxNodes) {
+        return find(start, target, reach, maxNodes, false);
+    }
+
+    /** Wie oben; mit {@code canPlace} darf der Weg auch Blöcke setzen (Lücken überbrücken, hochbauen). */
+    public static List<Step> find(BlockPos start, BlockPos target, double reach, int maxNodes, boolean canPlace) {
         ClientLevel l = mc.level;
         Map<BlockPos, Double> best = new HashMap<>();
         Map<BlockPos, Step> came = new HashMap<>();
@@ -92,6 +100,8 @@ public final class MinePath {
         PriorityQueue<Node> open = new PriorityQueue<>((a, b) -> Double.compare(a.f, b.f));
         open.add(new Node(start, 0, h(start, target)));
         best.put(start, 0.0);
+        // Knoten, deren Boden ein geplanter (noch nicht gesetzter) Block ist
+        java.util.Set<BlockPos> virtual = new java.util.HashSet<>();
         int expanded = 0;
         double reachSq = (reach - 0.3) * (reach - 0.3);
 
@@ -105,12 +115,13 @@ public final class MinePath {
             if (ex * ex + ey * ey + ez * ez <= reachSq && !n.pos.equals(target) && !n.pos.above().equals(target)) {
                 return rebuild(n.pos, came, parent);
             }
-            for (Step s : neighbours(l, n.pos)) {
+            for (Step s : neighbours(l, n.pos, canPlace, virtual.contains(n.pos))) {
                 double c = sumClear(l, s.clear);
                 if (c < 0) continue;
-                double g = n.g + 1 + c + (s.kind == Kind.UP ? 0.5 : 0);
+                double g = n.g + 1 + c + (s.kind == Kind.UP ? 0.5 : 0) + (s.place != null ? 3 : 0);
                 if (g < best.getOrDefault(s.pos, Double.MAX_VALUE)) {
                     best.put(s.pos, g);
+                    if (s.place != null) virtual.add(s.pos); else virtual.remove(s.pos);
                     came.put(s.pos, s);
                     parent.put(s.pos, n.pos);
                     open.add(new Node(s.pos, g, g + h(s.pos, target)));
@@ -125,12 +136,16 @@ public final class MinePath {
         return (Math.abs(a.getX() - b.getX()) + Math.abs(a.getY() - b.getY()) * 1.5 + Math.abs(a.getZ() - b.getZ())) * 3.5;
     }
 
-    private static List<Step> neighbours(ClientLevel l, BlockPos n) {
-        List<Step> out = new ArrayList<>(9);
+    private static List<Step> neighbours(ClientLevel l, BlockPos n, boolean canPlace, boolean virtualFloor) {
+        List<Step> out = new ArrayList<>(10);
+        boolean standing = virtualFloor || solidFloor(l, n.below());
         for (Direction d : HORIZONTAL) {
             BlockPos flat = n.relative(d);
             // geradeaus
             if (solidFloor(l, flat.below())) out.add(new Step(flat, Kind.WALK, List.of(flat, flat.above())));
+            // Lücke: Block hinsetzen (an die Seite des Bodens, auf dem man steht) und drüber laufen
+            else if (canPlace && standing && passable(l, flat.below()) && !dangerousFluid(l, flat.below()))
+                out.add(new Step(flat, Kind.WALK, List.of(flat, flat.above()), flat.below()));
             // hoch
             BlockPos up = flat.above();
             if (solidFloor(l, flat) || !passable(l, flat)) {
@@ -140,6 +155,8 @@ public final class MinePath {
             BlockPos down = flat.below();
             if (solidFloor(l, down.below())) out.add(new Step(down, Kind.DOWN, List.of(flat.above(), flat, down)));
         }
+        // hochbauen: springen und einen Block unter sich setzen
+        if (canPlace && standing) out.add(new Step(n.above(), Kind.PILLAR, List.of(n.above(), n.above(2)), n));
         // gerade nach unten graben (nur wenn darunter fester Boden ist)
         BlockPos below = n.below();
         if (solidFloor(l, below.below()) && !dangerousFluid(l, below.below())) {

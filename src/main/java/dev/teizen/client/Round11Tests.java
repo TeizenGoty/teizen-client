@@ -791,6 +791,128 @@ final class Round11Tests {
                 am.ores.setText(text);
                 cmd("fill " + blk(area.offset(-14, -2, -4)) + " " + blk(area.offset(8, 4, 4)) + " minecraft:air");
                 cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
+                SelfTest.jump(555);
+            }
+            // ---------------------------------------------- AutoMine setzt Blöcke: Brücke über eine Lücke
+            case 555 -> {
+                if (!after(20)) return;
+                TeizenClient.modules().get(dev.teizen.client.modules.AutoEat.class).setEnabled(false);
+                area = o.offset(80, 90, -60);
+                cmd("fill " + blk(area.offset(-4, -7, -4)) + " " + blk(area.offset(11, -7, 4)) + " minecraft:stone"); // Sicherheitsboden
+                cmd("fill " + blk(area.offset(-4, -6, -4)) + " " + blk(area.offset(11, 6, 4)) + " minecraft:air");
+                cmd("setblock " + blk(area.below()) + " minecraft:stone");
+                cmd("setblock " + blk(area.offset(7, -1, 0)) + " minecraft:stone");
+                cmd("setblock " + blk(area.offset(7, 0, 0)) + " minecraft:diamond_ore");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f -90 0", area.getX() + 0.5, area.getY(), area.getZ() + 0.5));
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:diamond_pickaxe");
+                cmd("give @s minecraft:cobblestone 32");
+                text = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class).ores.str();
+                next();
+            }
+            case 556 -> {
+                if (!after(30)) return;
+                n0 = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class).placed;
+                t("///mine diamond");
+                next();
+            }
+            case 557 -> {
+                boolean gone = !mc.level.getBlockState(area.offset(7, 0, 0)).is(net.minecraft.world.level.block.Blocks.DIAMOND_ORE);
+                if (!gone && !after(700)) return;
+                var am = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class);
+                int pl = am.placed - n0;
+                shot("73-automine-bruecke");
+                result("AutoMine Brücke: Diamant hinter 6 Blöcken Lücke abgebaut=" + yes(gone) + ", Blöcke gesetzt=" + pl + " " + ok(gone && pl > 0));
+                t("///mine stop");
+                next();
+            }
+            // ---------------------------------------------- AutoMine setzt Blöcke: hochbauen
+            case 558 -> {
+                if (!after(20)) return;
+                area = o.offset(80, 90, -80);
+                cmd("fill " + blk(area.offset(-4, -7, -4)) + " " + blk(area.offset(4, -7, 4)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-4, -6, -4)) + " " + blk(area.offset(4, 9, 4)) + " minecraft:air");
+                cmd("setblock " + blk(area.below()) + " minecraft:stone");
+                cmd("setblock " + blk(area.offset(0, 7, 1)) + " minecraft:diamond_ore");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY(), area.getZ() + 0.5));
+                cmd("give @s minecraft:cobblestone 32");
+                next();
+            }
+            case 559 -> {
+                if (!after(30)) return;
+                n0 = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class).placed;
+                t("///mine diamond");
+                next();
+            }
+            case 560 -> {
+                boolean gone = !mc.level.getBlockState(area.offset(0, 7, 1)).is(net.minecraft.world.level.block.Blocks.DIAMOND_ORE);
+                if (!gone && !after(700)) return;
+                var am = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class);
+                int pl = am.placed - n0;
+                shot("74-automine-hochbauen");
+                result("AutoMine hochbauen: Diamant 7 Blöcke über mir abgebaut=" + yes(gone) + ", Blöcke gesetzt=" + pl + " " + ok(gone && pl > 0));
+                t("///mine stop");
+                next();
+            }
+            // ---------------------------------------------- AutoMine: keine Erze -> Suchtunnel; Hunger -> isst selbst
+            case 561 -> {
+                if (!after(20)) return;
+                area = o.offset(-80, 90, 80);
+                cmd("fill " + blk(area.offset(-15, -1, -15)) + " " + blk(area.offset(15, 2, 15)) + " minecraft:stone");
+                cmd("fill " + blk(area) + " " + blk(area.above()) + " minecraft:air");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY(), area.getZ() + 0.5));
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:diamond_pickaxe");
+                cmd("item replace entity @s inventory.5 with minecraft:bread 8"); // Essen NICHT in der Hotbar
+                cmd("effect give @s minecraft:hunger 3 255 true");
+                next();
+            }
+            case 562 -> {
+                if (!after(80)) return;
+                cmd("effect clear @s minecraft:hunger");
+                d0 = mc.player.getFoodData().getFoodLevel();
+                var am = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class);
+                n0 = am.tunnelSteps;
+                maxY = (float) mc.player.getX();
+                h0 = (float) mc.player.getZ();
+                t("///mine ancient_debris"); // gibt es hier nicht -> Suchtunnel
+                next();
+            }
+            case 563 -> {
+                if (!after(500)) return;
+                var am = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class);
+                double moved = Math.hypot(mc.player.getX() - maxY, mc.player.getZ() - h0);
+                int bread = 0;
+                for (int i = 0; i < 36; i++) if (mc.player.getInventory().getItem(i).is(net.minecraft.world.item.Items.BREAD)) bread += mc.player.getInventory().getItem(i).getCount();
+                int food = mc.player.getFoodData().getFoodLevel();
+                shot("75-automine-tunnel-essen");
+                result(String.format(Locale.ROOT, "AutoMine ohne Erze: Suchtunnel %.1f Blöcke gegraben (Schritte %d); Hunger vorher %d -> jetzt %d, Brot 8 -> %d %s",
+                        moved, am.tunnelSteps - n0, d0, food, bread, ok(moved >= 4 && bread < 8 && food > d0)));
+                t("///mine stop");
+                am.ores.setText(text);
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
+                SelfTest.jump(564);
+            }
+            // ---------------------------------------------- Taste auf "Vorwärts" -> wird entfernt; Seed bekannt -> SeedCrackerX pausiert
+            case 564 -> {
+                if (!after(10)) return;
+                Module fly = TeizenClient.modules().byName("fly");
+                fly.key = net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.getBoundKeyOf(mc.options.keyUp).getValue();
+                next();
+            }
+            case 565 -> {
+                if (!after(10)) return; // erst in die Minecraft-Steuerung übernehmen lassen
+                dev.teizen.client.core.KeyBinds.recheck();
+                next();
+            }
+            case 566 -> {
+                if (!after(10)) return;
+                Module fly = TeizenClient.modules().byName("fly");
+                boolean removed = fly.key == -1 && dev.teizen.client.core.KeyBinds.removedConflicts.contains("fly");
+                Long k = dev.teizen.client.core.Seed.known();
+                Boolean run = dev.teizen.client.core.Seed.crackerRunning();
+                result("Doppelte Taste: Fly lag auf Vorwärts -> Taste entfernt=" + yes(removed) + "; Seed bekannt (" + k + ") -> SeedCrackerX läuft="
+                        + run + " " + ok(removed && k != null && Boolean.FALSE.equals(run)));
                 SelfTest.jump(526);
             }
             case 526 -> {

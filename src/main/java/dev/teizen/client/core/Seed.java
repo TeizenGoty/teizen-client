@@ -102,6 +102,37 @@ public final class Seed {
 
     // ------------------------------------------------------------ SeedCrackerX (findet den Seed ohne OP)
 
+    private static String autoFetched;
+    private static Boolean crackerWasActive;
+    private static Boolean crackerSet;
+
+    /** SeedCrackerX an/aus (ohne seine Config-Datei zu ändern). */
+    static void crackerActive(boolean on) {
+        if (!crackerInstalled() || (crackerSet != null && crackerSet == on)) return;
+        try {
+            Class<?> c = Class.forName("kaptainwutax.seedcrackerX.config.Config");
+            Object cfg = c.getMethod("get").invoke(null);
+            java.lang.reflect.Field f = c.getField("active");
+            if (crackerWasActive == null) crackerWasActive = f.getBoolean(cfg);
+            f.setBoolean(cfg, on && crackerWasActive);
+            crackerSet = on;
+            dev.teizen.client.TeizenClient.LOG.info("SeedCrackerX " + (on && crackerWasActive ? "an" : "pausiert (Seed bekannt)"));
+        } catch (Throwable t) {
+            crackerSet = on;
+            dev.teizen.client.TeizenClient.LOG.warn("SeedCrackerX an/aus ging nicht: " + t);
+        }
+    }
+
+    /** Für den Selbsttest: läuft SeedCrackerX gerade? */
+    public static Boolean crackerRunning() {
+        try {
+            Class<?> c = Class.forName("kaptainwutax.seedcrackerX.config.Config");
+            return c.getField("active").getBoolean(c.getMethod("get").invoke(null));
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     public static boolean crackerInstalled() {
         return net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("seedcrackerx");
     }
@@ -263,6 +294,14 @@ public final class Seed {
     /** Jeden Tick: neuen Seed von SeedCrackerX übernehmen. */
     public static void tick() {
         if (++ticks % 20 != 0 || mc.player == null) return;
+        // eigene Welt / OP: Seed direkt holen (still) – dann braucht man den SeedCracker gar nicht
+        if (known() == null && !fetching && !worldKey().equals(autoFetched)
+                && (mc.getSingleplayerServer() != null || ServerQuery.allowed("seed"))) {
+            autoFetched = worldKey();
+            fetch(sd -> {});
+        }
+        // Seed bekannt -> SeedCrackerX pausieren (keine Meldungen, keine Arbeit); unbekannt -> wieder an
+        crackerActive(known() == null);
         updateProgress();
         var sfOwn = dev.teizen.client.TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
         if (sfOwn != null) sfOwn.applyOwnSeed();

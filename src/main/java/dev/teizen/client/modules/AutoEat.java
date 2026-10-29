@@ -40,21 +40,34 @@ public final class AutoEat extends Module {
     }
 
     @Override
-    public void onTick() {
-        if (!inGame() || mc.player.isCreative()) return;
+    public void onTick() { eatIfHungry(); }
+
+    /** Isst gerade? */
+    public boolean isEating() { return eating; }
+
+    /** Für andere Funktionen (z.B. AutoMine): Essen beenden, falls AutoEat selbst aus ist. */
+    public void stopEating() { if (!isEnabled()) stop(); }
+
+    /**
+     * Essen, wenn Hunger da ist – auch Essen aus dem Inventar (kommt dann in die Hand).
+     * @return true solange gegessen wird (dann nichts anderes machen)
+     */
+    public boolean eatIfHungry() {
+        if (!inGame() || mc.player.isCreative()) return false;
         int food = mc.player.getFoodData().getFoodLevel();
         if (eating) {
-            if (food >= 20 || !edible(mc.player.getMainHandItem())) { stop(); return; }
+            if (food >= 20 || !edible(mc.player.getMainHandItem())) { stop(); return false; }
             mc.options.keyUse.setDown(true);
             if (!mc.player.isUsingItem()) mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND);
-            return;
+            return true;
         }
-        if (food > hunger.num() || mc.gui.screen() != null) return;
+        if (food > hunger.num() || mc.gui.screen() != null) return false;
         int slot = Inv.findHotbar(this::edible);
-        if (slot < 0) return;
         prevSlot = Inv.selected();
-        Inv.select(slot);
+        if (slot >= 0) Inv.select(slot);
+        else if (!Inv.ensureInHand(this::edible)) { prevSlot = -1; return false; } // nichts zu essen dabei
         eating = true;
         mc.options.keyUse.setDown(true);
+        return true;
     }
 }

@@ -5,6 +5,7 @@ import dev.teizen.client.TeizenClient;
 import dev.teizen.client.gui.ClickGui;
 import dev.teizen.client.gui.Overview;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import dev.teizen.client.util.Chat;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -92,9 +93,48 @@ public final class KeyBinds {
     /** Jeden Tick aufrufen: Tasten abgleichen, Übersicht öffnen, Maus-Belegungen ausführen. */
     private static boolean migrated;
 
+    private static boolean conflictsChecked;
+    /** Für den Selbsttest: welche Funktionen ihre Taste wegen Doppelbelegung verloren haben. */
+    public static final List<String> removedConflicts = new java.util.ArrayList<>();
+
+    /**
+     * Teizen-Tasten, die auf wichtigen Spieltasten liegen (Laufen, Springen, Klicken, Inventar ...), entfernen –
+     * sonst schaltet man die Funktion beim normalen Spielen ständig an und aus (alte Configs / options.txt).
+     */
+    private static boolean fixConflicts(Minecraft mc) {
+        KeyMapping[] vital = {mc.options.keyUp, mc.options.keyLeft, mc.options.keyDown, mc.options.keyRight, mc.options.keyJump,
+                mc.options.keyShift, mc.options.keySprint, mc.options.keyInventory, mc.options.keyAttack, mc.options.keyUse,
+                mc.options.keyChat, mc.options.keyCommand, mc.options.keyDrop};
+        java.util.Map<Integer, String> taken = new java.util.HashMap<>();
+        for (KeyMapping v : vital) { int b = bound(v); if (b != -1) taken.put(b, net.minecraft.client.resources.language.I18n.get(v.getName())); }
+        for (KeyMapping v : mc.options.keyHotbarSlots) { int b = bound(v); if (b != -1) taken.put(b, net.minecraft.client.resources.language.I18n.get(v.getName())); }
+        boolean changed = false;
+        for (Link l : links) {
+            if (!l.mapping.getName().startsWith("key.teizenclient.module.")) continue;
+            int b = bound(l.mapping);
+            if (b == -1 || !taken.containsKey(b)) continue;
+            String mod = l.mapping.getName().substring("key.teizenclient.module.".length());
+            l.mapping.setKey(InputConstants.UNKNOWN);
+            l.set.accept(-1);
+            lastBound.put(l.mapping, -1);
+            lastValue.put(l.mapping, -1);
+            removedConflicts.add(mod);
+            Chat.info("Taste von §f" + mod + "§7 entfernt – sie lag auf §f" + taken.get(b) + "§7 und hat die Funktion beim Spielen ständig an/aus geschaltet. Neu setzen: §f///bind " + mod + " <Taste>");
+            changed = true;
+        }
+        return changed;
+    }
+
+    /** Selbsttest: Doppelbelegungen beim nächsten Tick nochmal prüfen. */
+    public static void recheck() { conflictsChecked = false; }
+
     public static void tick(Minecraft mc) {
         if (menu == null) return;
         boolean reset = false, save = false;
+        if (!conflictsChecked && mc.player != null && mc.options != null) {
+            conflictsChecked = true;
+            if (fixConflicts(mc)) { reset = true; save = true; }
+        }
         if (!migrated) {
             // neue Standard-Tasten (z.B. AutoCrystal = J) auch dann setzen, wenn in options.txt noch "keine Taste" steht
             migrated = true;
