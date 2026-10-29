@@ -291,6 +291,7 @@ public final class AutoMine extends Module {
     private MinePath.Step placeStep;
     private int placeTicks;
     private double pillarLastY = -1e9;
+    private int pillarFails;
 
     private boolean placeTick(MinePath.Step step) {
         BlockPos at = step.place();
@@ -314,7 +315,13 @@ public final class AutoMine extends Module {
             double y = mc.player.getY(), last = pillarLastY;
             pillarLastY = y;
             if (y < at.getY() + 1.0 || last < at.getY() + 1.0) return true;
-            return clickFace(at.below(), net.minecraft.core.Direction.UP, at);
+            int before = placed;
+            boolean r = clickFace(at.below(), net.minecraft.core.Direction.UP, at);
+            if (dev.teizen.client.SelfTest.ACTIVE && placed == before && pillarFails++ < 6)
+                dev.teizen.client.TeizenClient.LOG.info("AutoMine hochbauen: Klick ging nicht – y=" + String.format(java.util.Locale.ROOT, "%.3f/%.3f", y, last)
+                        + " unten=" + mc.level.getBlockState(at.below()) + " Platz=" + mc.level.getBlockState(at) + " Box=" + mc.player.getBoundingBox()
+                        + " Hand=" + mc.player.getMainHandItem());
+            return r;
         }
         // Brücke: an die Seite eines festen Nachbarn klicken (meist der Block, auf dem man steht)
         for (net.minecraft.core.Direction d : new net.minecraft.core.Direction[]{net.minecraft.core.Direction.DOWN,
@@ -334,6 +341,8 @@ public final class AutoMine extends Module {
         Vec3 hit = Vec3.atCenterOf(on).add(face.getStepX() * 0.5, face.getStepY() * 0.5, face.getStepZ() * 0.5);
         var res = mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND,
                 new net.minecraft.world.phys.BlockHitResult(hit, face, on, false));
+        if (dev.teizen.client.SelfTest.ACTIVE && !res.consumesAction() && pillarFails < 6)
+            dev.teizen.client.TeizenClient.LOG.info("AutoMine Klick-Ergebnis: " + res + " auf " + on.toShortString() + " " + face);
         if (res.consumesAction()) {
             dev.teizen.client.compat.V.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
             placed++;

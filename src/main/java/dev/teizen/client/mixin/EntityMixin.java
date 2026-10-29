@@ -35,4 +35,11 @@ public abstract class EntityMixin {
     private void teizen$boatNoclipWall(CallbackInfoReturnable<Boolean> cir) {
         if (dev.teizen.client.modules.BoatNoclip.noSuffocation((Entity) (Object) this)) cir.setReturnValue(false);
     }
+
+    /** Fly-Lavaschutz: Abwärtsbewegung VOR dem Bewegen so kürzen, dass man nie in die Lava kommt. */
+    @org.spongepowered.asm.mixin.injection.ModifyVariable(method = "move", at = @At("HEAD"), argsOnly = true)
+    private net.minecraft.world.phys.Vec3 teizen$lavaClamp(net.minecraft.world.phys.Vec3 mv) {
+        if ((Object) this != Minecraft.getInstance().player || TeizenClient.modules() == null) return mv;
+        return dev.teizen.client.modules.Fly.clampLava(mv);
+    }
 }

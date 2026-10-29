@@ -784,8 +784,8 @@ final class Round11Tests {
                 t("///set fly doppelsprung an");
                 cmd("fill " + blk(area.offset(-4, -1, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:stone");
                 cmd("effect clear @s minecraft:fire_resistance");
-                result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter: gebrannt/Schaden=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx %s",
-                        yes(flag1), above, h0, hp, saves, ok(!flag1 && hp >= h0 - 0.01f && above > 0)));
+                result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter: gebrannt/Schaden=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx, vorher gestoppt %dx %s",
+                        yes(flag1), above, h0, hp, saves, fly.lavaStops, ok(!flag1 && hp >= h0 - 0.01f && above > 0)));
                 SelfTest.jump(552);
             }
             // ---------------------------------------------- AutoMine: große Ader (4 Diamanten, 10 m) vor Einzelblock (5 m)

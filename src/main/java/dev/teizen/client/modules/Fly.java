@@ -181,6 +181,25 @@ public final class Fly extends Module {
     private static boolean dipPacket;
     /** Höhe, bei der der aktuelle Fall angefangen hat (für NoFall "ab"). */
     private static double fallStartY = Double.NaN;
+    /** Wie oft die Bewegung vor der Lava gestoppt wurde (Selbsttest). */
+    public int lavaStops;
+
+    /** Vor dem Bewegen: nach unten höchstens bis knapp über die Lava (über Entity.move). */
+    public static net.minecraft.world.phys.Vec3 clampLava(net.minecraft.world.phys.Vec3 mv) {
+        if (mv.y >= 0 || mc.player == null || mc.player.isCreative() || mc.player.isSpectator()) return mv;
+        Fly f = dev.teizen.client.TeizenClient.modules().get(Fly.class);
+        if (f == null || !f.isEnabled() || !f.lavaGuard.on()) return mv;
+        var b = mc.player.getBoundingBox();
+        double top = lavaTop(b.expandTowards(mv.x, mv.y, mv.z));
+        if (Double.isNaN(top)) return mv;
+        double floor = top + 0.3;
+        double y = mc.player.getY();
+        if (y < floor - 1e-4) return mv; // schon drin -> beforeSendPosition holt einen raus
+        if (y + mv.y >= floor) return mv;
+        f.lavaStops++;
+        return new net.minecraft.world.phys.Vec3(mv.x, floor - y, mv.z);
+    }
+
     /** Wie oft der Lavaschutz einen gerettet hat (Selbsttest). */
     public int lavaSaves;
 
