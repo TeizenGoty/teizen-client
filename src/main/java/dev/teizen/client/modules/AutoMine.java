@@ -304,8 +304,8 @@ public final class AutoMine extends Module {
         status = "setzt Block";
         if (step.kind() == MinePath.Kind.PILLAR) {
             // hochbauen: nach unten schauen, springen, oben angekommen unter sich setzen
-            aim(mc.player.getYRot(), 90f);
-            if (!aimed()) return true;
+            Rot.look(mc.player.getYRot(), 90f); // sofort nach unten (weiches Drehen kam hier nie an)
+            hasWant = false;
             if (mc.player.onGround() && mc.player.getY() < at.getY() + 0.5) { mc.options.keyJump.setDown(true); return true; }
             mc.options.keyJump.setDown(false);
             if (mc.player.getY() < at.getY() + 1.0) return true;
@@ -317,8 +317,9 @@ public final class AutoMine extends Module {
             BlockPos nb = at.relative(d);
             if (!MinePath.solidFloor(mc.level, nb)) continue;
             Vec3 hit = Vec3.atCenterOf(nb).add(-d.getStepX() * 0.5, -d.getStepY() * 0.5, -d.getStepZ() * 0.5);
-            lookAt(hit);
-            if (!aimed()) return true;
+            float[] r = Rot.to(hit);
+            Rot.look(r[0], r[1]); // sofort hinschauen
+            hasWant = false;
             return clickFace(nb, d.getOpposite(), at);
         }
         return false;

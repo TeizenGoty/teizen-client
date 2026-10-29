@@ -68,6 +68,12 @@ public final class Fly extends Module {
         boolean sprint = mc.options.keySprint.isDown() || mc.player.isSprinting();
         double f = sprint ? Math.max(1, sprintFactor.num() / 2.0) : 1;
         a.setFlyingSpeed((float) (0.05 * speed.num() * f));
+        // in Lava geraten (z.B. vom Server zurückgesetzt): weiterfliegen und sofort nach oben raus
+        if (lavaGuard.on() && mc.player.isInLava()) {
+            a.flying = true;
+            var dv = mc.player.getDeltaMovement();
+            mc.player.setDeltaMovement(dv.x, Math.max(dv.y, 0.8), dv.z);
+        }
         if (!a.flying) {
             // nicht am Fliegen (z.B. nach 2x Leertaste in der Luft): Fallschaden verhindert beforeSendPosition
             if (noFall.on()) mc.player.fallDistance = 0;
@@ -79,8 +85,6 @@ public final class Fly extends Module {
         double cap = maxSpeed.num(), h = Math.sqrt(v.x * v.x + v.z * v.z);
         if (h > cap) { v = new net.minecraft.world.phys.Vec3(v.x * cap / h, v.y, v.z * cap / h); p.setDeltaMovement(v); }
         if (Math.abs(v.y) > cap) p.setDeltaMovement(v.x, Math.signum(v.y) * cap, v.z);
-        // in Lava geraten (z.B. vom Server zurückgesetzt): sofort nach oben raus
-        if (lavaGuard.on() && p.isInLava()) p.setDeltaMovement(p.getDeltaMovement().x, Math.max(p.getDeltaMovement().y, 0.8), p.getDeltaMovement().z);
         if (antiKick.on() && floatStage == 0 && !mc.player.onGround() && ++ticks % 20 == 0) floatStage = 3;
     }
 
@@ -117,7 +121,8 @@ public final class Fly extends Module {
         }
         // Lavaschutz: nach der Bewegung dieses Ticks, BEVOR das Paket rausgeht – ist man in/kurz über Lava,
         // sofort knapp über die Oberfläche setzen (der Server sieht einen nie in der Lava)
-        if (f != null && f.isEnabled() && f.lavaGuard.on() && p.getAbilities().flying) {
+        // (nicht nur beim Fliegen: berührt man den Boden unter der Lava, schaltet Minecraft das Fliegen kurz aus)
+        if (f != null && f.isEnabled() && f.lavaGuard.on() && !p.isCreative()) {
             double top = lavaTop(p.getBoundingBox());
             if (!Double.isNaN(top) && p.getY() < top + 0.3) {
                 var up = p.getBoundingBox().move(0, top + 0.3 - p.getY(), 0);

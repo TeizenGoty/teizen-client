@@ -90,7 +90,7 @@ jobs:
         run: |
           set +e
           sudo apt-get update -qq >/dev/null 2>&1
-          sudo apt-get install -y -qq xvfb xdotool libgl1-mesa-dri mesa-vulkan-drivers libglx-mesa0 >/dev/null 2>&1
+          sudo apt-get install -y -qq xvfb xdotool x11-utils libgl1-mesa-dri mesa-vulkan-drivers libglx-mesa0 >/dev/null 2>&1
           mkdir -p run-server && cd run-server
           python3 - <<'PY'
           import json, urllib.request

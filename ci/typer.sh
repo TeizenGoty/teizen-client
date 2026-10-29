@@ -6,6 +6,7 @@ REQ=run/teizen-type.txt
 DONE=run/teizen-typed.txt
 LOG=typer-log.txt
 echo "typer gestartet (DISPLAY=$DISPLAY)" >> "$LOG"
+xdotool version >> "$LOG" 2>&1
 while true; do
   if [ -f "$REQ" ]; then
     TXT=$(cat "$REQ"); rm -f "$REQ"
@@ -13,7 +14,7 @@ while true; do
     WID=$(xdotool search --name "Minecraft" 2>>"$LOG" | tail -1)
     [ -z "$WID" ] && WID=$(xdotool search --class "minecraft|java|Minecraft" 2>>"$LOG" | tail -1)
     echo "$(date +%T) tippe '$TXT' in Fenster '$WID'" >> "$LOG"
-    for w in $(xdotool search --name "." 2>/dev/null | head -10); do echo "  Fenster $w: $(xdotool getwindowname $w 2>/dev/null)" >> "$LOG"; done
+    xwininfo -root -tree 2>&1 | grep -E '"|has [0-9]+ child' | head -15 >> "$LOG"
     if [ -n "$WID" ]; then
       xdotool windowfocus --sync "$WID" >> "$LOG" 2>&1
       eval "$(xdotool getwindowgeometry --shell "$WID")"

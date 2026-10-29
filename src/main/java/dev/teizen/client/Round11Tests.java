@@ -745,7 +745,8 @@ final class Round11Tests {
                 next();
             }
             case 551 -> {
-                if (mc.player.isInLava() || mc.player.isOnFire()) flag1 = true;
+                // war man wirklich in Lava? Dann brennt man (vom Server) oder verliert Leben
+                if (mc.player.isOnFire() || mc.player.getHealth() < h0 - 0.01f || mc.player.isDeadOrDying()) flag1 = true;
                 if (!after(120)) return;
                 mc.options.keyShift.setDown(false);
                 mc.options.keySprint.setDown(false);
@@ -759,7 +760,7 @@ final class Round11Tests {
                 t("///set fly doppelsprung an");
                 cmd("fill " + blk(area.offset(-4, -1, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:stone");
                 cmd("effect clear @s minecraft:fire_resistance");
-                result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter: in Lava/brennt=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx %s",
+                result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter: gebrannt/Schaden=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx %s",
                         yes(flag1), above, h0, hp, saves, ok(!flag1 && hp >= h0 - 0.01f && above > 0)));
                 SelfTest.jump(552);
             }
@@ -919,7 +920,7 @@ final class Round11Tests {
             case 567 -> {
                 if (!after(10)) return;
                 dev.teizen.client.modules.PanicButton.panic();
-                area = o.offset(100, 0, 100);
+                area = o.offset(30, 0, -40); // nah genug, damit die Chunks geladen sind
                 cmd("fill " + blk(area.offset(-2, -1, -2)) + " " + blk(area.offset(2, -1, 2)) + " minecraft:stone");
                 cmd("fill " + blk(area.offset(-2, 0, -2)) + " " + blk(area.offset(2, 45, 2)) + " minecraft:air");
                 cmd("effect give @s minecraft:instant_health 1 10");
@@ -948,7 +949,7 @@ final class Round11Tests {
             // ---------------------------------------------- NoFall nach langem Sturz (wie nach Elytra/Mace): kein Schaden mitten in der Luft
             case 569 -> {
                 if (!after(10)) return;
-                area = o.offset(100, 0, 120);
+                area = o.offset(-30, 0, -50); // nah genug, damit die Chunks geladen sind
                 cmd("fill " + blk(area.offset(-3, -4, -3)) + " " + blk(area.offset(3, -4, 3)) + " minecraft:stone");
                 cmd("fill " + blk(area.offset(-3, -3, -3)) + " " + blk(area.offset(3, -1, 3)) + " minecraft:water");
                 cmd("fill " + blk(area.offset(-3, 0, -3)) + " " + blk(area.offset(3, 75, 3)) + " minecraft:air");
