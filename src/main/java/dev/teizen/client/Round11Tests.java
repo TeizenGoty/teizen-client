@@ -705,11 +705,31 @@ final class Round11Tests {
                 float fell = maxY - (float) mc.player.getY();
                 int spoof = fly.groundPackets - d0;
                 shot("71-fly-sprint-runter");
-                fly.setEnabled(false);
                 t("///set fly tempo 2");
-                t("///set fly doppelsprung an");
                 result(String.format(Locale.ROOT, "Fly: 200 Ticks schweben, dann mit Sprint schnell runter: %.0f Blöcke gefallen, Leben %.1f -> %.1f, 'am Boden'-Pakete=%d %s",
                         fell, h0, hp, spoof, ok(fell > 40 && hp >= h0 - 0.01f && spoof > 0)));
+                // weiter: hoch in die Luft, schweben und Schaden bekommen -> darf nicht runtergerissen werden
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", mc.player.getX(), (int) mc.player.getY() + 30, mc.player.getZ()));
+                SelfTest.jump(5451);
+            }
+            case 5451 -> {
+                if (!after(40)) return;
+                maxY = (float) mc.player.getY();
+                d0 = ((dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly")).pullsBlocked;
+                next();
+            }
+            case 5452 -> {
+                int t = SelfTest.ticksInStep();
+                if (t == 2 || t == 22 || t == 42) cmd("damage @s 1 minecraft:generic");
+                if (t == 12 || t == 32) cmd("damage @s 1 minecraft:mob_attack");
+                if (!after(70)) return;
+                var fly = (dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly");
+                float drop = maxY - (float) mc.player.getY();
+                fly.setEnabled(false);
+                t("///set fly doppelsprung an");
+                cmd("effect give @s minecraft:instant_health 1 5");
+                result(String.format(Locale.ROOT, "Fly + Schaden beim Schweben: %.2f Blöcke runtergezogen, Ruck nach unten ignoriert %dx %s",
+                        drop, fly.pullsBlocked - d0, ok(drop < 1.0)));
                 SelfTest.jump(546);
             }
             // ---------------------------------------------- StructureFinder: sucht nach weitem Laufen neu (statt ewig auf die alte zu zeigen)

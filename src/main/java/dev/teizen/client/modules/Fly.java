@@ -181,6 +181,22 @@ public final class Fly extends Module {
     private static boolean dipPacket;
     /** Höhe, bei der der aktuelle Fall angefangen hat (für NoFall "ab"). */
     private static double fallStartY = Double.NaN;
+    /** Wie oft ein Server-Ruck nach unten (bei Schaden) ignoriert wurde (Selbsttest). */
+    public int pullsBlocked;
+
+    /** Nach einem Bewegungs-Paket vom Server (Schaden/Rückstoß): beim Fliegen nicht nach unten reißen lassen. */
+    public static void onServerMotion(net.minecraft.world.phys.Vec3 before) {
+        var p = mc.player;
+        if (p == null || before == null || p.isFallFlying() || dev.teizen.client.TeizenClient.modules() == null) return;
+        Fly f = dev.teizen.client.TeizenClient.modules().get(Fly.class);
+        if (f == null || !f.isEnabled() || !p.getAbilities().flying) return;
+        var v = p.getDeltaMovement();
+        if (v.y < before.y && v.y < 0) {
+            p.setDeltaMovement(v.x, Math.max(before.y, 0), v.z);
+            f.pullsBlocked++;
+        }
+    }
+
     /** Abstand über der Lava: der Server brennt einen schon knapp (0.3) über der Lava an -> 1 Block Abstand. */
     private static final double LAVA_GAP = 1.0;
     /** Wie oft die Bewegung vor der Lava gestoppt wurde (Selbsttest). */

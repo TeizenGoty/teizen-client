@@ -34,20 +34,23 @@ public abstract class ClientPacketListenerMixin {
     @Unique
     private void teizen$store() {
         var p = Minecraft.getInstance().player;
-        teizen$before = (p != null && teizen$factors() != null) ? p.getDeltaMovement() : null;
+        teizen$before = p != null ? p.getDeltaMovement() : null;
     }
 
     @Unique
     private void teizen$restore() {
         var p = Minecraft.getInstance().player;
         double[] f = teizen$factors();
-        if (p == null || f == null || teizen$before == null) return;
+        if (p == null || teizen$before == null) { teizen$before = null; return; }
         Vec3 after = p.getDeltaMovement();
-        if (!after.equals(teizen$before)) {
+        if (f != null && !after.equals(teizen$before)) {
             Vec3 d = after.subtract(teizen$before);
             p.setDeltaMovement(teizen$before.add(d.x * f[0], d.y * f[1], d.z * f[0]));
             dev.teizen.client.SelfTest.knockbacks++;
         }
+        // Fly: bei Schaden schickt der Server SEINE Geschwindigkeit (er glaubt, man fällt) -> man wurde nach unten gerissen.
+        // Beim Fliegen den Abwärts-Teil davon ignorieren.
+        dev.teizen.client.modules.Fly.onServerMotion(teizen$before);
         teizen$before = null;
     }
 
