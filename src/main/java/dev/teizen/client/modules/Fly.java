@@ -65,7 +65,10 @@ public final class Fly extends Module {
         a.mayfly = true;
         if (!doubleJump.on()) a.flying = true;
         // Minecraft verdoppelt beim Sprinten selbst -> den Rest hier dazu
-        boolean sprint = mc.options.keySprint.isDown() || mc.player.isSprinting();
+        // nur wenn die Sprint-Taste WIRKLICH gedrückt ist (sonst war man zufällig schnell: Sprint vom Boden mitgenommen,
+        // 2x W getippt oder AutoSprint)
+        boolean sprint = mc.options.keySprint.isDown();
+        if (a.flying && !sprint && mc.player.isSprinting()) mc.player.setSprinting(false);
         double f = sprint ? Math.max(1, sprintFactor.num() / 2.0) : 1;
         a.setFlyingSpeed((float) (0.05 * speed.num() * f));
         // in Lava geraten (z.B. vom Server zurückgesetzt): weiterfliegen und sofort nach oben raus
@@ -188,6 +191,13 @@ public final class Fly extends Module {
     private static boolean dipPacket;
     /** Höhe, bei der der aktuelle Fall angefangen hat (für NoFall "ab"). */
     private static double fallStartY = Double.NaN;
+    /** Beim Fliegen kein Sprinten ohne gedrückte Sprint-Taste (Entity.setSprinting). */
+    public static boolean blockSprint(boolean on) {
+        if (!on || mc.player == null || dev.teizen.client.TeizenClient.modules() == null) return false;
+        Fly f = dev.teizen.client.TeizenClient.modules().get(Fly.class);
+        return f != null && f.isEnabled() && mc.player.getAbilities().flying && !mc.options.keySprint.isDown();
+    }
+
     /** Wie oft ein Server-Ruck nach unten (bei Schaden) ignoriert wurde (Selbsttest). */
     public int pullsBlocked;
 

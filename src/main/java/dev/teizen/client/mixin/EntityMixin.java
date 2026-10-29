@@ -42,4 +42,10 @@ public abstract class EntityMixin {
         if ((Object) this != Minecraft.getInstance().player || TeizenClient.modules() == null) return mv;
         return dev.teizen.client.modules.Fly.clampLava(mv);
     }
+
+    /** Fly: kein zufälliges Sprinten in der Luft. */
+    @Inject(method = "setSprinting", at = @At("HEAD"), cancellable = true)
+    private void teizen$flySprint(boolean on, CallbackInfo ci) {
+        if ((Object) this == Minecraft.getInstance().player && dev.teizen.client.modules.Fly.blockSprint(on)) ci.cancel();
+    }
 }

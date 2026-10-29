@@ -31,6 +31,7 @@ final class Round11Tests {
     private static int n0;
     private static float maxY;
     private static boolean lavaVariantB;
+    private static boolean flySprintSeen;
     private static BlockPos wrongPos;
     private static Long seed0;
     private static java.util.List<int[]> pasteRegion = java.util.List.of();
@@ -717,10 +718,13 @@ final class Round11Tests {
                 if (!after(40)) return;
                 maxY = (float) mc.player.getY();
                 d0 = ((dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly")).pullsBlocked;
+                mc.player.setSprinting(true); // wie Sprint vom Boden / 2x W / AutoSprint – ohne Sprint-Taste
+                flySprintSeen = mc.player.isSprinting();
                 next();
             }
             case 5452 -> {
                 int t = SelfTest.ticksInStep();
+                if (t > 0 && t < 30 && mc.player.isSprinting()) flySprintSeen = true;
                 if (t == 2 || t == 22 || t == 42) cmd("damage @s 1 minecraft:generic");
                 if (t == 12 || t == 32) cmd("damage @s 1 minecraft:mob_attack");
                 if (!after(70)) return;
@@ -731,6 +735,7 @@ final class Round11Tests {
                 cmd("effect give @s minecraft:instant_health 1 5");
                 result(String.format(Locale.ROOT, "Fly + Schaden beim Schweben: %.2f Blöcke runtergezogen, Ruck nach unten ignoriert %dx %s",
                         drop, fly.pullsBlocked - d0, ok(drop < 1.0)));
+                result("Fly: kein zufälliges Sprinten ohne Sprint-Taste: gesprintet=" + yes(flySprintSeen) + " " + ok(!flySprintSeen));
                 SelfTest.jump(546);
             }
             // ---------------------------------------------- StructureFinder: sucht nach weitem Laufen neu (statt ewig auf die alte zu zeigen)
