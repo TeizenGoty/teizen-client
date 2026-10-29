@@ -175,9 +175,16 @@ public final class Fly extends Module {
             if (noFallWants) nf.saved++;
         }
         dipPacket = false;
+        if (logPackets > 0) {
+            logPackets--;
+            dev.teizen.client.TeizenClient.LOG.info(String.format(java.util.Locale.ROOT, "Fly-Paket: y=%.3f amBoden=%s vy=%.3f fallDist=%.2f",
+                    p.getY(), p.onGround(), p.getDeltaMovement().y, (double) p.fallDistance));
+        }
         sentY = p.getY();
     }
 
+    /** Selbsttest: so viele Pakete mitloggen. */
+    public static int logPackets;
     private static boolean dipPacket;
     /** Höhe, bei der der aktuelle Fall angefangen hat (für NoFall "ab"). */
     private static double fallStartY = Double.NaN;

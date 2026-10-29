@@ -30,6 +30,7 @@ final class Round11Tests {
     private static String text = "";
     private static int n0;
     private static float maxY;
+    private static boolean lavaVariantB;
     private static BlockPos wrongPos;
     private static Long seed0;
     private static java.util.List<int[]> pasteRegion = java.util.List.of();
@@ -773,6 +774,7 @@ final class Round11Tests {
                 cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY() + 20, area.getZ() + 0.5));
                 cmd("effect give @s minecraft:instant_health 1 10");
                 t("///set fly doppelsprung aus");
+                t(lavaVariantB ? "///set fly fallschutz aus" : "///set fly fallschutz an");
                 Module fly = TeizenClient.modules().byName("fly");
                 if (!fly.isEnabled()) fly.setEnabled(true);
                 flag1 = false;
@@ -784,6 +786,7 @@ final class Round11Tests {
                 d0 = ((dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly")).lavaSaves;
                 mc.options.keyShift.setDown(true);
                 mc.options.keySprint.setDown(true);
+                dev.teizen.client.modules.Fly.logPackets = 16;
                 next();
             }
             case 551 -> {
@@ -805,8 +808,11 @@ final class Round11Tests {
                 double above = mc.player.getY() - (area.getY() - 1);
                 shot("72-fly-lava");
                 int saves = fly.lavaSaves - d0;
-                result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter: gebrannt/Schaden=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx, vorher gestoppt %dx %s",
-                        yes(flag1), above, h0, hp, saves, fly.lavaStops, ok(!flag1 && hp >= h0 - 0.01f && above > 0)));
+                result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter%s: gebrannt/Schaden=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx, vorher gestoppt %dx %s",
+                        lavaVariantB ? " (Fallschutz aus)" : "", yes(flag1), above, h0, hp, saves, fly.lavaStops, ok(!flag1 && hp >= h0 - 0.01f && above > 0)));
+                if (!lavaVariantB) { lavaVariantB = true; cmd("effect clear @s minecraft:fire_resistance"); SelfTest.jump(549); return; }
+                lavaVariantB = false;
+                t("///set fly fallschutz an");
                 // zweiter Teil: man ist schon IN der Lava (kurz berührt / reingeschoben) -> muss sofort raus, nicht weiter reingezogen
                 cmd("fill " + blk(area.offset(-4, -3, -4)) + " " + blk(area.offset(4, -3, 4)) + " minecraft:stone");
                 cmd("fill " + blk(area.offset(-4, -2, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:lava");
