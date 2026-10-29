@@ -39,15 +39,26 @@ public final class SeedMapCompat {
      * Client-Befehl direkt ausführen (z.B. "sm:locate feature structure village").
      * @return null wenn er lief, sonst die Fehlermeldung (z.B. "Couldn't locate structure ...")
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static String runClientCommand(String command) {
         try {
-            var d = net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.getActiveDispatcher();
+            // Fabric API: neu "ClientCommands", alt "ClientCommandManager"
+            com.mojang.brigadier.CommandDispatcher d = null;
+            for (String cn : new String[]{"net.fabricmc.fabric.api.client.command.v2.ClientCommands",
+                    "net.fabricmc.fabric.api.client.command.v2.ClientCommandManager"}) {
+                try {
+                    d = (com.mojang.brigadier.CommandDispatcher) Class.forName(cn).getMethod("getActiveDispatcher").invoke(null);
+                    if (d != null) break;
+                } catch (ClassNotFoundException | NoSuchMethodException ignored) {}
+            }
             if (d == null || mc.getConnection() == null) return "Client-Befehle nicht bereit";
-            var src = (net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource) mc.getConnection().getSuggestionsProvider();
+            Object src = mc.getConnection().getSuggestionsProvider();
             d.execute(command, src);
             return null;
         } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
             return e.getRawMessage().getString();
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            return String.valueOf(e.getCause());
         } catch (Throwable t) {
             return t.toString();
         }
