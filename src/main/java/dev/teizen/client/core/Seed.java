@@ -212,6 +212,36 @@ public final class Seed {
         }
     }
 
+    private static boolean renderOffDone;
+
+    /** SeedCrackerX zeichnet sonst Spawner/Strukturen durch Wände (Einstellung bleibt von alten Versionen gespeichert)
+     *  -> beim Start immer aus. Wieder an: /seedcracker render outlines ON */
+    static void crackerRenderOff() {
+        if (renderOffDone || !crackerInstalled()) return;
+        renderOffDone = true;
+        try {
+            Class<?> c = Class.forName("kaptainwutax.seedcrackerX.config.Config");
+            Object cfg = c.getMethod("get").invoke(null);
+            java.lang.reflect.Field f = c.getField("render");
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            Object off = Enum.valueOf((Class) f.getType(), "OFF");
+            f.set(cfg, off);
+            dev.teizen.client.TeizenClient.LOG.info("SeedCrackerX-Anzeige (Spawner/Strukturen) aus");
+        } catch (Throwable t) {
+            dev.teizen.client.TeizenClient.LOG.warn("SeedCrackerX-Anzeige aus ging nicht: " + t);
+        }
+    }
+
+    /** Für den Selbsttest: SeedCrackerX-Anzeige-Modus. */
+    public static String crackerRender() {
+        try {
+            Class<?> c = Class.forName("kaptainwutax.seedcrackerX.config.Config");
+            return String.valueOf(c.getField("render").get(c.getMethod("get").invoke(null)));
+        } catch (Throwable t) {
+            return "?";
+        }
+    }
+
     /** Für den Selbsttest: läuft SeedCrackerX gerade? */
     public static Boolean crackerRunning() {
         try {
@@ -398,6 +428,7 @@ public final class Seed {
         if (sfOwn != null) sfOwn.applyOwnSeed();
         verifyManual();
         // Seed sicher bekannt -> SeedCrackerX pausieren; unbekannt oder eingegeben-aber-ungeprüft -> weiter knacken
+        crackerRenderOff();
         crackerActive(known() == null || (manual() != null && !manualVerified()));
         updateProgress();
         if (!crackerInstalled()) return;

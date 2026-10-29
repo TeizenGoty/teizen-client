@@ -736,6 +736,8 @@ final class Round11Tests {
                 result(String.format(Locale.ROOT, "Fly + Schaden beim Schweben: %.2f Blöcke runtergezogen, Ruck nach unten ignoriert %dx %s",
                         drop, fly.pullsBlocked - d0, ok(drop < 1.0)));
                 result("Fly: kein zufälliges Sprinten ohne Sprint-Taste: gesprintet=" + yes(flySprintSeen) + " " + ok(!flySprintSeen));
+                String rm = dev.teizen.client.core.Seed.crackerRender();
+                result("SeedCrackerX-Anzeige (Spawner/Strukturen durch Wände) beim Start aus: " + rm + " " + ok(rm.equals("OFF")));
                 SelfTest.jump(546);
             }
             // ---------------------------------------------- StructureFinder: sucht nach weitem Laufen neu (statt ewig auf die alte zu zeigen)
