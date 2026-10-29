@@ -112,7 +112,7 @@ public final class SelfTest {
         if (step == RECONNECT_STEP) { reconnectTick(); return; }
         if (step == COMBATLOG_STEP) { combatLogTick(); return; }
         // Fly-AntiKick-Test: wurde man rausgeworfen, gleich melden und beenden (sonst hängt der Test ohne Welt)
-        if (step == 532 && (mc.player == null || mc.gui.screen() instanceof net.minecraft.client.gui.screens.DisconnectedScreen)) {
+        if ((step == 532 || step == 533) && (mc.player == null || mc.gui.screen() instanceof net.minecraft.client.gui.screens.DisconnectedScreen)) {
             Round11Tests.flyKicked();
             return;
         }
@@ -546,6 +546,7 @@ public final class SelfTest {
     static boolean after2(int t) { return after(t); }
     static void next2() { next(); }
     static int local() { return ticks - stepStart; }
+    static int currentStep() { return step; }
     static void result(String r) { results.add(r); }
     static BlockPos origin() { return origin; }
     static void finish2() { finish(); }

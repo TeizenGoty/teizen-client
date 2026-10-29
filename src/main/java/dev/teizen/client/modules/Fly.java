@@ -24,6 +24,8 @@ public final class Fly extends Module {
     private int floatStage;
     /** Gerade selbst abgesenkt -> dafür kein Fallschutz-Paket schicken. */
     private boolean dipped;
+    /** So viel geht's nach dem Absenken wieder hoch (damit man beim Stillstehen auf der Höhe bleibt). */
+    private double riseLeft;
     /** Höhe beim letzten Bewegungs-Paket. */
     private static double sentY = Double.NaN;
 
@@ -44,6 +46,7 @@ public final class Fly extends Module {
         if (!inGame()) return;
         guardUntilGround = noFall.on() && !mc.player.onGround();
         floatStage = 0;
+        riseLeft = 0;
         Abilities a = mc.player.getAbilities();
         if (!mc.player.isCreative() && !mc.player.isSpectator()) {
             a.flying = false;
@@ -81,7 +84,7 @@ public final class Fly extends Module {
 
     /**
      * Gegen den Server-Rauswurf "Flying is not enabled on this server!" (schwebt zu lange), wie bei Wurst:
-     * alle 20 Ticks sinkt man 3 Ticks lang ECHT ein kleines Stück (je 0.05 unter das letzte Paket), direkt bevor Minecraft
+     * alle 20 Ticks sinkt man 3 Ticks lang ECHT ein kleines Stück (je 0.05 unter das letzte Paket) und danach genauso viel wieder hoch, direkt bevor Minecraft
      * sein normales Bewegungs-Paket schickt. Der Server sieht eine Abwärtsbewegung und setzt seinen
      * Schwebe-Zähler zurück. Nur das normale Paket – nie zwei pro Tick (26.3 wirft sonst raus).
      * Aus LocalPlayer.sendPosition (Mixin, Anfang).
@@ -100,10 +103,20 @@ public final class Fly extends Module {
                 if (mc.level != null && mc.level.noCollision(p, p.getBoundingBox().move(0, dy, 0))) {
                     p.setPos(p.getX(), p.getY() + dy, p.getZ());
                     f.dipped = true;
+                    f.riseLeft += 0.05;
                     if (f.floatStage == 0) f.protectedPackets++;
                     if (dev.teizen.client.SelfTest.ACTIVE)
                         dev.teizen.client.TeizenClient.LOG.info(String.format(java.util.Locale.ROOT, "Fly-AntiKick: abgesenkt um %.3f auf %.3f (letztes Paket %.3f)", -dy, p.getY(), sentY));
                 }
+            }
+        } else if (f != null && f.riseLeft > 0) {
+            // danach genauso viel wieder hoch (Steigen ist für den Server kein Problem)
+            if (!f.isEnabled() || !p.getAbilities().flying || p.onGround()) f.riseLeft = 0;
+            else {
+                double up = Math.min(f.riseLeft, 0.05);
+                f.riseLeft -= up;
+                if (mc.level != null && mc.level.noCollision(p, p.getBoundingBox().move(0, up, 0)))
+                    p.setPos(p.getX(), p.getY() + up, p.getZ());
             }
         }
         sentY = p.getY();

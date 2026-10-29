@@ -38,9 +38,15 @@ final class Round11Tests {
     private Round11Tests() {}
 
     /** Fly-AntiKick-Test: Server hat uns rausgeworfen ("schwebt zu lange") -> Ergebnis melden, Test beenden. */
+    private static void flyLog() {
+        Module fl = TeizenClient.modules().byName("fly");
+        log(String.format(Locale.ROOT, "Fly-AntiKick %d: y=%.2f fliegt=%s an=%s Durchgänge=%d", SelfTest.local(), mc.player.getY(),
+                mc.player.getAbilities().flying, fl.isEnabled(), ((dev.teizen.client.modules.Fly) fl).protectedPackets - n0));
+    }
+
     static void flyKicked() {
         if (mc.options != null) mc.options.keyJump.setDown(false);
-        result("Fly-AntiKick: 140 Ticks geflogen, rausgeworfen=ja (Server: schwebt zu lange) FEHLER");
+        result("Fly-AntiKick: rausgeworfen=ja (Server: schwebt zu lange) nach " + SelfTest.local() + " Ticks in Schritt " + SelfTest.currentStep() + " FEHLER");
         SelfTest.finish2();
     }
 
@@ -498,20 +504,25 @@ final class Round11Tests {
                 SelfTest.jump(532);
             }
             case 532 -> {
-                if (SelfTest.local() % 20 == 0) {
-                    Module fl = TeizenClient.modules().byName("fly");
-                    log(String.format(Locale.ROOT, "Fly-AntiKick %d: y=%.2f fliegt=%s an=%s Pakete=%d", SelfTest.local(), mc.player.getY(),
-                            mc.player.getAbilities().flying, fl.isEnabled(), ((dev.teizen.client.modules.Fly) fl).protectedPackets - n0));
-                }
+                if (SelfTest.local() % 20 == 0) flyLog();
                 if (!after(140)) return; // Vanilla wirft normal nach ~80 Ticks raus
-                if (mc.options != null) mc.options.keyJump.setDown(false);
+                // jetzt still in der Luft stehen: die Höhe soll gleich bleiben (Absenken wird wieder ausgeglichen)
+                mc.options.keyJump.setDown(false);
+                SelfTest.jump(533);
+            }
+            case 533 -> {
+                if (SelfTest.local() % 20 == 0) flyLog();
+                if (SelfTest.local() == 20) h0 = (float) mc.player.getY(); // erst nach dem Ausgleiten messen
+                if (!after(120)) return;
+                float drift = (float) mc.player.getY() - h0;
                 Module fly = TeizenClient.modules().byName("fly");
-                int sent = mc.player != null ? ((dev.teizen.client.modules.Fly) fly).protectedPackets - n0 : -1;
+                int sent = ((dev.teizen.client.modules.Fly) fly).protectedPackets - n0;
                 shot("69-fly-antikick");
                 cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
                 if (fly.isEnabled()) fly.setEnabled(false);
                 t("///set fly doppelsprung an");
-                result("Fly-AntiKick: 140 Ticks geflogen, rausgeworfen=" + yes(flag1) + ", AntiKick-Pakete=" + sent + " " + ok(!flag1 && sent > 0));
+                result(String.format(Locale.ROOT, "Fly-AntiKick: 140 Ticks hoch + 100 Ticks schweben, rausgeworfen=nein, AntiKick-Durchgänge=%d, Höhe beim Schweben verändert um %.2f %s",
+                        sent, drift, ok(sent > 0 && Math.abs(drift) < 0.3f)));
                 SelfTest.jump(526);
             }
             case 526 -> {
