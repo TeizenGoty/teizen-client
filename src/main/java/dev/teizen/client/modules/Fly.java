@@ -115,7 +115,6 @@ public final class Fly extends Module {
                 }
             }
         }
-        }
         // Lavaschutz: diesen Tick in Lava gesunken -> zurück auf die Höhe vom letzten Paket
         if (f != null && f.isEnabled() && f.lavaGuard.on() && p.getAbilities().flying && !Double.isNaN(sentY) && p.getY() < sentY
                 && fluidIn(p.getBoundingBox(), true)) {
