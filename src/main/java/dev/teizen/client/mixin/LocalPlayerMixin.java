@@ -33,4 +33,10 @@ public abstract class LocalPlayerMixin {
         if (dev.teizen.client.modules.Criticals.onSendPosition()) { ci.cancel(); return; }
         dev.teizen.client.modules.Fly.beforeSendPosition(); // ändert nur die Höhe, das normale Paket geht raus
     }
+
+    /** Fly: "am Boden" galt nur für dieses Paket. */
+    @Inject(method = "sendPosition", at = @At("RETURN"))
+    private void teizen$afterPosition(CallbackInfo ci) {
+        dev.teizen.client.modules.Fly.afterSendPosition();
+    }
 }

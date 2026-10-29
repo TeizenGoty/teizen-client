@@ -648,6 +648,45 @@ final class Round11Tests {
                 result("Seed: Menü-Feld leeren entfernt den eigenen Seed=" + yes(removed) + ", Anzeige danach '" + p1 + "', Restzeit-Format: "
                         + dev.teizen.client.core.Seed.durationText(45_000) + " / " + dev.teizen.client.core.Seed.durationText(750_000) + " / " + dev.teizen.client.core.Seed.durationText(4_000_000) + " " + ok(removed));
                 if (seed0 != null) dev.teizen.client.core.Seed.set(seed0);
+                SelfTest.jump(543);
+            }
+            // ---------------------------------------------- Fly + Sprint schnell runter: kein Fallschaden (vorher zufälliger Schaden)
+            case 543 -> {
+                if (!after(5)) return;
+                area = o.offset(60, 0, 60);
+                cmd("fill " + blk(area.offset(-2, -1, -2)) + " " + blk(area.offset(2, -1, 2)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-2, 0, -2)) + " " + blk(area.offset(2, 90, 2)) + " minecraft:air");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY() + 80, area.getZ() + 0.5));
+                cmd("effect give @s minecraft:instant_health 1 10");
+                t("///set fly doppelsprung aus");
+                t("///set fly tempo 3");
+                Module fly = TeizenClient.modules().byName("fly");
+                if (!fly.isEnabled()) fly.setEnabled(true);
+                next();
+            }
+            case 544 -> {
+                if (!after(30)) return;
+                h0 = mc.player.getHealth();
+                maxY = (float) mc.player.getY();
+                d0 = ((dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly")).groundPackets;
+                mc.options.keySprint.setDown(true);
+                mc.options.keyShift.setDown(true);
+                next();
+            }
+            case 545 -> {
+                if (!after(80)) return;
+                mc.options.keySprint.setDown(false);
+                mc.options.keyShift.setDown(false);
+                var fly = (dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly");
+                float hp = mc.player.getHealth();
+                float fell = maxY - (float) mc.player.getY();
+                int spoof = fly.groundPackets - d0;
+                shot("71-fly-sprint-runter");
+                fly.setEnabled(false);
+                t("///set fly tempo 2");
+                t("///set fly doppelsprung an");
+                result(String.format(Locale.ROOT, "Fly + Sprint schnell runter: %.0f Blöcke gefallen, Leben %.1f -> %.1f, 'am Boden'-Pakete=%d %s",
+                        fell, h0, hp, spoof, ok(fell > 40 && hp >= h0 - 0.01f && spoof > 0)));
                 SelfTest.jump(526);
             }
             case 526 -> {

@@ -66,19 +66,10 @@ public final class Fly extends Module {
         double f = sprint ? Math.max(1, sprintFactor.num() / 2.0) : 1;
         a.setFlyingSpeed((float) (0.05 * speed.num() * f));
         if (!a.flying) {
-            // nicht am Fliegen (z.B. nach 2x Leertaste in der Luft): Fallschaden verhindern
-            lastY = mc.player.getY();
-            if (noFall.on() && !mc.player.onGround() && mc.player.fallDistance > 1.5 && !mc.player.isCreative()) {
-                groundPacket();
-                mc.player.fallDistance = 0;
-            }
+            // nicht am Fliegen (z.B. nach 2x Leertaste in der Luft): Fallschaden verhindert beforeSendPosition
+            if (noFall.on()) mc.player.fallDistance = 0;
             return;
         }
-        // Beim Runterfliegen dem Server sagen, dass wir stehen: so sammelt sich keine Fallhöhe an -> kein Fallschaden beim Landen
-        double y = mc.player.getY();
-        if (dipped) dipped = false;
-        else if (noFall.on() && !Double.isNaN(lastY) && y < lastY - 0.001 && !mc.player.isCreative()) groundPacket();
-        lastY = y;
         if (antiKick.on() && floatStage == 0 && !mc.player.onGround() && ++ticks % 20 == 0) floatStage = 3;
     }
 
@@ -119,24 +110,38 @@ public final class Fly extends Module {
                     p.setPos(p.getX(), p.getY() + up, p.getZ());
             }
         }
+        // Fallschutz: beim Runtergehen sagt das NORMALE Bewegungs-Paket "am Boden" -> der Server zählt keine
+        // Fallhöhe (vorher ein Extra-Paket pro Tick: mit Sprint fällt man >3 Blöcke/Tick -> trotzdem Schaden)
+        if (f != null && f.noFall.on() && (f.isEnabled() || f.guardUntilGround) && !p.isCreative() && !p.isSpectator()
+                && !p.onGround() && !Double.isNaN(sentY) && p.getY() < sentY - 0.001) {
+            p.setOnGround(true);
+            groundSpoofed = true;
+            f.groundPackets++;
+        }
         sentY = p.getY();
+    }
+
+    private static boolean groundSpoofed;
+    /** Wie oft beim Runtergehen "am Boden" gemeldet wurde (Selbsttest). */
+    public int groundPackets;
+
+    /** Ende von LocalPlayer.sendPosition (Mixin): "am Boden" nur für das Paket, danach wieder normal. */
+    public static void afterSendPosition() {
+        if (!groundSpoofed) return;
+        groundSpoofed = false;
+        var p = mc.player;
+        if (p == null) return;
+        p.setOnGround(false);
+        p.fallDistance = 0;
     }
 
     @Override
     public String info() { return Setting.fmt(speed.num()) + (mc.player != null && !mc.player.getAbilities().flying ? " §8(2x Leertaste)" : ""); }
 
-    private void groundPacket() {
-        mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.StatusOnly(true, mc.player.horizontalCollision));
-        protectedPackets++;
-    }
-
     /** Läuft jeden Tick (auch wenn Fly aus ist): Schutz nach dem Ausschalten in der Luft. */
     public void fallGuard() {
         if (!guardUntilGround || isEnabled() || !inGame()) return;
         if (mc.player.onGround() || mc.player.isInWater() || mc.player.getAbilities().flying) { guardUntilGround = false; return; }
-        if (mc.player.fallDistance > 1.5) {
-            groundPacket();
-            mc.player.fallDistance = 0;
-        }
+        mc.player.fallDistance = 0; // die Pakete meldet beforeSendPosition als "am Boden"
     }
 }
