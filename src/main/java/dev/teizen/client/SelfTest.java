@@ -98,6 +98,7 @@ public final class SelfTest {
     }
 
     private static boolean after(int t) { return ticks - stepStart >= t; }
+    public static int ticksInStep() { return ticks - stepStart; }
 
     private static void next() {
         step++;

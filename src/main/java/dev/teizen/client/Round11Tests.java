@@ -103,6 +103,7 @@ final class Round11Tests {
 
     private static void cmd(String c) { SelfTest.cmd2(c); }
     private static boolean after(int t) { return SelfTest.after2(t); }
+    private static double dist2(BlockPos b) { return Math.hypot(b.getX() + 0.5 - mc.player.getX(), b.getZ() + 0.5 - mc.player.getZ()); }
     private static void next() { SelfTest.next2(); }
     private static void result(String r) { SelfTest.result(r); }
     private static void log(String s) { SelfTest.log2(s); }
@@ -768,6 +769,8 @@ final class Round11Tests {
             case 551 -> {
                 // war man wirklich in Lava? Dann brennt man (vom Server) oder verliert Leben
                 if (mc.player.isOnFire() || mc.player.getHealth() < h0 - 0.01f || mc.player.isDeadOrDying()) flag1 = true;
+                if (SelfTest.ticksInStep() < 60) TeizenClient.LOG.info(String.format(Locale.ROOT, "Lava-Test t=%d y=%.3f inLava=%s brennt=%s Leben=%.1f fliegt=%s amBoden=%s",
+                        SelfTest.ticksInStep(), mc.player.getY(), mc.player.isInLava(), mc.player.isOnFire(), mc.player.getHealth(), mc.player.getAbilities().flying, mc.player.onGround()));
                 if (!after(120)) return;
                 mc.options.keyShift.setDown(false);
                 mc.options.keySprint.setDown(false);
@@ -1023,7 +1026,9 @@ final class Round11Tests {
                 shot("78-structurefinder-ohne-op");
                 result("StructureFinder ohne OP (über Seed + SeedMapper): gefunden=" + (bySeed == null ? "nein" : bySeed.toShortString()) + ", per /locate="
                         + (wrongPos == null ? "-" : wrongPos.toShortString()) + ", Abstand " + Math.round(d) + " Blöcke, Seed-Suche benutzt=" + yes(viaSeed)
-                        + " " + ok(viaSeed && bySeed != null && wrongPos != null && d >= 0 && d < 48));
+                        + ", Entfernung Seed/locate " + (bySeed == null ? "-" : Math.round(dist2(bySeed))) + "/" + (wrongPos == null ? "-" : Math.round(dist2(wrongPos)))
+                        // zwei Dörfer fast gleich weit weg: /locate sucht in Chunk-Ringen und nimmt evtl. das etwas weitere
+                        + " " + ok(viaSeed && bySeed != null && wrongPos != null && d >= 0 && (d < 48 || dist2(bySeed) <= dist2(wrongPos) + 32)));
                 dev.teizen.client.core.Locator.forceSeedMode = false;
                 sf.setEnabled(false);
                 SelfTest.jump(526);

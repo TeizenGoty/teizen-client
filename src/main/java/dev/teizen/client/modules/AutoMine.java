@@ -290,6 +290,7 @@ public final class AutoMine extends Module {
     /** Einen Block für den Weg setzen. @return false wenn es nicht geht (dann neuen Weg suchen) */
     private MinePath.Step placeStep;
     private int placeTicks;
+    private double pillarLastY = -1e9;
 
     private boolean placeTick(MinePath.Step step) {
         BlockPos at = step.place();
@@ -308,7 +309,11 @@ public final class AutoMine extends Module {
             hasWant = false;
             if (mc.player.onGround() && mc.player.getY() < at.getY() + 0.5) { mc.options.keyJump.setDown(true); return true; }
             mc.options.keyJump.setDown(false);
-            if (mc.player.getY() < at.getY() + 1.0) return true;
+            // erst setzen, wenn man JETZT und schon im letzten Tick (= was der Server kennt) über dem Platz ist,
+            // sonst steht man beim Server noch drin und er lehnt den Block ab
+            double y = mc.player.getY(), last = pillarLastY;
+            pillarLastY = y;
+            if (y < at.getY() + 1.0 || last < at.getY() + 1.0) return true;
             return clickFace(at.below(), net.minecraft.core.Direction.UP, at);
         }
         // Brücke: an die Seite eines festen Nachbarn klicken (meist der Block, auf dem man steht)

@@ -126,6 +126,9 @@ public final class Fly extends Module {
             double top = lavaTop(p.getBoundingBox());
             if (!Double.isNaN(top) && p.getY() < top + 0.3) {
                 var up = p.getBoundingBox().move(0, top + 0.3 - p.getY(), 0);
+                if (dev.teizen.client.SelfTest.ACTIVE && f.lavaSaves % 5 == 0)
+                    dev.teizen.client.TeizenClient.LOG.info(String.format(java.util.Locale.ROOT, "Lavaschutz: y %.3f -> %.3f (Oberkante %.2f, frei=%s, gesendet zuletzt %.3f, gedippt=%s)",
+                            p.getY(), top + 0.3, top, mc.level.noCollision(p, up), sentY, !Double.isNaN(restoreY)));
                 if (mc.level.noCollision(p, up)) {
                     p.setPos(p.getX(), top + 0.3, p.getZ());
                     p.setDeltaMovement(p.getDeltaMovement().x, Math.max(0, p.getDeltaMovement().y), p.getDeltaMovement().z);
