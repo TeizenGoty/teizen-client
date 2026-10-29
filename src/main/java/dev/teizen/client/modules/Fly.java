@@ -20,7 +20,7 @@ public final class Fly extends Module {
     public int protectedPackets;
     private int ticks;
     private boolean hadMayfly;
-    /** Anti-Kick: 1 = beim nächsten Bewegungs-Paket kurz absenken. */
+    /** Anti-Kick: noch so viele Bewegungs-Pakete kurz absenken. */
     private int floatStage;
     /** Gerade selbst abgesenkt -> dafür kein Fallschutz-Paket schicken. */
     private boolean dipped;
@@ -76,12 +76,12 @@ public final class Fly extends Module {
         if (dipped) dipped = false;
         else if (noFall.on() && !Double.isNaN(lastY) && y < lastY - 0.001 && !mc.player.isCreative()) groundPacket();
         lastY = y;
-        if (antiKick.on() && floatStage == 0 && !mc.player.onGround() && ++ticks % 20 == 0) floatStage = 1;
+        if (antiKick.on() && floatStage == 0 && !mc.player.onGround() && ++ticks % 20 == 0) floatStage = 3;
     }
 
     /**
      * Gegen den Server-Rauswurf "Flying is not enabled on this server!" (schwebt zu lange), wie bei Wurst:
-     * alle 20 Ticks sinkt man ECHT ein kleines Stück (0.07 unter das letzte Paket), direkt bevor Minecraft
+     * alle 20 Ticks sinkt man 3 Ticks lang ECHT ein kleines Stück (je 0.05 unter das letzte Paket), direkt bevor Minecraft
      * sein normales Bewegungs-Paket schickt. Der Server sieht eine Abwärtsbewegung und setzt seinen
      * Schwebe-Zähler zurück. Nur das normale Paket – nie zwei pro Tick (26.3 wirft sonst raus).
      * Aus LocalPlayer.sendPosition (Mixin, Anfang).
@@ -90,14 +90,17 @@ public final class Fly extends Module {
         var p = mc.player;
         if (p == null) return;
         Fly f = dev.teizen.client.TeizenClient.modules().get(Fly.class);
-        if (f != null && f.floatStage == 1) {
-            f.floatStage = 0;
-            if (f.isEnabled() && p.getAbilities().flying && !p.onGround() && !Double.isNaN(sentY)) {
-                double dy = Math.min(p.getY(), sentY) - 0.07 - p.getY();
+        if (f != null && f.floatStage > 0) {
+            // 3 Ticks hintereinander: der Server wertet pro Tick nur das letzte Paket aus und bekommt manchmal
+            // zwei auf einmal – so endet sicher mindestens ein Server-Tick mit einer Abwärtsbewegung
+            f.floatStage--;
+            if (!f.isEnabled() || !p.getAbilities().flying || p.onGround()) f.floatStage = 0;
+            else if (!Double.isNaN(sentY)) {
+                double dy = Math.min(p.getY(), sentY) - 0.05 - p.getY();
                 if (mc.level != null && mc.level.noCollision(p, p.getBoundingBox().move(0, dy, 0))) {
                     p.setPos(p.getX(), p.getY() + dy, p.getZ());
                     f.dipped = true;
-                    f.protectedPackets++;
+                    if (f.floatStage == 0) f.protectedPackets++;
                     if (dev.teizen.client.SelfTest.ACTIVE)
                         dev.teizen.client.TeizenClient.LOG.info(String.format(java.util.Locale.ROOT, "Fly-AntiKick: abgesenkt um %.3f auf %.3f (letztes Paket %.3f)", -dy, p.getY(), sentY));
                 }
