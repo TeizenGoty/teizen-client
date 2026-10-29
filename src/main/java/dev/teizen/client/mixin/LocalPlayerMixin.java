@@ -26,11 +26,11 @@ public abstract class LocalPlayerMixin {
 
     /**
      * Eigenes Positions-Paket statt des normalen (nie zwei pro Tick, sonst Rauswurf auf 26.3):
-     * Criticals (Krit-Ticks) und Fly-AntiKick (gegen "schwebt zu lange"). Immer nur eins von beiden.
+     * Criticals (Krit-Ticks). Fly-AntiKick senkt vorher nur kurz die Höhe (kein eigenes Paket).
      */
     @Inject(method = "sendPosition", at = @At("HEAD"), cancellable = true)
     private void teizen$critPosition(CallbackInfo ci) {
         if (dev.teizen.client.modules.Criticals.onSendPosition()) { ci.cancel(); return; }
-        if (dev.teizen.client.modules.Fly.onSendPositionFloat()) ci.cancel();
+        dev.teizen.client.modules.Fly.beforeSendPosition(); // ändert nur die Höhe, das normale Paket geht raus
     }
 }

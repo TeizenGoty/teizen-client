@@ -20,9 +20,12 @@ public final class Fly extends Module {
     public int protectedPackets;
     private int ticks;
     private boolean hadMayfly;
-    /** Anti-Kick über zwei Ticks (nie zwei Pakete in einem Tick – sonst wirft 26.3 raus). */
+    /** Anti-Kick: 1 = beim nächsten Bewegungs-Paket kurz absenken. */
     private int floatStage;
-    private double floatY;
+    /** Gerade selbst abgesenkt -> dafür kein Fallschutz-Paket schicken. */
+    private boolean dipped;
+    /** Höhe beim letzten Bewegungs-Paket. */
+    private static double sentY = Double.NaN;
 
     public Fly() {
         super("Fly", Category.BEWEGUNG, "Du kannst fliegen wie im Kreativmodus.");
@@ -70,36 +73,37 @@ public final class Fly extends Module {
         }
         // Beim Runterfliegen dem Server sagen, dass wir stehen: so sammelt sich keine Fallhöhe an -> kein Fallschaden beim Landen
         double y = mc.player.getY();
-        if (noFall.on() && !Double.isNaN(lastY) && y < lastY - 0.001 && !mc.player.isCreative()) groundPacket();
+        if (dipped) dipped = false;
+        else if (noFall.on() && !Double.isNaN(lastY) && y < lastY - 0.001 && !mc.player.isCreative()) groundPacket();
         lastY = y;
-        if (antiKick.on() && floatStage == 0 && !mc.player.onGround() && ++ticks % 15 == 0) floatStage = 1;
+        if (antiKick.on() && floatStage == 0 && !mc.player.onGround() && ++ticks % 20 == 0) floatStage = 1;
     }
 
     /**
-     * Gegen den Server-Rauswurf "Flying is not enabled on this server!" (schwebt zu lange):
-     * über zwei Ticks dem Server eine echte Abwärtsbewegung zeigen. Dabei wird das normale Bewegungs-Paket
-     * ERSETZT (nie zwei in einem Tick – sonst wirft 26.3 mit "Invalid move player packet" raus).
-     * Die Abwärtsbewegung ist absolut (Tick 2 liegt fest unter Tick 1), darum wirkt sie auch beim Steigen.
-     * Sichtbar bewegt sich nichts – nur das Paket "lügt" kurz. Aus LocalPlayer.sendPosition (Mixin).
-     * @return true = normales Paket in diesem Tick nicht schicken.
+     * Gegen den Server-Rauswurf "Flying is not enabled on this server!" (schwebt zu lange), wie bei Wurst:
+     * alle 20 Ticks sinkt man ECHT ein kleines Stück (0.07 unter das letzte Paket), direkt bevor Minecraft
+     * sein normales Bewegungs-Paket schickt. Der Server sieht eine Abwärtsbewegung und setzt seinen
+     * Schwebe-Zähler zurück. Nur das normale Paket – nie zwei pro Tick (26.3 wirft sonst raus).
+     * Aus LocalPlayer.sendPosition (Mixin, Anfang).
      */
-    public static boolean onSendPositionFloat() {
-        Fly f = dev.teizen.client.TeizenClient.modules().get(Fly.class);
-        if (f == null || !f.isEnabled() || !f.inGame() || f.floatStage == 0) return false;
+    public static void beforeSendPosition() {
         var p = mc.player;
-        if (p == null || p.onGround() || !p.getAbilities().flying) { f.floatStage = 0; return false; }
-        double x = p.getX(), z = p.getZ();
-        boolean hc = p.horizontalCollision;
-        if (f.floatStage == 1) {
-            f.floatY = p.getY();
-            p.connection.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Pos(x, f.floatY, z, false, hc));
-            f.floatStage = 2;
-            return true;
+        if (p == null) return;
+        Fly f = dev.teizen.client.TeizenClient.modules().get(Fly.class);
+        if (f != null && f.floatStage == 1) {
+            f.floatStage = 0;
+            if (f.isEnabled() && p.getAbilities().flying && !p.onGround() && !Double.isNaN(sentY)) {
+                double dy = Math.min(p.getY(), sentY) - 0.07 - p.getY();
+                if (mc.level != null && mc.level.noCollision(p, p.getBoundingBox().move(0, dy, 0))) {
+                    p.setPos(p.getX(), p.getY() + dy, p.getZ());
+                    f.dipped = true;
+                    f.protectedPackets++;
+                    if (dev.teizen.client.SelfTest.ACTIVE)
+                        dev.teizen.client.TeizenClient.LOG.info(String.format(java.util.Locale.ROOT, "Fly-AntiKick: abgesenkt um %.3f auf %.3f (letztes Paket %.3f)", -dy, p.getY(), sentY));
+                }
+            }
         }
-        p.connection.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Pos(x, f.floatY - 0.1, z, false, hc));
-        f.floatStage = 0;
-        f.protectedPackets++;
-        return true;
+        sentY = p.getY();
     }
 
     @Override

@@ -37,6 +37,13 @@ final class Round11Tests {
 
     private Round11Tests() {}
 
+    /** Fly-AntiKick-Test: Server hat uns rausgeworfen ("schwebt zu lange") -> Ergebnis melden, Test beenden. */
+    static void flyKicked() {
+        if (mc.options != null) mc.options.keyJump.setDown(false);
+        result("Fly-AntiKick: 140 Ticks geflogen, rausgeworfen=ja (Server: schwebt zu lange) FEHLER");
+        SelfTest.finish2();
+    }
+
     private static void cmd(String c) { SelfTest.cmd2(c); }
     private static boolean after(int t) { return SelfTest.after2(t); }
     private static void next() { SelfTest.next2(); }
@@ -455,10 +462,13 @@ final class Round11Tests {
                 ac.setEnabled(true);
                 n0 = ac.clutches;
                 flag1 = false;
+                flag2 = false;
                 next();
             }
             case 525 -> {
-                if (mc.player.onGround()) flag1 = true;
+                // erst wirklich in der Luft gewesen sein (direkt nach dem Teleport meldet der Client oft noch "am Boden")
+                if (!mc.player.onGround()) flag2 = true;
+                if (flag2 && mc.player.onGround()) flag1 = true;
                 if (!flag1 && !after(120)) return;
                 var ac = TeizenClient.modules().get(dev.teizen.client.modules.AutoClutch.class);
                 float hp = mc.player.getHealth();
@@ -488,15 +498,19 @@ final class Round11Tests {
                 SelfTest.jump(532);
             }
             case 532 -> {
-                boolean gone = mc.player == null || mc.level == null || mc.gui.screen() instanceof net.minecraft.client.gui.screens.DisconnectedScreen;
-                if (gone) flag1 = true;
-                if (!flag1 && !after(140)) return; // Vanilla wirft normal nach ~80 Ticks raus
+                if (SelfTest.local() % 20 == 0) {
+                    Module fl = TeizenClient.modules().byName("fly");
+                    log(String.format(Locale.ROOT, "Fly-AntiKick %d: y=%.2f fliegt=%s an=%s Pakete=%d", SelfTest.local(), mc.player.getY(),
+                            mc.player.getAbilities().flying, fl.isEnabled(), ((dev.teizen.client.modules.Fly) fl).protectedPackets - n0));
+                }
+                if (!after(140)) return; // Vanilla wirft normal nach ~80 Ticks raus
                 if (mc.options != null) mc.options.keyJump.setDown(false);
                 Module fly = TeizenClient.modules().byName("fly");
                 int sent = mc.player != null ? ((dev.teizen.client.modules.Fly) fly).protectedPackets - n0 : -1;
+                shot("69-fly-antikick");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
                 if (fly.isEnabled()) fly.setEnabled(false);
                 t("///set fly doppelsprung an");
-                shot("69-fly-antikick");
                 result("Fly-AntiKick: 140 Ticks geflogen, rausgeworfen=" + yes(flag1) + ", AntiKick-Pakete=" + sent + " " + ok(!flag1 && sent > 0));
                 SelfTest.jump(526);
             }

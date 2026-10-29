@@ -111,6 +111,11 @@ public final class SelfTest {
         if (ticks > 20 * 60 * 20) { log("ZEITÜBERSCHREITUNG – beende"); finish(); return; }
         if (step == RECONNECT_STEP) { reconnectTick(); return; }
         if (step == COMBATLOG_STEP) { combatLogTick(); return; }
+        // Fly-AntiKick-Test: wurde man rausgeworfen, gleich melden und beenden (sonst hängt der Test ohne Welt)
+        if (step == 532 && (mc.player == null || mc.gui.screen() instanceof net.minecraft.client.gui.screens.DisconnectedScreen)) {
+            Round11Tests.flyKicked();
+            return;
+        }
         if (mc.player == null || mc.level == null) return;
         // Sicherheitsnetz: stirbt der Testspieler (z.B. Monster in der Testwelt), sofort wiederbeleben und weitermachen
         if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.DeathScreen || (mc.player.isDeadOrDying() && mc.player.deathTime > 10)) {
