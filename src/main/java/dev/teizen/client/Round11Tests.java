@@ -785,13 +785,41 @@ final class Round11Tests {
                 double above = mc.player.getY() - (area.getY() - 1);
                 shot("72-fly-lava");
                 int saves = fly.lavaSaves - d0;
+                result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter: gebrannt/Schaden=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx, vorher gestoppt %dx %s",
+                        yes(flag1), above, h0, hp, saves, fly.lavaStops, ok(!flag1 && hp >= h0 - 0.01f && above > 0)));
+                // zweiter Teil: man ist schon IN der Lava (kurz berührt / reingeschoben) -> muss sofort raus, nicht weiter reingezogen
+                cmd("fill " + blk(area.offset(-4, -3, -4)) + " " + blk(area.offset(4, -3, 4)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-4, -2, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:lava");
+                cmd("effect give @s minecraft:instant_health 1 10");
+                SelfTest.jump(5511);
+            }
+            case 5511 -> {
+                if (!after(15)) return;
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %.1f %.1f 0 0", area.getX() + 0.5, area.getY() - 1.6, area.getZ() + 0.5));
+                n0 = 0; flag1 = false; d0 = -1;
+                next();
+            }
+            case 5512 -> {
+                // warten bis der Teleport in die Lava ankam
+                if (mc.player.getY() > area.getY() - 0.5 && !after(40)) return;
+                h0 = mc.player.getHealth();
+                next();
+            }
+            case 5513 -> {
+                if (mc.player.isInLava()) n0++;
+                if (mc.player.isDeadOrDying()) flag1 = true;
+                if (!after(100)) return;
+                var fly = (dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly");
+                float hp = mc.player.getHealth();
+                double above = mc.player.getY() - area.getY();
+                shot("72b-fly-in-lava");
                 cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
                 fly.setEnabled(false);
                 t("///set fly doppelsprung an");
-                cmd("fill " + blk(area.offset(-4, -1, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-4, -3, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:stone");
                 cmd("effect clear @s minecraft:fire_resistance");
-                result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter: gebrannt/Schaden=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx, vorher gestoppt %dx %s",
-                        yes(flag1), above, h0, hp, saves, fly.lavaStops, ok(!flag1 && hp >= h0 - 0.01f && above > 0)));
+                result(String.format(Locale.ROOT, "Fly schon in der Lava: Ticks in Lava %d, jetzt %.2f über der Lava, Leben %.1f -> %.1f, gestorben=%s %s",
+                        n0, above, h0, hp, yes(flag1), ok(!flag1 && n0 <= 5 && above >= 0.5 && hp > 4)));
                 SelfTest.jump(552);
             }
             // ---------------------------------------------- AutoMine: große Ader (4 Diamanten, 10 m) vor Einzelblock (5 m)
