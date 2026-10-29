@@ -330,6 +330,38 @@ public final class Commands {
                 }
             }
             case "hudedit", "hudeditor" -> mc.execute(() -> mc.gui.setScreen(new dev.teizen.client.gui.HudEditorScreen(null)));
+            case "schematic", "schematics", "schematik", "bauplan", "baupläne", "schems" -> {
+                if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica")) {
+                    Chat.error("Dafür brauchst du Litematica. Hol dir die Mods mit ///mods oder aus dem Menü.");
+                    return;
+                }
+                if (a.length >= 2) {
+                    String sub = a[1].toLowerCase(Locale.ROOT);
+                    if (sub.equals("einfügen") || sub.equals("einfuegen") || sub.equals("paste") || sub.equals("kopieren")) {
+                        dev.teizen.client.util.SchematicPaste.start();
+                        return;
+                    }
+                    if (sub.equals("stop") || sub.equals("abbrechen") || sub.equals("aus")) {
+                        dev.teizen.client.util.SchematicPaste.cancel();
+                        Chat.info("Einfügen abgebrochen.");
+                        return;
+                    }
+                    if (sub.startsWith("http")) {
+                        dev.teizen.client.util.Downloader.download(a[1], dev.teizen.client.compat.LitematicaCompat.schematicsDir(),
+                                name -> Chat.ok("Geladen: §f" + name + "§a – öffne ///schematics zum Bauen."),
+                                Chat::error);
+                        return;
+                    }
+                    if (sub.equals("laden") || sub.equals("download")) {
+                        if (a.length < 3) { Chat.error("///schematic laden <Link>"); return; }
+                        dev.teizen.client.util.Downloader.download(a[2], dev.teizen.client.compat.LitematicaCompat.schematicsDir(),
+                                name -> Chat.ok("Geladen: §f" + name + "§a – öffne ///schematics zum Bauen."),
+                                Chat::error);
+                        return;
+                    }
+                }
+                mc.execute(() -> mc.gui.setScreen(new dev.teizen.client.gui.SchematicsScreen(null)));
+            }
             case "panic", "alleaus", "panik" -> {
                 int n = dev.teizen.client.modules.PanicButton.panic();
                 Chat.ok("Alle Funktionen aus (" + n + " ausgeschaltet).");
@@ -534,6 +566,8 @@ public final class Commands {
         Chat.raw("§d///shulker §7– alle Shulker im Inventar ausräumen (kurz hinstellen, gute Sachen nehmen, wieder einpacken)");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
         Chat.raw("§d///autobuild laden <Datei> §7– Schematic aus dem schematics-Ordner genau bei dir platzieren");
+        Chat.raw("§d///schematics §7– Fenster: alle Schematics durchsuchen, per Link laden, mit einem Klick §fBauen§7 (AutoBuild) oder §fEinfügen§7 (sofort, mit OP)");
+        Chat.raw("§d///schematic <Link> §7– Schematic direkt herunterladen · §d///schematic einfügen §7– geladene sofort einfügen (OP)");
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");
         Chat.raw("§d///find chest [Chunks] §7| §d///find biome <Name> §7| §d///find structure <Name> §7| §d///find clear");
         Chat.raw("§d///friend add <Name> §7– wird nicht angegriffen");

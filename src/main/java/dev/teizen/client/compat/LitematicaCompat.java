@@ -68,4 +68,22 @@ public final class LitematicaCompat {
         }
         return out;
     }
+
+    /** Alle Schematic-Dateien im Ordner (auch Unterordner), relativer Name. */
+    public static java.util.List<String> listSchematics() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        java.nio.file.Path dir = schematicsDir();
+        if (dir == null || !java.nio.file.Files.isDirectory(dir)) return out;
+        try (var stream = java.nio.file.Files.walk(dir, 6)) {
+            stream.filter(java.nio.file.Files::isRegularFile).forEach(f -> {
+                String n = f.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
+                if (n.endsWith(".litematic") || n.endsWith(".schem") || n.endsWith(".schematic") || n.endsWith(".nbt"))
+                    out.add(dir.relativize(f).toString().replace('\\', '/'));
+            });
+        } catch (Exception e) {
+            dev.teizen.client.TeizenClient.LOG.warn("Schematics lesen ging nicht", e);
+        }
+        out.sort(String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
 }

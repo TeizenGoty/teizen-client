@@ -31,6 +31,7 @@ final class Round11Tests {
     private static int n0;
     private static float maxY;
     private static BlockPos wrongPos;
+    private static java.util.List<int[]> pasteRegion = java.util.List.of();
     /** Was vor Runde 11 an war (danach wieder so herstellen, z.B. AutoTotem für den CombatLog-Test). */
     private static final java.util.List<String> before = new java.util.ArrayList<>();
 
@@ -346,7 +347,47 @@ final class Round11Tests {
                         + ok(n0 > 0 && done && wrongFixed && underFeet));
                 if (ab.isEnabled()) t("///autobuild");
                 cmd("attribute @s minecraft:block_interaction_range base reset");
+                SelfTest.jump(527);
+            }
+            // ---------------------------------------------- Schematic-Fenster: listen/suchen + sofort einfügen (mit OP)
+            case 527 -> {
+                if (!after(10)) return;
+                var scr = new dev.teizen.client.gui.SchematicsScreen(null);
+                boolean lists = scr.testListContains("teizentest");
+                int all = scr.testSearch("");
+                int none = scr.testSearch("gibtsnicht_xyz");
+                int hit = scr.testSearch("teizentest");
+                boolean filters = all >= 1 && none == 0 && hit >= 1;
+                result("Schematic-Fenster: Test-Schematic gelistet=" + yes(lists) + ", Suche filtert (" + all + "→" + hit + ", nichts=" + none + ") " + ok(lists && filters));
+                shot("66b-schematic-fenster");
+                // Bau-Bereich leeren, damit das Einfügen wirklich Blöcke setzen muss
+                pasteRegion = dev.teizen.client.compat.LitematicaCompat.regionBoxes();
+                for (int[] r : pasteRegion) cmd("fill " + r[0] + " " + r[1] + " " + r[2] + " " + r[3] + " " + r[4] + " " + r[5] + " minecraft:air");
                 next();
+            }
+            case 528 -> {
+                if (!after(10)) return;
+                n0 = dev.teizen.client.util.SchematicPaste.start();
+                log("Einfügen gestartet: " + n0 + " Blöcke");
+                next();
+            }
+            case 529 -> {
+                if (dev.teizen.client.util.SchematicPaste.running()) { if (!after(600)) return; }
+                else if (!after(40)) return; // kurz warten, bis die gesetzten Blöcke beim Client ankommen
+                int blocks = 0, okc = 0;
+                for (int[] r : pasteRegion) {
+                    for (BlockPos p : BlockPos.betweenClosed(r[0], r[1], r[2], r[3], r[4], r[5])) {
+                        var want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+                        if (want == null || want.isAir()) continue;
+                        blocks++;
+                        if (mc.level.getBlockState(p) == want) okc++;
+                    }
+                }
+                boolean good = n0 > 0 && blocks > 0 && okc == blocks;
+                shot("66c-schematic-eingefuegt");
+                result("Schematic einfügen (sofort, mit OP): " + okc + "/" + blocks + " Blöcke gesetzt (Start " + n0 + ") " + ok(good));
+                dev.teizen.client.util.SchematicPaste.cancel();
+                SelfTest.jump(519);
             }
             // ---------------------------------------------- Favorit per Mittelklick (prüft die Maustasten-Zuordnung für 26.3)
             case 519 -> {
