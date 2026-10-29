@@ -665,7 +665,8 @@ final class Round11Tests {
                 next();
             }
             case 544 -> {
-                if (!after(30)) return;
+                // erst lange schweben (vorher sammelte der Server dabei Fallhöhe an -> Tod beim Runterfliegen)
+                if (!after(220)) return;
                 h0 = mc.player.getHealth();
                 maxY = (float) mc.player.getY();
                 d0 = ((dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly")).groundPackets;
@@ -685,7 +686,7 @@ final class Round11Tests {
                 fly.setEnabled(false);
                 t("///set fly tempo 2");
                 t("///set fly doppelsprung an");
-                result(String.format(Locale.ROOT, "Fly + Sprint schnell runter: %.0f Blöcke gefallen, Leben %.1f -> %.1f, 'am Boden'-Pakete=%d %s",
+                result(String.format(Locale.ROOT, "Fly: 200 Ticks schweben, dann mit Sprint schnell runter: %.0f Blöcke gefallen, Leben %.1f -> %.1f, 'am Boden'-Pakete=%d %s",
                         fell, h0, hp, spoof, ok(fell > 40 && hp >= h0 - 0.01f && spoof > 0)));
                 SelfTest.jump(546);
             }
@@ -718,6 +719,48 @@ final class Round11Tests {
                 sf.setEnabled(false);
                 cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
                 cmd("effect clear @s minecraft:slow_falling");
+                SelfTest.jump(549);
+            }
+            // ---------------------------------------------- Fly über Lava mit Shift runter: Lavaschutz, nie in Lava
+            case 549 -> {
+                if (!after(20)) return;
+                area = o.offset(-60, 0, 60);
+                cmd("fill " + blk(area.offset(-4, -2, -4)) + " " + blk(area.offset(4, -2, 4)) + " minecraft:stone");
+                cmd("fill " + blk(area.offset(-4, -1, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:lava");
+                cmd("fill " + blk(area.offset(-4, 0, -4)) + " " + blk(area.offset(4, 30, 4)) + " minecraft:air");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", area.getX() + 0.5, area.getY() + 20, area.getZ() + 0.5));
+                cmd("effect give @s minecraft:instant_health 1 10");
+                t("///set fly doppelsprung aus");
+                Module fly = TeizenClient.modules().byName("fly");
+                if (!fly.isEnabled()) fly.setEnabled(true);
+                flag1 = false;
+                next();
+            }
+            case 550 -> {
+                if (!after(30)) return;
+                h0 = mc.player.getHealth();
+                d0 = ((dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly")).lavaSaves;
+                mc.options.keyShift.setDown(true);
+                mc.options.keySprint.setDown(true);
+                next();
+            }
+            case 551 -> {
+                if (mc.player.isInLava() || mc.player.isOnFire()) flag1 = true;
+                if (!after(120)) return;
+                mc.options.keyShift.setDown(false);
+                mc.options.keySprint.setDown(false);
+                var fly = (dev.teizen.client.modules.Fly) TeizenClient.modules().byName("fly");
+                float hp = mc.player.getHealth();
+                double above = mc.player.getY() - (area.getY() - 1);
+                shot("72-fly-lava");
+                int saves = fly.lavaSaves - d0;
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
+                fly.setEnabled(false);
+                t("///set fly doppelsprung an");
+                cmd("fill " + blk(area.offset(-4, -1, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:stone");
+                cmd("effect clear @s minecraft:fire_resistance");
+                result(String.format(Locale.ROOT, "Fly über Lava mit Shift runter: in Lava/brennt=%s, Höhe über Lava %.2f, Leben %.1f -> %.1f, Lavaschutz griff %dx %s",
+                        yes(flag1), above, h0, hp, saves, ok(!flag1 && hp >= h0 - 0.01f && above > 0)));
                 SelfTest.jump(526);
             }
             case 526 -> {
