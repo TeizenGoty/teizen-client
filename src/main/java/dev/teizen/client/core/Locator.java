@@ -171,16 +171,75 @@ public final class Locator {
             if (++pendingTicks > 900) {
                 Request r = pending;
                 pending = null;
-                r.cb.failed("Keine Antwort vom Server auf /locate (" + r.label + ").");
+                r.cb.failed(viaSeed ? "Seed-Suche ohne Ergebnis (" + r.label + ")." : "Keine Antwort vom Server auf /locate (" + r.label + ").");
+                viaSeed = false;
             }
             return;
         }
         Request r = queue.poll();
         if (r == null) return;
+        // ohne OP (kein /locate): mit dem Seed über SeedMapper ausrechnen
+        if (forceSeedMode || !dev.teizen.client.util.ServerQuery.allowed("locate")) { seedLocate(r); return; }
         pending = r;
         pendingTicks = 0;
+        viaSeed = false;
         mc.player.connection.sendCommand("locate structure " + r.arg);
     }
+
+    /** Läuft die aktuelle Suche über den Seed (SeedMapper) statt /locate? */
+    private static boolean viaSeed;
+    /** Selbsttest: so tun, als hätte man kein OP. */
+    public static boolean forceSeedMode;
+    /** Wie oft schon über den Seed gesucht wurde (Selbsttest). */
+    public static int seedSearches;
+
+    private static void seedLocate(Request r) {
+        if (!dev.teizen.client.compat.SeedMapCompat.seedMapper()) {
+            r.cb.failed("Ohne OP findet der StructureFinder Strukturen über den Seed – dafür brauchst du die Mod SeedMapper.");
+            return;
+        }
+        Long seed = Seed.known();
+        if (seed == null) {
+            r.cb.failed("Ohne OP braucht der StructureFinder den Seed: " + Seed.whyUnknown()
+                    + " Oder selbst eingeben: StructureFinder -> seed.");
+            return;
+        }
+        dev.teizen.client.compat.SeedMapCompat.giveSeed(seed, false);
+        String name = r.arg.replace("#", "").replace("minecraft:", "");
+        if (name.equals("ruined_portal") && mc.level.dimension() == net.minecraft.world.level.Level.NETHER) name = "ruined_portal_nether";
+        String cmd = name.equals("stronghold") ? "sm:locate feature stronghold" : "sm:locate feature structure " + name;
+        pending = r;
+        pendingTicks = 0;
+        viaSeed = true;
+        seedSearches++;
+        String err = dev.teizen.client.compat.SeedMapCompat.runClientCommand(cmd);
+        if (err != null && pending == r) {
+            pending = null;
+            r.cb.failed(err.toLowerCase(Locale.ROOT).contains("couldn't locate")
+                    ? "Keine " + r.label + " in der Nähe gefunden (Seed " + seed + ")." : "Seed-Suche (" + r.label + "): " + err);
+        }
+    }
+
+    /** Antwort von SeedMapper (Client-Meldung). */
+    public static void onClientMessage(Component msg) {
+        if (pending == null || !viaSeed) return;
+        Set<String> keys = new HashSet<>();
+        collectKeys(msg, keys, 0);
+        boolean found = false;
+        for (String k : keys) if (k.startsWith("command.locate.feature") && k.endsWith("foundAt")) found = true;
+        if (!found) return;
+        Matcher m = NUMS.matcher(msg.getString());
+        List<Integer> n = new ArrayList<>();
+        while (m.find() && n.size() < 3) n.add(Integer.parseInt(m.group()));
+        if (n.size() < 2) return;
+        int x = n.get(0), y = n.size() == 3 ? n.get(1) : mc.player.blockPosition().getY(), z = n.size() == 3 ? n.get(2) : n.get(1);
+        Request r = pending;
+        pending = null;
+        viaSeed = false;
+        r.cb.found(new BlockPos(x, y, z), r.label);
+    }
+
+    private static final Pattern NUMS = Pattern.compile("-?\\d+");
 
     private static void collectKeys(Component c, Set<String> keys, int depth) {
         if (c == null || depth > 8) return;
@@ -192,7 +251,7 @@ public final class Locator {
     }
 
     private static void onMessage(Component msg) {
-        if (pending == null) return;
+        if (pending == null || viaSeed) return;
         Set<String> keys = new HashSet<>();
         collectKeys(msg, keys, 0);
         String text = msg.getString();

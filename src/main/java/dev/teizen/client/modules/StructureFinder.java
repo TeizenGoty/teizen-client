@@ -19,7 +19,8 @@ import java.util.Set;
 
 /**
  * Findet jede Struktur (Dorf, Festung, Antike Stadt, Bastion, ...): im Menü einfach anhaken.
- * In der eigenen Welt direkt, auf Servern per /locate (braucht OP). Zeigt Pfeil, Richtung, Entfernung und eine Linie.
+ * In der eigenen Welt direkt, auf Servern per /locate (OP) – ohne OP über den Seed (SeedCracker oder selbst eingegeben,
+ * ausgerechnet von SeedMapper). Zeigt Pfeil, Richtung, Entfernung und eine Linie.
  */
 public final class StructureFinder extends Module {
     public final Setting structures = add(Setting.multi("strukturen",
@@ -48,8 +49,7 @@ public final class StructureFinder extends Module {
     private int session;
 
     public StructureFinder() {
-        super("StructureFinder", Category.SICHT, "Findet Dörfer, Festungen und jede andere Struktur.");
-        opOnly();
+        super("StructureFinder", Category.SICHT, "Findet Dörfer, Festungen und jede andere Struktur (mit OP per /locate, ohne OP über den Seed).");
     }
 
     @Override

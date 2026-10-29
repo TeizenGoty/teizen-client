@@ -970,6 +970,40 @@ final class Round11Tests {
                         yes(flag1), yes(mc.player.isInWater()), h0, hp, ok(!flag1 && mc.player.isInWater() && hp >= h0 - 0.01f)));
                 nf.setEnabled(false);
                 cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
+                SelfTest.jump(571);
+            }
+            // ---------------------------------------------- StructureFinder ohne OP: über den Seed (SeedMapper) – gleiches Dorf wie /locate?
+            case 571 -> {
+                if (!after(20)) return;
+                dev.teizen.client.core.Locator.forceSeedMode = false;
+                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+                sf.structures.setText("village");
+                if (sf.isEnabled()) sf.setEnabled(false);
+                sf.setEnabled(true);
+                next();
+            }
+            case 572 -> {
+                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+                if (sf.found.isEmpty() && !after(400)) return;
+                wrongPos = sf.found.isEmpty() ? null : sf.found.get(0).pos(); // per /locate
+                sf.setEnabled(false);
+                dev.teizen.client.core.Locator.forceSeedMode = true; // so tun, als hätte man kein OP
+                n0 = dev.teizen.client.core.Locator.seedSearches;
+                sf.setEnabled(true);
+                next();
+            }
+            case 573 -> {
+                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+                boolean viaSeed = dev.teizen.client.core.Locator.seedSearches > n0;
+                if ((sf.found.isEmpty() || !viaSeed) && !after(500)) return;
+                BlockPos bySeed = sf.found.isEmpty() ? null : sf.found.get(0).pos();
+                double d = wrongPos == null || bySeed == null ? -1 : Math.hypot(wrongPos.getX() - bySeed.getX(), wrongPos.getZ() - bySeed.getZ());
+                shot("78-structurefinder-ohne-op");
+                result("StructureFinder ohne OP (über Seed + SeedMapper): gefunden=" + (bySeed == null ? "nein" : bySeed.toShortString()) + ", per /locate="
+                        + (wrongPos == null ? "-" : wrongPos.toShortString()) + ", Abstand " + Math.round(d) + " Blöcke, Seed-Suche benutzt=" + yes(viaSeed)
+                        + " " + ok(viaSeed && bySeed != null && wrongPos != null && d >= 0 && d < 48));
+                dev.teizen.client.core.Locator.forceSeedMode = false;
+                sf.setEnabled(false);
                 SelfTest.jump(526);
             }
             case 526 -> {

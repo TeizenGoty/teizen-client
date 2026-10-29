@@ -35,6 +35,24 @@ public final class SeedMapCompat {
         return true;
     }
 
+    /**
+     * Client-Befehl direkt ausführen (z.B. "sm:locate feature structure village").
+     * @return null wenn er lief, sonst die Fehlermeldung (z.B. "Couldn't locate structure ...")
+     */
+    public static String runClientCommand(String command) {
+        try {
+            var d = net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.getActiveDispatcher();
+            if (d == null || mc.getConnection() == null) return "Client-Befehle nicht bereit";
+            var src = (net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource) mc.getConnection().getSuggestionsProvider();
+            d.execute(command, src);
+            return null;
+        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+            return e.getRawMessage().getString();
+        } catch (Throwable t) {
+            return t.toString();
+        }
+    }
+
     /** Unsere Struktur-Namen -> Seed-Atlas-Markierungen. */
     private static String atlasMarker(String name) {
         return switch (name) {

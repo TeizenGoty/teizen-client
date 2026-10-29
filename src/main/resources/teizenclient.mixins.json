@@ -24,7 +24,8 @@
     "DefaultPlayerSkinAccessor",
     "LivingEntityMixin",
     "AbstractBoatMixin",
-    "ServerGamePacketListenerImplMixin"
+    "ServerGamePacketListenerImplMixin",
+    "ChatComponentMixin"
   ],
   "injectors": {
     "defaultRequire": 0
