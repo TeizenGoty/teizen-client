@@ -40,6 +40,8 @@ public final class Locator {
     public interface Callback {
         void found(BlockPos pos, String label);
         default void failed(String why) { Chat.error(why); }
+        /** Suche wurde abgebrochen (Verbindung weg, Welt lädt neu) – darf später neu versucht werden. */
+        default void aborted() {}
     }
 
     private record Request(String arg, String label, Callback cb) {}
@@ -157,7 +159,14 @@ public final class Locator {
     public static boolean busy() { return pending != null || !queue.isEmpty(); }
 
     public static void tick() {
-        if (mc.player == null) { queue.clear(); pending = null; return; }
+        if (mc.player == null) {
+            // keine Welt (Verbindung weg / lädt neu): offene Suchen abbrechen und Bescheid geben, damit sie neu gestartet werden
+            if (pending != null) pending.cb.aborted();
+            for (Request q : queue) q.cb.aborted();
+            queue.clear();
+            pending = null;
+            return;
+        }
         if (pending != null) {
             if (++pendingTicks > 900) {
                 Request r = pending;

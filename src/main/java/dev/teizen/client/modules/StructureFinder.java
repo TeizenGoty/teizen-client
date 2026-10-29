@@ -60,6 +60,7 @@ public final class StructureFinder extends Module {
         lastQuery = "";
         lastDim = null;
         if (inGame()) {
+            lastWorld = dev.teizen.client.core.Seed.worldKey();
             sync();
             if (autoSeed.on()) {
                 dev.teizen.client.core.Seed.fetch(sd -> {
@@ -122,32 +123,63 @@ public final class StructureFinder extends Module {
     protected void onDisable() {
         found.clear();
         searched.clear();
+        searchedAt.clear();
         session++;
     }
+
+    /** Ab so vielen Blöcken Abstand vom Such-Ort wird neu gesucht (die nächste Struktur kann jetzt eine andere sein). */
+    private static final int RESEARCH_DIST = 512;
+    /** Wo zuletzt nach welcher Struktur gesucht wurde. */
+    private final java.util.Map<String, BlockPos> searchedAt = new java.util.HashMap<>();
+    private String lastWorld;
+    private int tick;
+    /** Wie oft schon gesucht wurde (Selbsttest). */
+    public int searches;
 
     @Override
     public void onTick() {
         if (!inGame()) return;
-        if (lastDim != mc.level.dimension()) {
-            // andere Dimension: alles neu suchen
+        String world = dev.teizen.client.core.Seed.worldKey();
+        if (lastDim != mc.level.dimension() || !world.equals(lastWorld)) {
+            // andere Dimension oder andere Welt/Server: alles neu suchen
+            lastWorld = world;
             found.clear();
             searched.clear();
+            searchedAt.clear();
             session++;
             sync();
-        } else if (!structures.str().equals(lastQuery)) {
-            sync();
+            return;
         }
+        if (!structures.str().equals(lastQuery)) { sync(); return; }
+        if (++tick % 40 != 0) return;
+        // weit gelaufen -> nach dieser Struktur neu suchen (alte Markierung bleibt, bis die neue da ist)
+        BlockPos me = mc.player.blockPosition();
+        boolean again = false;
+        for (var e : new java.util.ArrayList<>(searchedAt.entrySet())) {
+            if (!searched.contains(e.getKey()) || dev.teizen.client.core.Locator.busy()) continue;
+            if (Math.abs(e.getValue().getX() - me.getX()) + Math.abs(e.getValue().getZ() - me.getZ()) > RESEARCH_DIST) {
+                searched.remove(e.getKey());
+                again = true;
+            }
+        }
+        // auch abgebrochene Suchen (Verbindung kurz weg) landen hier wieder
+        if (again || searched.size() < wanted().size()) sync();
+    }
+
+    private List<String> wanted() {
+        List<String> want = new ArrayList<>();
+        for (String n : structures.selected()) {
+            String p = Locator.primary(n);
+            if (!want.contains(p)) want.add(p);
+        }
+        return want;
     }
 
     /** Neu angehakte Strukturen suchen, abgehakte entfernen. */
     private void sync() {
         lastQuery = structures.str();
         lastDim = mc.level.dimension();
-        List<String> want = new ArrayList<>();
-        for (String n : structures.selected()) {
-            String p = Locator.primary(n);
-            if (!want.contains(p)) want.add(p);
-        }
+        List<String> want = wanted();
         searched.removeIf(n -> {
             if (want.contains(n)) return false;
             found.removeIf(f -> f.key().equals(n));
@@ -157,17 +189,22 @@ public final class StructureFinder extends Module {
         for (String name : want) {
             if (searched.contains(name)) continue;
             searched.add(name);
+            searchedAt.put(name, mc.player.blockPosition());
+            searches++;
             if (!Locator.inDimension(name, lastDim)) {
                 Chat.info(Locator.label(name) + " §7gibt es nur im §f" + Locator.dimensionText(name) + "§7.");
                 continue;
             }
-            Chat.info("Suche §f" + Locator.label(name) + "§7...");
+            boolean refresh = found.stream().anyMatch(f -> f.key().equals(name));
+            if (!refresh) Chat.info("Suche §f" + Locator.label(name) + "§7...");
             Locator.locate(name, new Locator.Callback() {
                 @Override
                 public void found(BlockPos pos, String label) {
                     if (!isEnabled() || my != session || !searched.contains(name)) return;
+                    boolean same = found.stream().anyMatch(f -> f.key().equals(name) && f.pos().equals(pos));
                     found.removeIf(f -> f.key().equals(name));
                     found.add(new Found(pos, label, name));
+                    if (same) return; // gleiche Struktur wie vorher – nicht nochmal melden
                     BlockPos me = mc.player.blockPosition();
                     long d = Math.round(Math.sqrt(Math.pow(pos.getX() - me.getX(), 2) + Math.pow(pos.getZ() - me.getZ(), 2)));
                     Chat.ok(label + " §7bei §f" + pos.getX() + " " + pos.getZ() + " §7(" + d + " Blöcke)");
@@ -176,6 +213,11 @@ public final class StructureFinder extends Module {
                 @Override
                 public void failed(String why) {
                     if (isEnabled() && my == session) Chat.error(why);
+                }
+
+                @Override
+                public void aborted() {
+                    if (my == session) searched.remove(name); // später neu versuchen
                 }
             });
         }

@@ -687,6 +687,37 @@ final class Round11Tests {
                 t("///set fly doppelsprung an");
                 result(String.format(Locale.ROOT, "Fly + Sprint schnell runter: %.0f Blöcke gefallen, Leben %.1f -> %.1f, 'am Boden'-Pakete=%d %s",
                         fell, h0, hp, spoof, ok(fell > 40 && hp >= h0 - 0.01f && spoof > 0)));
+                SelfTest.jump(546);
+            }
+            // ---------------------------------------------- StructureFinder: sucht nach weitem Laufen neu (statt ewig auf die alte zu zeigen)
+            case 546 -> {
+                if (!after(10)) return;
+                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+                sf.structures.setText("village");
+                if (sf.isEnabled()) sf.setEnabled(false);
+                sf.setEnabled(true);
+                next();
+            }
+            case 547 -> {
+                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+                if (sf.found.isEmpty() && !after(400)) return;
+                n0 = sf.searches;
+                wrongPos = sf.found.isEmpty() ? null : sf.found.get(0).pos();
+                cmd(String.format(Locale.ROOT, "tp @s %d 200 %d", o.getX() + 900, o.getZ() + 900));
+                cmd("effect give @s minecraft:slow_falling 60 0 true");
+                next();
+            }
+            case 548 -> {
+                var sf = TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
+                boolean again = sf.searches > n0;
+                boolean answered = again && !sf.found.isEmpty() && !dev.teizen.client.core.Locator.busy();
+                if (!answered && !after(500)) return;
+                BlockPos now = sf.found.isEmpty() ? null : sf.found.get(0).pos();
+                result("StructureFinder neu suchen: Dorf vorher=" + (wrongPos == null ? "-" : wrongPos.toShortString()) + ", nach 900 Blöcken Laufen neu gesucht=" + yes(again)
+                        + ", jetzt=" + (now == null ? "-" : now.toShortString()) + " " + ok(wrongPos != null && again && now != null));
+                sf.setEnabled(false);
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5));
+                cmd("effect clear @s minecraft:slow_falling");
                 SelfTest.jump(526);
             }
             case 526 -> {
