@@ -766,7 +766,7 @@ final class Round11Tests {
             }
             // ---------------------------------------------- Fly über Lava mit Shift runter: Lavaschutz, nie in Lava
             case 549 -> {
-                if (!after(20)) return;
+                if (!after(lavaVariantB ? 320 : 20)) return; // Variante B: erst das Feuer von Teil A ausbrennen lassen
                 area = o.offset(-25, 0, 25);
                 cmd("fill " + blk(area.offset(-4, -2, -4)) + " " + blk(area.offset(4, -2, 4)) + " minecraft:stone");
                 cmd("fill " + blk(area.offset(-4, -1, -4)) + " " + blk(area.offset(4, -1, 4)) + " minecraft:lava");
