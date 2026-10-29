@@ -467,7 +467,38 @@ final class Round11Tests {
                 result("AutoClutch: Sturz aus 14 Blöcken, Rettung gesetzt=" + yes(ac.clutches > n0) + ", gelandet=" + yes(flag1)
                         + ", Leben übrig " + String.format(Locale.ROOT, "%.0f", hp) + " " + ok(ac.clutches > n0 && survived));
                 ac.setEnabled(false);
+                SelfTest.jump(530);
+            }
+            // ---------------------------------------------- Fly-AntiKick: lange fliegen ohne Server-Rauswurf ("Flying is not enabled")
+            case 530 -> {
+                if (!after(10)) return;
+                // hoch in den freien Himmel, da fliegt man ungestört (kein Boden -> Server zählt "schwebt zu lange")
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", o.getX() + 0.5, o.getY() + 140, o.getZ() + 0.5));
+                t("///set fly doppelsprung aus");
+                t("///set fly antikick an");
                 next();
+            }
+            case 531 -> {
+                if (!after(10)) return;
+                Module fly = TeizenClient.modules().byName("fly");
+                if (!fly.isEnabled()) fly.setEnabled(true);
+                mc.options.keyJump.setDown(true); // steigen, nicht fallen
+                flag1 = false;
+                n0 = ((dev.teizen.client.modules.Fly) fly).protectedPackets;
+                SelfTest.jump(532);
+            }
+            case 532 -> {
+                boolean gone = mc.player == null || mc.level == null || mc.gui.screen() instanceof net.minecraft.client.gui.screens.DisconnectedScreen;
+                if (gone) flag1 = true;
+                if (!flag1 && !after(140)) return; // Vanilla wirft normal nach ~80 Ticks raus
+                if (mc.options != null) mc.options.keyJump.setDown(false);
+                Module fly = TeizenClient.modules().byName("fly");
+                int sent = mc.player != null ? ((dev.teizen.client.modules.Fly) fly).protectedPackets - n0 : -1;
+                if (fly.isEnabled()) fly.setEnabled(false);
+                t("///set fly doppelsprung an");
+                shot("69-fly-antikick");
+                result("Fly-AntiKick: 140 Ticks geflogen, rausgeworfen=" + yes(flag1) + ", AntiKick-Pakete=" + sent + " " + ok(!flag1 && sent > 0));
+                SelfTest.jump(526);
             }
             case 526 -> {
                 if (!after(5)) return;

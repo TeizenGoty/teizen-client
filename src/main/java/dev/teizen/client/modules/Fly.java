@@ -12,7 +12,7 @@ public final class Fly extends Module {
     private final Setting speed = add(Setting.number("tempo", "Flug-Tempo (1 = wie Kreativ, 0.5 = halb so schnell)", 2, 0.1, 10));
     private final Setting doubleJump = add(Setting.bool("doppelsprung", "Wie im Kreativ: 2x Leertaste zum Fliegen (aus = immer fliegen)", true));
     private final Setting sprintFactor = add(Setting.number("sprint", "Mit Sprinten so viel schneller", 8, 1, 20));
-    private final Setting antiKick = add(Setting.bool("antikick", "Kleine Abwärtsbewegung gegen Fly-Kick", true));
+    private final Setting antiKick = add(Setting.bool("antikick", "Gegen den Server-Rauswurf beim Fliegen ('Flying is not enabled') – zeigt dem Server kurz eine Abwärtsbewegung", true));
     private final Setting noFall = add(Setting.bool("fallschutz", "Kein Fallschaden beim Landen und nach dem Ausschalten in der Luft", true));
     /** Nach dem Ausschalten in der Luft: bis zur Landung vor Fallschaden schützen. */
     private boolean guardUntilGround;
@@ -68,10 +68,21 @@ public final class Fly extends Module {
         double y = mc.player.getY();
         if (noFall.on() && !Double.isNaN(lastY) && y < lastY - 0.001 && !mc.player.isCreative()) groundPacket();
         lastY = y;
-        if (antiKick.on() && ++ticks % 40 == 0 && !mc.player.onGround()) {
-            var v = mc.player.getDeltaMovement();
-            mc.player.setDeltaMovement(v.x, v.y - 0.04, v.z);
-        }
+        if (antiKick.on() && ++ticks % 10 == 0 && !mc.player.onGround()) floatReset();
+    }
+
+    /**
+     * Gegen den Server-Rauswurf "Flying is not enabled on this server!" (schwebt zu lange):
+     * dem Server eine echte Abwärtsbewegung zeigen (erst 0.04 hoch, dann wieder runter) – so wird sein
+     * Schwebe-Zähler zurückgesetzt, egal wie schnell man gerade steigt. Sichtbar bewegt sich nichts.
+     */
+    private void floatReset() {
+        double x = mc.player.getX(), y = mc.player.getY(), z = mc.player.getZ();
+        boolean hc = mc.player.horizontalCollision;
+        var c = mc.player.connection;
+        c.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Pos(x, y + 0.04, z, false, hc));
+        c.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Pos(x, y, z, false, hc));
+        protectedPackets++;
     }
 
     @Override
