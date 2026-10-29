@@ -20,6 +20,9 @@ public final class Fly extends Module {
     public int protectedPackets;
     private int ticks;
     private boolean hadMayfly;
+    /** Anti-Kick über zwei Ticks (nie zwei Pakete in einem Tick – sonst wirft 26.3 raus). */
+    private int floatStage;
+    private double floatY;
 
     public Fly() {
         super("Fly", Category.BEWEGUNG, "Du kannst fliegen wie im Kreativmodus.");
@@ -37,6 +40,7 @@ public final class Fly extends Module {
     protected void onDisable() {
         if (!inGame()) return;
         guardUntilGround = noFall.on() && !mc.player.onGround();
+        floatStage = 0;
         Abilities a = mc.player.getAbilities();
         if (!mc.player.isCreative() && !mc.player.isSpectator()) {
             a.flying = false;
@@ -68,21 +72,34 @@ public final class Fly extends Module {
         double y = mc.player.getY();
         if (noFall.on() && !Double.isNaN(lastY) && y < lastY - 0.001 && !mc.player.isCreative()) groundPacket();
         lastY = y;
-        if (antiKick.on() && ++ticks % 10 == 0 && !mc.player.onGround()) floatReset();
+        if (antiKick.on() && floatStage == 0 && !mc.player.onGround() && ++ticks % 15 == 0) floatStage = 1;
     }
 
     /**
      * Gegen den Server-Rauswurf "Flying is not enabled on this server!" (schwebt zu lange):
-     * dem Server eine echte Abwärtsbewegung zeigen (erst 0.04 hoch, dann wieder runter) – so wird sein
-     * Schwebe-Zähler zurückgesetzt, egal wie schnell man gerade steigt. Sichtbar bewegt sich nichts.
+     * über zwei Ticks dem Server eine echte Abwärtsbewegung zeigen. Dabei wird das normale Bewegungs-Paket
+     * ERSETZT (nie zwei in einem Tick – sonst wirft 26.3 mit "Invalid move player packet" raus).
+     * Die Abwärtsbewegung ist absolut (Tick 2 liegt fest unter Tick 1), darum wirkt sie auch beim Steigen.
+     * Sichtbar bewegt sich nichts – nur das Paket "lügt" kurz. Aus LocalPlayer.sendPosition (Mixin).
+     * @return true = normales Paket in diesem Tick nicht schicken.
      */
-    private void floatReset() {
-        double x = mc.player.getX(), y = mc.player.getY(), z = mc.player.getZ();
-        boolean hc = mc.player.horizontalCollision;
-        var c = mc.player.connection;
-        c.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Pos(x, y + 0.04, z, false, hc));
-        c.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Pos(x, y, z, false, hc));
-        protectedPackets++;
+    public static boolean onSendPositionFloat() {
+        Fly f = dev.teizen.client.TeizenClient.modules().get(Fly.class);
+        if (f == null || !f.isEnabled() || !f.inGame() || f.floatStage == 0) return false;
+        var p = mc.player;
+        if (p == null || p.onGround() || !p.getAbilities().flying) { f.floatStage = 0; return false; }
+        double x = p.getX(), z = p.getZ();
+        boolean hc = p.horizontalCollision;
+        if (f.floatStage == 1) {
+            f.floatY = p.getY();
+            p.connection.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Pos(x, f.floatY, z, false, hc));
+            f.floatStage = 2;
+            return true;
+        }
+        p.connection.send(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Pos(x, f.floatY - 0.1, z, false, hc));
+        f.floatStage = 0;
+        f.protectedPackets++;
+        return true;
     }
 
     @Override

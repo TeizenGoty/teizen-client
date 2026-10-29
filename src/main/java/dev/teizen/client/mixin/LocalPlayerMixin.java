@@ -24,9 +24,13 @@ public abstract class LocalPlayerMixin {
         if (n != null && n.items.on()) cir.setReturnValue(1.0f);
     }
 
-    /** Criticals (26.3): in den Krit-Ticks eigenes Positions-Paket statt des normalen (nie zwei pro Tick). */
+    /**
+     * Eigenes Positions-Paket statt des normalen (nie zwei pro Tick, sonst Rauswurf auf 26.3):
+     * Criticals (Krit-Ticks) und Fly-AntiKick (gegen "schwebt zu lange"). Immer nur eins von beiden.
+     */
     @Inject(method = "sendPosition", at = @At("HEAD"), cancellable = true)
     private void teizen$critPosition(CallbackInfo ci) {
-        if (dev.teizen.client.modules.Criticals.onSendPosition()) ci.cancel();
+        if (dev.teizen.client.modules.Criticals.onSendPosition()) { ci.cancel(); return; }
+        if (dev.teizen.client.modules.Fly.onSendPositionFloat()) ci.cancel();
     }
 }
