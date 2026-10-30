@@ -574,7 +574,7 @@ public final class Commands {
         Chat.raw("§d///shulker §7– alle Shulker im Inventar ausräumen (kurz hinstellen, gute Sachen nehmen, wieder einpacken)");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
         Chat.raw("§d///autobuild laden <Datei> §7– Schematic aus dem schematics-Ordner genau bei dir platzieren");
-        Chat.raw("§d///autobuild abbauen §7– alles, was zur platzierten Schematic gehört, wieder abbauen");
+        Chat.raw("§d///autobuild abbauen §7– im Bereich der platzierten Schematic Erde & Co. abbauen (Platz machen)");
         Chat.raw("§d///schematics §7– Fenster: alle Schematics durchsuchen, per Link laden, mit einem Klick §fBauen§7 (AutoBuild) oder §fEinfügen§7 (sofort, mit OP)");
         Chat.raw("§d///schematic <Link> §7– Schematic direkt herunterladen · §d///schematic einfügen §7– geladene sofort einfügen (OP)");
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");

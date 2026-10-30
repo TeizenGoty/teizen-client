@@ -116,6 +116,19 @@ final class Round11Tests {
         return n;
     }
 
+    /** Wie viele Blöcke im Schematic-Bereich gehören NICHT zur Schematic (Erde usw.)? */
+    private static int extraBlocks() {
+        int n = 0;
+        for (int[] r : pasteRegion)
+            for (BlockPos p : BlockPos.betweenClosed(r[0], r[1], r[2], r[3], r[4], r[5])) {
+                var want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+                var have = mc.level.getBlockState(p);
+                if (want == null || have.isAir()) continue;
+                if (want.isAir() || have.getBlock() != want.getBlock()) n++;
+            }
+        return n;
+    }
+
     private static double dist2(BlockPos b) { return Math.hypot(b.getX() + 0.5 - mc.player.getX(), b.getZ() + 0.5 - mc.player.getZ()); }
     private static void next() { SelfTest.next2(); }
     private static void result(String r) { SelfTest.result(r); }
@@ -470,24 +483,35 @@ final class Round11Tests {
             // ---------------------------------------------- Schematic abbauen: alles Gebaute wieder weg
             case 5291 -> {
                 if (!after(10)) return;
-                cmd("give @s minecraft:diamond_pickaxe");
-                cmd("give @s minecraft:diamond_axe");
+                // Bereich mit Erde zuschütten (wie Gelände, das im Weg ist); Spieler oben drauf
+                int top = Integer.MIN_VALUE, cx = 0, cz = 0;
+                for (int[] r : pasteRegion) {
+                    cmd("fill " + r[0] + " " + r[1] + " " + r[2] + " " + r[3] + " " + r[4] + " " + r[5] + " minecraft:dirt replace minecraft:air");
+                    if (r[4] > top) { top = r[4]; cx = (r[0] + r[3]) / 2; cz = (r[2] + r[5]) / 2; }
+                }
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", cx + 0.5, top + 1, cz + 0.5));
                 cmd("give @s minecraft:diamond_shovel");
+                cmd("give @s minecraft:diamond_pickaxe");
+                next();
+            }
+            case 5292 -> {
+                if (!after(30)) return;
                 n0 = schemBlocksLeft();
+                d0 = extraBlocks();
                 var b = TeizenClient.modules().get(dev.teizen.client.modules.AutoBuild.class);
                 if (b.isEnabled()) b.setEnabled(false);
                 b.demolish = true;
                 b.setEnabled(true);
                 next();
             }
-            case 5292 -> {
+            case 5293 -> {
                 var b = TeizenClient.modules().get(dev.teizen.client.modules.AutoBuild.class);
-                if (b.isEnabled() && !after(1500)) return;
+                if (b.isEnabled() && !after(2400)) return;
                 if (!after(20)) return;
-                int left = schemBlocksLeft();
-                shot("66d-schematic-abgebaut");
-                result("Schematic abbauen: vorher " + n0 + " Blöcke, jetzt noch " + left + ", abgebaut " + b.dugTotal + ", fertig gemeldet=" + yes(!b.isEnabled())
-                        + " " + ok(n0 > 0 && left <= Math.max(1, n0 / 20)));
+                int left = extraBlocks(), keep = schemBlocksLeft();
+                shot("66d-schematic-platz-gemacht");
+                result("Schematic-Bereich frei machen (Erde weg, Schematic bleibt): Erde vorher " + d0 + ", jetzt " + left + ", Schematic-Blöcke " + n0 + " -> " + keep
+                        + ", fertig gemeldet=" + yes(!b.isEnabled()) + " " + ok(d0 > 0 && left <= Math.max(2, d0 / 20) && keep >= n0 - 1));
                 if (b.isEnabled()) b.setEnabled(false);
                 SelfTest.jump(519);
             }

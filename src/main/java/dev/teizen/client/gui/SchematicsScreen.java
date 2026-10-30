@@ -123,7 +123,7 @@ public final class SchematicsScreen extends Screen {
 
         // Fuß
         g.fill(0, height - 14, width, height, 0xC0000000);
-        String foot = SchematicPaste.running() ? "§aFüge ein … noch " + SchematicPaste.remaining() + " Blöcke" : "§8Esc schließen · Mausrad scrollen · Abbauen = Gebautes wieder weg · Bauen = AutoBuild · Einfügen = sofort (OP)";
+        String foot = SchematicPaste.running() ? "§aFüge ein … noch " + SchematicPaste.remaining() + " Blöcke" : "§8Esc schließen · Mausrad scrollen · Abbauen = Erde im Bereich weg · Bauen = AutoBuild · Einfügen = sofort (OP)";
         g.centeredText(font, foot, width / 2, height - 11, 0xFFFFFFFF);
     }
 
@@ -218,7 +218,7 @@ public final class SchematicsScreen extends Screen {
         }
     }
 
-    /** Abbauen: die schon platzierte Schematic (mit diesem Namen) wieder abbauen – so wie sie in der Welt steht. */
+    /** Abbauen: im Bereich der platzierten Schematic alles abbauen, was nicht dazugehört (Erde usw.). */
     private void demolish(String name) {
         if (mc.player == null) return;
         String base = name.replaceAll("\\.(litematic|schem|schematic|nbt)$", "");
@@ -226,7 +226,7 @@ public final class SchematicsScreen extends Screen {
             // noch nicht platziert -> genau bei dir platzieren (dann siehst du das Hologramm und kannst es verschieben)
             String err = name.toLowerCase(Locale.ROOT).endsWith(".litematic") ? LitematicaCompat.loadAndPlace(name, mc.player.blockPosition()) : "Erst in Litematica laden und platzieren.";
             if (err != null) { Chat.error(err); return; }
-            Chat.info("§e" + base + "§7 war nicht platziert – jetzt bei dir platziert. Steht der Bau woanders: in Litematica verschieben, dann nochmal Abbauen.");
+            Chat.info("§e" + base + "§7 war nicht platziert – jetzt bei dir platziert. Soll der Platz woanders sein: in Litematica verschieben, dann nochmal Abbauen.");
             return;
         }
         AutoBuild b = TeizenClient.modules().get(AutoBuild.class);

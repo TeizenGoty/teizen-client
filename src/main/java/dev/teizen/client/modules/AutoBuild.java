@@ -76,7 +76,7 @@ public final class AutoBuild extends Module {
     private int wait;
     private int missingMsg;
     private int placedTotal;
-    /** Abbau-Modus: alles, was zur Schematic gehört, wieder abbauen (statt bauen). */
+    /** Abbau-Modus: im Schematic-Bereich alles abbauen, was nicht dazugehört (Erde usw.), ohne zu bauen. */
     public boolean demolish;
     private int idleTicks;
 
@@ -96,7 +96,7 @@ public final class AutoBuild extends Module {
         }
         cooldown.clear();
         idleTicks = 0;
-        if (demolish) Chat.info("AutoBuild §cbaut ab§7: alles, was zur platzierten Schematic gehört. Aus mit ///autobuild.");
+        if (demolish) Chat.info("AutoBuild §cmacht Platz§7: baut Erde & Co. im Schematic-Bereich ab (die Schematic selbst bleibt). Aus mit ///autobuild.");
         placedTotal = 0;
         dugTotal = 0;
         digging = null;
@@ -141,13 +141,15 @@ public final class AutoBuild extends Module {
         return dev.teizen.client.util.MinePath.canClear(mc.level, p);
     }
 
-    /** Abbau-Modus: steht hier ein Block, der zur Schematic gehört? (Gelände drumherum bleibt) */
+    /** Abbau-Modus ("Platz machen"): alles im Schematic-Bereich weg, was NICHT zur Schematic gehört
+     *  (Erde, Steine, Gras … wo Luft oder ein anderer Block hin soll). Was schon richtig steht, bleibt. */
     private boolean demolishTarget(BlockPos p, BlockState have, BlockState want) {
-        if (want == null || want.isAir() || have.getBlock() != want.getBlock()) return false;
+        if (want == null) return false;
+        if (!want.isAir() && have.getBlock() == want.getBlock()) return false;
         if (!dev.teizen.client.util.Breaker.canBreak(p) || !dev.teizen.client.util.MinePath.canClear(mc.level, p)) return false;
         // unter den eigenen Füßen nur, wenn man danach höchstens 3 Blöcke fällt
         if (p.equals(mc.player.blockPosition().below())) {
-            for (int i = 1; i <= 3; i++) if (dev.teizen.client.util.MinePath.solidFloor(mc.level, p.below(i))) return true;
+            for (int i = 2; i <= 4; i++) if (dev.teizen.client.util.MinePath.solidFloor(mc.level, p.below(i - 1))) return true;
             return false;
         }
         return true;
@@ -206,7 +208,7 @@ public final class AutoBuild extends Module {
             if (digTick(r, me, ri, eye)) { idleTicks = 0; releaseWalkKeys(); return; }
             walkToWork(me, eye);
             if (walkTarget == null && ++idleTicks > 60) {
-                Chat.ok("Schematic abgebaut (" + dugTotal + " Blöcke).");
+                Chat.ok("Schematic-Bereich frei gemacht (" + dugTotal + " Blöcke abgebaut).");
                 setEnabled(false);
             }
             return;
