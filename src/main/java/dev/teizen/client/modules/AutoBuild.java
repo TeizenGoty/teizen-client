@@ -76,6 +76,9 @@ public final class AutoBuild extends Module {
     private int wait;
     private int missingMsg;
     private int placedTotal;
+    /** Abbau-Modus: alles, was zur Schematic gehört, wieder abbauen (statt bauen). */
+    public boolean demolish;
+    private int idleTicks;
 
     public AutoBuild() {
         super("AutoBuild", Category.BAUEN, "Baut eine Litematica-Schematic automatisch nach.");
@@ -92,6 +95,8 @@ public final class AutoBuild extends Module {
             Chat.info("Lade zuerst eine Schematic in Litematica (Taste M) und platziere sie.");
         }
         cooldown.clear();
+        idleTicks = 0;
+        if (demolish) Chat.info("AutoBuild §cbaut ab§7: alles, was zur platzierten Schematic gehört. Aus mit ///autobuild.");
         placedTotal = 0;
         dugTotal = 0;
         digging = null;
@@ -102,6 +107,7 @@ public final class AutoBuild extends Module {
         if (digging != null) dev.teizen.client.util.Breaker.stop();
         digging = null;
         walkTarget = null;
+        demolish = false;
         releaseWalkKeys();
     }
 
@@ -123,6 +129,7 @@ public final class AutoBuild extends Module {
         BlockState have = mc.level.getBlockState(p);
         if (have.isAir() || !have.getFluidState().isEmpty()) return false;
         BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+        if (demolish) return demolishTarget(p, have, want);
         if (want == null || have == want) return false;
         if (!want.isAir()) {
             if (have.getBlock() == want.getBlock()) return false; // nur andere Drehung/Zustand -> nicht abreißen
@@ -132,6 +139,18 @@ public final class AutoBuild extends Module {
         // nicht unter den eigenen Füßen graben und nichts, wo Wasser/Lava nachlaufen würde
         if (p.equals(mc.player.blockPosition().below())) return false;
         return dev.teizen.client.util.MinePath.canClear(mc.level, p);
+    }
+
+    /** Abbau-Modus: steht hier ein Block, der zur Schematic gehört? (Gelände drumherum bleibt) */
+    private boolean demolishTarget(BlockPos p, BlockState have, BlockState want) {
+        if (want == null || want.isAir() || have.getBlock() != want.getBlock()) return false;
+        if (!dev.teizen.client.util.Breaker.canBreak(p) || !dev.teizen.client.util.MinePath.canClear(mc.level, p)) return false;
+        // unter den eigenen Füßen nur, wenn man danach höchstens 3 Blöcke fällt
+        if (p.equals(mc.player.blockPosition().below())) {
+            for (int i = 1; i <= 3; i++) if (dev.teizen.client.util.MinePath.solidFloor(mc.level, p.below(i))) return true;
+            return false;
+        }
+        return true;
     }
 
     /** Einen Tick abbauen. @return true wenn gerade abgebaut wird (dann diesen Tick nicht bauen) */
@@ -177,6 +196,21 @@ public final class AutoBuild extends Module {
         BlockPos me = mc.player.blockPosition();
         int ri = (int) Math.ceil(r);
         Vec3 eye = mc.player.getEyePosition();
+        if (demolish) {
+            try {
+                boxes = dev.teizen.client.compat.LitematicaCompat.regionBoxes();
+            } catch (Throwable t) {
+                boxes = java.util.List.of();
+            }
+            if (boxes.isEmpty()) { Chat.error("Keine platzierte Schematic zum Abbauen (in Litematica platzieren und anzeigen)."); setEnabled(false); return; }
+            if (digTick(r, me, ri, eye)) { idleTicks = 0; releaseWalkKeys(); return; }
+            walkToWork(me, eye);
+            if (walkTarget == null && ++idleTicks > 60) {
+                Chat.ok("Schematic abgebaut (" + dugTotal + " Blöcke).");
+                setEnabled(false);
+            }
+            return;
+        }
         if (dig.on()) {
             try {
                 boxes = dev.teizen.client.compat.LitematicaCompat.regionBoxes();
@@ -244,6 +278,7 @@ public final class AutoBuild extends Module {
 
     /** Ist an dieser Stelle noch etwas zu tun (bauen oder – wenn an – abbauen)? */
     private boolean isWork(BlockPos p) {
+        if (demolish) return mustDig(p);
         BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
         if (want == null) return false;
         BlockState have = mc.level.getBlockState(p);

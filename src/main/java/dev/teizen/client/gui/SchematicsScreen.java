@@ -107,9 +107,12 @@ public final class SchematicsScreen extends Screen {
             String name = shown.get(i);
             boolean hover = in(mouseX, mouseY, 8, y, width - 16, ROW_H - 1);
             g.fill(8, y, width - 8, y + ROW_H - 1, hover ? 0xE0362060 : 0xC0201038);
-            g.text(font, "§f" + fit(font, name, width - 16 - 150), 12, y + 4, 0xFFFFFFFF, false);
-            int bEin = width - 8 - 78, bBau = bEin - 62;
+            g.text(font, "§f" + fit(font, name, width - 16 - 220), 12, y + 4, 0xFFFFFFFF, false);
+            int bEin = width - 8 - 78, bBau = bEin - 62, bAb = bBau - 66;
             boolean hb = in(mouseX, mouseY, bBau, y + 1, 58, ROW_H - 3), he = in(mouseX, mouseY, bEin, y + 1, 74, ROW_H - 3);
+            boolean ha = in(mouseX, mouseY, bAb, y + 1, 62, ROW_H - 3);
+            g.fill(bAb, y + 1, bAb + 62, y + ROW_H - 2, ha ? 0xFFC03030 : 0xD0602020);
+            g.centeredText(font, "§fAbbauen", bAb + 31, y + 4, 0xFFFFFFFF);
             g.fill(bBau, y + 1, bBau + 58, y + ROW_H - 2, hb ? 0xFF2E9A50 : 0xD0245038);
             g.centeredText(font, "§fBauen", bBau + 29, y + 4, 0xFFFFFFFF);
             g.fill(bEin, y + 1, bEin + 74, y + ROW_H - 2, he ? 0xFF7A2CF0 : 0xD0402080);
@@ -120,7 +123,7 @@ public final class SchematicsScreen extends Screen {
 
         // Fuß
         g.fill(0, height - 14, width, height, 0xC0000000);
-        String foot = SchematicPaste.running() ? "§aFüge ein … noch " + SchematicPaste.remaining() + " Blöcke" : "§8Esc schließen · Mausrad scrollen · Bauen = AutoBuild · Einfügen = sofort (OP)";
+        String foot = SchematicPaste.running() ? "§aFüge ein … noch " + SchematicPaste.remaining() + " Blöcke" : "§8Esc schließen · Mausrad scrollen · Abbauen = Gebautes wieder weg · Bauen = AutoBuild · Einfügen = sofort (OP)";
         g.centeredText(font, foot, width / 2, height - 11, 0xFFFFFFFF);
     }
 
@@ -145,7 +148,8 @@ public final class SchematicsScreen extends Screen {
         urlFocused = false;
         int y = TOP;
         for (int i = scroll; i < shown.size() && y + ROW_H <= listBottom; i++) {
-            int bEin = width - 8 - 78, bBau = bEin - 62;
+            int bEin = width - 8 - 78, bBau = bEin - 62, bAb = bBau - 66;
+            if (in(mx, my, bAb, y + 1, 62, ROW_H - 3)) { demolish(shown.get(i)); return true; }
             if (in(mx, my, bBau, y + 1, 58, ROW_H - 3)) { build(shown.get(i), false); return true; }
             if (in(mx, my, bEin, y + 1, 74, ROW_H - 3)) { build(shown.get(i), true); return true; }
             y += ROW_H;
@@ -212,6 +216,24 @@ public final class SchematicsScreen extends Screen {
             Chat.ok("Baue §f" + name + "§a mit AutoBuild. Aus mit ///autobuild.");
             onClose();
         }
+    }
+
+    /** Abbauen: die schon platzierte Schematic (mit diesem Namen) wieder abbauen – so wie sie in der Welt steht. */
+    private void demolish(String name) {
+        if (mc.player == null) return;
+        String base = name.replaceAll("\\.(litematic|schem|schematic|nbt)$", "");
+        if (!LitematicaCompat.hasPlacement(base)) {
+            // noch nicht platziert -> genau bei dir platzieren (dann siehst du das Hologramm und kannst es verschieben)
+            String err = name.toLowerCase(Locale.ROOT).endsWith(".litematic") ? LitematicaCompat.loadAndPlace(name, mc.player.blockPosition()) : "Erst in Litematica laden und platzieren.";
+            if (err != null) { Chat.error(err); return; }
+            Chat.info("§e" + base + "§7 war nicht platziert – jetzt bei dir platziert. Steht der Bau woanders: in Litematica verschieben, dann nochmal Abbauen.");
+            return;
+        }
+        AutoBuild b = TeizenClient.modules().get(AutoBuild.class);
+        if (b.isEnabled()) b.setEnabled(false);
+        b.demolish = true;
+        b.setEnabled(true);
+        onClose();
     }
 
     private final Minecraft mc = Minecraft.getInstance();

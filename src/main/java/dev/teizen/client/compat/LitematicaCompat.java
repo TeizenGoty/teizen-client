@@ -46,6 +46,13 @@ public final class LitematicaCompat {
         return null;
     }
 
+    /** Gibt es schon eine Platzierung mit diesem Namen? */
+    public static boolean hasPlacement(String name) {
+        for (SchematicPlacement pl : DataManager.getSchematicPlacementManager().getAllSchematicsPlacements())
+            if (pl.getName().equalsIgnoreCase(name)) return true;
+        return false;
+    }
+
     public static int placementCount() {
         return DataManager.getSchematicPlacementManager().getAllSchematicsPlacements().size();
     }

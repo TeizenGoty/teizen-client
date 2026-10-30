@@ -163,6 +163,12 @@ public final class Commands {
             }
             case "autobuild", "build", "printer" -> {
                 AutoBuild b = mm.get(AutoBuild.class);
+                if (a.length >= 2 && (a[1].equalsIgnoreCase("abbauen") || a[1].equalsIgnoreCase("abreissen") || a[1].equalsIgnoreCase("demolish"))) {
+                    if (b.isEnabled()) b.setEnabled(false);
+                    b.demolish = true;
+                    b.setEnabled(true);
+                    return;
+                }
                 if (a.length >= 2 && (a[1].equalsIgnoreCase("laden") || a[1].equalsIgnoreCase("load"))) {
                     if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica")) { Chat.error("Dafür brauchst du die Mod Litematica."); return; }
                     if (a.length < 3) { Chat.error("///autobuild laden <Dateiname>  (Datei aus dem schematics-Ordner)"); return; }
@@ -568,6 +574,7 @@ public final class Commands {
         Chat.raw("§d///shulker §7– alle Shulker im Inventar ausräumen (kurz hinstellen, gute Sachen nehmen, wieder einpacken)");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
         Chat.raw("§d///autobuild laden <Datei> §7– Schematic aus dem schematics-Ordner genau bei dir platzieren");
+        Chat.raw("§d///autobuild abbauen §7– alles, was zur platzierten Schematic gehört, wieder abbauen");
         Chat.raw("§d///schematics §7– Fenster: alle Schematics durchsuchen, per Link laden, mit einem Klick §fBauen§7 (AutoBuild) oder §fEinfügen§7 (sofort, mit OP)");
         Chat.raw("§d///schematic <Link> §7– Schematic direkt herunterladen · §d///schematic einfügen §7– geladene sofort einfügen (OP)");
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");

@@ -105,6 +105,17 @@ final class Round11Tests {
 
     private static void cmd(String c) { SelfTest.cmd2(c); }
     private static boolean after(int t) { return SelfTest.after2(t); }
+    /** Wie viele Blöcke der Schematic stehen noch in der Welt? */
+    private static int schemBlocksLeft() {
+        int n = 0;
+        for (int[] r : pasteRegion)
+            for (BlockPos p : BlockPos.betweenClosed(r[0], r[1], r[2], r[3], r[4], r[5])) {
+                var want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+                if (want != null && !want.isAir() && mc.level.getBlockState(p).getBlock() == want.getBlock()) n++;
+            }
+        return n;
+    }
+
     private static double dist2(BlockPos b) { return Math.hypot(b.getX() + 0.5 - mc.player.getX(), b.getZ() + 0.5 - mc.player.getZ()); }
     private static void next() { SelfTest.next2(); }
     private static void result(String r) { SelfTest.result(r); }
@@ -454,6 +465,30 @@ final class Round11Tests {
                 shot("66c-schematic-eingefuegt");
                 result("Schematic einfügen (sofort, mit OP): " + okc + "/" + blocks + " Blöcke gesetzt (Start " + n0 + ") " + ok(good));
                 dev.teizen.client.util.SchematicPaste.cancel();
+                SelfTest.jump(5291);
+            }
+            // ---------------------------------------------- Schematic abbauen: alles Gebaute wieder weg
+            case 5291 -> {
+                if (!after(10)) return;
+                cmd("give @s minecraft:diamond_pickaxe");
+                cmd("give @s minecraft:diamond_axe");
+                cmd("give @s minecraft:diamond_shovel");
+                n0 = schemBlocksLeft();
+                var b = TeizenClient.modules().get(dev.teizen.client.modules.AutoBuild.class);
+                if (b.isEnabled()) b.setEnabled(false);
+                b.demolish = true;
+                b.setEnabled(true);
+                next();
+            }
+            case 5292 -> {
+                var b = TeizenClient.modules().get(dev.teizen.client.modules.AutoBuild.class);
+                if (b.isEnabled() && !after(1500)) return;
+                if (!after(20)) return;
+                int left = schemBlocksLeft();
+                shot("66d-schematic-abgebaut");
+                result("Schematic abbauen: vorher " + n0 + " Blöcke, jetzt noch " + left + ", abgebaut " + b.dugTotal + ", fertig gemeldet=" + yes(!b.isEnabled())
+                        + " " + ok(n0 > 0 && left <= Math.max(1, n0 / 20)));
+                if (b.isEnabled()) b.setEnabled(false);
                 SelfTest.jump(519);
             }
             // ---------------------------------------------- Favorit per Mittelklick (prüft die Maustasten-Zuordnung für 26.3)
