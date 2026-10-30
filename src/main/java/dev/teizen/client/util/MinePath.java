@@ -46,8 +46,12 @@ public final class MinePath {
     }
 
     /** Kosten um einen Block frei zu machen, oder -1 wenn verboten. */
+    /** Optional: diese Blöcke nie abbauen (z.B. AutoBuild: schon richtig stehende Schematic-Blöcke). */
+    public static java.util.function.Predicate<BlockPos> forbid;
+
     private static double clearCost(ClientLevel l, BlockPos p) {
         BlockState s = l.getBlockState(p);
+        if (forbid != null && !s.getCollisionShape(l, p).isEmpty() && forbid.test(p)) return -1;
         if (!s.getFluidState().isEmpty()) return -1;
         if (s.getCollisionShape(l, p).isEmpty()) return 0;
         float h = s.getDestroySpeed(l, p);

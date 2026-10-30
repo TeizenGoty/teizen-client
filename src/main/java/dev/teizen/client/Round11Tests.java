@@ -489,7 +489,12 @@ final class Round11Tests {
                     cmd("fill " + r[0] + " " + r[1] + " " + r[2] + " " + r[3] + " " + r[4] + " " + r[5] + " minecraft:dirt replace minecraft:air");
                     if (r[4] > top) { top = r[4]; cx = (r[0] + r[3]) / 2; cz = (r[2] + r[5]) / 2; }
                 }
-                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", cx + 0.5, top + 1, cz + 0.5));
+                // wie im echten Spiel: man steht NEBEN dem Bereich hinter einer Steinwand (muss sich durchgraben)
+                int[] r0 = pasteRegion.get(0);
+                int wx = r0[0] - 5, wy = r0[1], wz = (r0[2] + r0[5]) / 2;
+                cmd("fill " + (r0[0] - 6) + " " + (r0[1] - 1) + " " + (r0[2] - 1) + " " + (r0[0] - 1) + " " + (r0[4] + 1) + " " + (r0[5] + 1) + " minecraft:stone");
+                cmd("fill " + wx + " " + wy + " " + wz + " " + wx + " " + (wy + 1) + " " + wz + " minecraft:air");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f -90 0", wx + 0.5, wy, wz + 0.5));
                 cmd("give @s minecraft:diamond_shovel");
                 cmd("give @s minecraft:diamond_pickaxe");
                 next();
@@ -510,8 +515,8 @@ final class Round11Tests {
                 if (!after(20)) return;
                 int left = extraBlocks(), keep = schemBlocksLeft();
                 shot("66d-schematic-platz-gemacht");
-                result("Schematic-Bereich frei machen (Erde weg, Schematic bleibt): Erde vorher " + d0 + ", jetzt " + left + ", Schematic-Blöcke " + n0 + " -> " + keep
-                        + ", fertig gemeldet=" + yes(!b.isEnabled()) + " " + ok(d0 > 0 && left <= Math.max(2, d0 / 20) && keep >= n0 - 1));
+                result("Schematic-Bereich frei machen (Erde weg, Schematic bleibt, Start hinter Steinwand): Erde vorher " + d0 + ", jetzt " + left + ", Schematic-Blöcke " + n0 + " -> " + keep
+                        + ", durch die Wand gegraben " + b.pathDug + " Blöcke, fertig gemeldet=" + yes(!b.isEnabled()) + " " + ok(d0 > 0 && left <= Math.max(2, d0 / 20) && keep >= n0 - 1 && b.pathDug > 0));
                 if (b.isEnabled()) b.setEnabled(false);
                 SelfTest.jump(519);
             }

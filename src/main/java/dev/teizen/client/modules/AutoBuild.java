@@ -96,6 +96,7 @@ public final class AutoBuild extends Module {
         }
         cooldown.clear();
         idleTicks = 0;
+        path = null; walkTarget = null; unreachable.clear(); pathDug = 0;
         if (demolish) Chat.info("AutoBuild §cmacht Platz§7: baut Erde & Co. im Schematic-Bereich ab (die Schematic selbst bleibt). Aus mit ///autobuild.");
         placedTotal = 0;
         dugTotal = 0;
@@ -208,7 +209,8 @@ public final class AutoBuild extends Module {
             if (digTick(r, me, ri, eye)) { idleTicks = 0; releaseWalkKeys(); return; }
             walkToWork(me, eye);
             if (walkTarget == null && ++idleTicks > 60) {
-                Chat.ok("Schematic-Bereich frei gemacht (" + dugTotal + " Blöcke abgebaut).");
+                if (unreachable.isEmpty()) Chat.ok("Schematic-Bereich frei gemacht (" + dugTotal + " Blöcke abgebaut).");
+                else Chat.info("Fertig, soweit erreichbar (" + dugTotal + " Blöcke abgebaut). " + unreachable.size() + " Stelle(n) kam ich nicht hin (Lava/Wasser daneben?).");
                 setEnabled(false);
             }
             return;
@@ -256,26 +258,77 @@ public final class AutoBuild extends Module {
         else releaseWalkKeys();
     }
 
+    // ---- Weg zur Arbeit: echte Wegsuche, gräbt sich durch Wände (vorher lief er stur geradeaus gegen die Wand)
+    private List<dev.teizen.client.util.MinePath.Step> path;
+    private int pathIdx;
+    private BlockPos pathFor;
+    private BlockPos pathDig;
+    private int stuckTicks;
+    private Vec3 stuckPos;
+    private final Map<BlockPos, Integer> unreachable = new HashMap<>();
+    /** Für den Selbsttest: wie oft auf dem Weg ein Block im Weg abgebaut wurde. */
+    public int pathDug;
+
+    /** Steht hier schon der richtige Schematic-Block? (den nie für den Weg abbauen) */
+    private boolean keepBlock(BlockPos p) {
+        BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+        return want != null && !want.isAir() && mc.level.getBlockState(p).getBlock() == want.getBlock();
+    }
+
     /** Zur nächsten noch offenen Schematic-Stelle laufen, damit man selbst nichts tun muss. */
     private void walkToWork(BlockPos me, Vec3 eye) {
         if (mc.gui.screen() != null) { releaseWalkKeys(); return; }
-        if (walkTarget == null || !isWork(walkTarget) || --walkScan <= 0) {
-            walkTarget = findWork(me);
-            walkScan = 10;
+        unreachable.replaceAll((k, v) -> v - 1);
+        unreachable.values().removeIf(v -> v <= 0);
+        if (walkTarget == null || !isWork(walkTarget) || unreachable.containsKey(walkTarget) || --walkScan <= 0) {
+            BlockPos nt = findWork(me);
+            if (nt == null || !nt.equals(walkTarget)) path = null;
+            walkTarget = nt;
+            walkScan = 40;
         }
         if (walkTarget == null) { releaseWalkKeys(); return; }
-        Vec3 c = Vec3.atBottomCenterOf(walkTarget);
+        if (path == null || !walkTarget.equals(pathFor) || pathIdx >= path.size()) {
+            dev.teizen.client.util.MinePath.forbid = this::keepBlock;
+            try {
+                path = dev.teizen.client.util.MinePath.find(me, walkTarget, Math.min(range.num(), mc.player.blockInteractionRange()), 6000, false);
+            } finally {
+                dev.teizen.client.util.MinePath.forbid = null;
+            }
+            pathIdx = 0;
+            pathFor = walkTarget;
+            stuckTicks = 0;
+            if (path == null) { unreachable.put(walkTarget, 400); walkTarget = null; releaseWalkKeys(); return; }
+            if (path.isEmpty()) { releaseWalkKeys(); return; } // schon in Reichweite
+        }
+        var step = path.get(pathIdx);
+        // 1) Blöcke im Weg abbauen
+        for (BlockPos c : step.clear()) {
+            if (dev.teizen.client.util.MinePath.passable(mc.level, c)) continue;
+            if (keepBlock(c) || !dev.teizen.client.util.Breaker.canBreak(c) || !dev.teizen.client.util.MinePath.canClear(mc.level, c)) {
+                unreachable.put(walkTarget, 400); path = null; walkTarget = null; releaseWalkKeys(); return;
+            }
+            releaseWalkKeys();
+            if (!c.equals(pathDig)) { pathDig = c; stuckTicks = 0; }
+            if (dev.teizen.client.util.Breaker.tick(c, true, true)) { pathDug++; pathDig = null; }
+            if (++stuckTicks > 200) { dev.teizen.client.util.Breaker.stop(); unreachable.put(walkTarget, 400); path = null; walkTarget = null; }
+            return;
+        }
+        // 2) hinlaufen
+        Vec3 c = Vec3.atBottomCenterOf(step.pos());
         double dx = c.x - mc.player.getX(), dz = c.z - mc.player.getZ();
         double horiz = Math.sqrt(dx * dx + dz * dz);
-        if (horiz < 0.6) { releaseWalkKeys(); return; } // nah genug – der Bau-/Grab-Teil macht den Rest
+        if (mc.player.blockPosition().equals(step.pos()) && horiz < 0.35) { pathIdx++; stuckTicks = 0; releaseWalkKeys(); return; }
         float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
         mc.player.setYRot(yaw);
         mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(yaw, mc.player.getXRot(), mc.player.onGround(), mc.player.horizontalCollision));
-        mc.options.keyUp.setDown(true);
-        // hoch, wenn die Stelle über uns liegt oder etwas im Weg ist
-        boolean stepUp = c.y > mc.player.getY() + 0.6 || mc.player.horizontalCollision;
-        mc.options.keyJump.setDown(stepUp && mc.player.onGround());
-        mc.player.setSprinting(horiz > 2);
+        mc.options.keyUp.setDown(horiz > 0.2);
+        boolean up = step.kind() == dev.teizen.client.util.MinePath.Kind.UP || c.y > mc.player.getY() + 0.6;
+        mc.options.keyJump.setDown(up && mc.player.onGround());
+        mc.player.setSprinting(false);
+        // festgefahren? -> neuen Weg suchen, Ziel kurz meiden
+        Vec3 now = mc.player.position();
+        if (stuckPos == null || now.distanceToSqr(stuckPos) > 0.04) { stuckPos = now; stuckTicks = 0; }
+        else if (++stuckTicks > 60) { unreachable.put(walkTarget, 200); path = null; walkTarget = null; stuckTicks = 0; releaseWalkKeys(); }
     }
 
     /** Ist an dieser Stelle noch etwas zu tun (bauen oder – wenn an – abbauen)? */
@@ -294,12 +347,21 @@ public final class AutoBuild extends Module {
         double bd = Double.MAX_VALUE;
         int R = 14;
         for (BlockPos p : BlockPos.betweenClosed(me.offset(-R, -R, -R), me.offset(R, R, R))) {
-            if (!isWork(p)) continue;
+            if (!isWork(p) || unreachable.containsKey(p)) continue;
             double d = p.distSqr(me);
             if (d < bd) { bd = d; best = p.immutable(); }
         }
+        if (best != null || !demolish) return best;
+        // großer Bereich: in der Nähe nichts mehr -> den ganzen Schematic-Bereich absuchen
+        for (int[] b : boxes)
+            for (BlockPos p : BlockPos.betweenClosed(b[0], b[1], b[2], b[3], b[4], b[5])) {
+                double d = p.distSqr(me);
+                if (d >= bd || unreachable.containsKey(p) || !isWork(p)) continue;
+                bd = d; best = p.immutable();
+            }
         return best;
     }
+
 
     private static boolean needsSecondSlab(BlockState have, BlockState want) {
         return want.getBlock() instanceof SlabBlock && have.getBlock() == want.getBlock()
