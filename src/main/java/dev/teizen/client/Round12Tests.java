@@ -327,17 +327,28 @@ final class Round12Tests {
                 n1 = get(AntiHunger.class).hidden;
                 java.util.UUID u = mc.player.getUUID();
                 long hi = u.getMostSignificantBits(), lo = u.getLeastSignificantBits();
-                cmd(String.format(Locale.ROOT, "summon minecraft:wolf %d %d %d {Owner:[I;%d,%d,%d,%d],NoAI:1b}", a.getX() + 3, a.getY(), a.getZ() + 3,
-                        (int) (hi >> 32), (int) hi, (int) (lo >> 32), (int) lo));
+                cmd(String.format(Locale.ROOT, "summon minecraft:wolf %d %d %d {Owner:[I;%d,%d,%d,%d],owner:[I;%d,%d,%d,%d],Tame:1b,NoAI:1b}", a.getX() + 3, a.getY(), a.getZ() + 3,
+                        (int) (hi >> 32), (int) hi, (int) (lo >> 32), (int) lo, (int) (hi >> 32), (int) hi, (int) (lo >> 32), (int) lo));
                 mc.player.setYRot(0);
                 mc.options.keyUp.setDown(true);
                 mc.options.keySprint.setDown(true);
                 next();
             }
             case 626 -> {
+                if (local() == 15) { mc.options.keyUp.setDown(false); mc.options.keySprint.setDown(false); }
+                if (local() == 20) {
+                    // zum Wolf schauen (EntityOwner zeichnet nur, was im Bild ist)
+                    var wolves = mc.level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, mc.player.getBoundingBox().inflate(30),
+                            e -> e instanceof net.minecraft.world.entity.OwnableEntity);
+                    if (!wolves.isEmpty()) {
+                        var w = wolves.get(0);
+                        float[] r = dev.teizen.client.util.Rot.to(w.getBoundingBox().getCenter());
+                        mc.player.setYRot(r[0]); mc.player.setXRot(r[1]);
+                        var ref = ((net.minecraft.world.entity.OwnableEntity) w).getOwnerReference();
+                        log("Wolf Besitzer beim Client: " + (ref == null ? "keiner" : ref.getUUID()));
+                    } else log("kein Wolf gefunden");
+                }
                 if (!after(80)) return true;
-                mc.options.keyUp.setDown(false);
-                mc.options.keySprint.setDown(false);
                 int afk = get(AntiAFK.class).actions - n0, hid = get(AntiHunger.class).hidden - n1;
                 int light = get(LightOverlay.class).spots.size(), trail = get(Trail.class).points.size(), owner = get(EntityOwner.class).shown;
                 off(get(AntiAFK.class)); off(get(AntiHunger.class)); off(get(LightOverlay.class)); off(get(EntityOwner.class)); off(get(Trail.class));
@@ -442,11 +453,22 @@ final class Round12Tests {
                 }
             }
             if (text == null) return "(SignText?)";
+            StringBuilder names = new StringBuilder();
             for (var m : text.getClass().getMethods()) {
-                if (m.getName().equals("getMessage") && m.getParameterCount() == 2) return ((net.minecraft.network.chat.Component) m.invoke(text, 0, false)).getString();
-                if (m.getName().equals("getMessage") && m.getParameterCount() == 1) return ((net.minecraft.network.chat.Component) m.invoke(text, 0)).getString();
+                if (!net.minecraft.network.chat.Component.class.isAssignableFrom(m.getReturnType())) continue;
+                Class<?>[] ps = m.getParameterTypes();
+                names.append(m.getName()).append(java.util.Arrays.toString(ps)).append(' ');
+                if (ps.length == 2 && ps[0] == int.class && ps[1] == boolean.class) return ((net.minecraft.network.chat.Component) m.invoke(text, 0, false)).getString();
+                if (ps.length == 1 && ps[0] == int.class) return ((net.minecraft.network.chat.Component) m.invoke(text, 0)).getString();
             }
-            return "(getMessage?)";
+            // 26.3: Zeilen evtl. als Liste/Array
+            for (var m : text.getClass().getMethods()) {
+                if (m.getParameterCount() != 0) continue;
+                Object v = m.invoke(text);
+                if (v instanceof net.minecraft.network.chat.Component[] arr && arr.length > 0) return arr[0].getString();
+                if (v instanceof java.util.List<?> li && !li.isEmpty() && li.get(0) instanceof net.minecraft.network.chat.Component c) return c.getString();
+            }
+            return "(" + names + ")";
         } catch (Throwable t) {
             return "(" + t + ")";
         }

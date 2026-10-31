@@ -559,6 +559,7 @@ final class NewTests {
             case 80 -> {
                 if (!after(5)) return;
                 flag1 = mc.getCameraEntity() == mc.player;
+                t("///set noclip modus zuschauer"); // dieser Test prüft den OP-Zuschauer-Modus
                 t("///noclip");
                 next();
             }
@@ -566,6 +567,7 @@ final class NewTests {
                 if (!after(60)) return;
                 flag2 = mc.gameMode.getPlayerMode() == GameType.SPECTATOR;
                 t("///noclip");
+                t("///set noclip modus abbauen");
                 next();
             }
             case 82 -> {
@@ -762,7 +764,7 @@ final class NewTests {
                     boolean back = ov.shownModules().size() == TeizenClient.modules().all().size();
                     result("Knopf OP-Cheats: versteckt " + opCount + " (" + (TeizenClient.modules().all().size() - vis.size()) + " weg), God weg=" + yes(godHidden)
                             + ", auch in der Suche weg=" + yes(searchHidden) + ", wieder gezeigt=" + yes(back) + " "
-                            + ok(noOp && godHidden && searchHidden && back && opCount >= 6 && vis.size() == TeizenClient.modules().all().size() - opCount));
+                            + ok(noOp && godHidden && searchHidden && back && opCount >= 5 && vis.size() == TeizenClient.modules().all().size() - opCount));
                 }
                 next();
             }

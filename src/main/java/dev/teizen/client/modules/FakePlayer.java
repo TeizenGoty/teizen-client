@@ -34,6 +34,7 @@ public final class FakePlayer extends Module {
         dummy.setHealth(20f);
         if (copyArmor.on())
             for (EquipmentSlot s : EquipmentSlot.values()) dummy.setItemSlot(s, mc.player.getItemBySlot(s).copy());
+        dummy.setId(-31337); // eigene ID (sonst "Tried to access entity ID before ID assignment")
         mc.level.addEntity(dummy);
         level = mc.level;
     }
