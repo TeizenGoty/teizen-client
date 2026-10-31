@@ -59,7 +59,11 @@ public final class BetterBeacons extends Module {
             for (int i = 1; i < menu.slots.size(); i++) {
                 var st = menu.getSlot(i).getItem();
                 if (payment(st)) {
-                    mc.gameMode.handleContainerInput(menu.containerId, i, 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player);
+                    // Shift-Klick geht nur bei genau 1 Item -> Stapel nehmen, 1 reinlegen (Rechtsklick), Rest zurück
+                    var PU = net.minecraft.world.inventory.ContainerInput.PICKUP;
+                    mc.gameMode.handleContainerInput(menu.containerId, i, 0, PU, mc.player);
+                    mc.gameMode.handleContainerInput(menu.containerId, 0, 1, PU, mc.player);
+                    mc.gameMode.handleContainerInput(menu.containerId, i, 0, PU, mc.player);
                     return;
                 }
             }

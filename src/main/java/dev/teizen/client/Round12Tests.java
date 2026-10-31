@@ -656,7 +656,7 @@ final class Round12Tests {
             }
             // 26.3: Zeilen evtl. als Liste/Array
             for (var m : text.getClass().getMethods()) {
-                if (m.getParameterCount() != 0) continue;
+                if (m.getParameterCount() != 0 || m.getDeclaringClass() == Object.class) continue;
                 Object v = m.invoke(text);
                 if (v instanceof net.minecraft.network.chat.Component[] arr && arr.length > 0) return arr[0].getString();
                 if (v instanceof java.util.List<?> li && !li.isEmpty() && li.get(0) instanceof net.minecraft.network.chat.Component c) return c.getString();
