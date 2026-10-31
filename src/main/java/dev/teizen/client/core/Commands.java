@@ -370,6 +370,10 @@ public final class Commands {
                 }
                 mc.execute(() -> mc.gui.setScreen(new dev.teizen.client.gui.SchematicsScreen(null)));
             }
+            case "swarm" -> {
+                if (a.length >= 2) { Chat.info(dev.teizen.client.modules.Swarm.send(String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length)))); return; }
+                mm.get(dev.teizen.client.modules.Swarm.class).toggle();
+            }
             case "merken", "remember" -> {
                 if (a.length >= 2) dev.teizen.client.core.Restore.enabled = a[1].equalsIgnoreCase("an") || a[1].equalsIgnoreCase("on");
                 else dev.teizen.client.core.Restore.enabled = !dev.teizen.client.core.Restore.enabled;
@@ -580,6 +584,7 @@ public final class Commands {
         Chat.raw("§d///shulker §7– alle Shulker im Inventar ausräumen (kurz hinstellen, gute Sachen nehmen, wieder einpacken)");
         Chat.raw("§d///autobuild §7– Litematica-Schematic automatisch bauen (§f///autobuild speed 3§7)");
         Chat.raw("§d///autobuild laden <Datei> §7– Schematic aus dem schematics-Ordner genau bei dir platzieren");
+        Chat.raw("§d///swarm <Befehl> §7– Swarm-Chef: alle Helfer führen den Befehl aus (///swarm komm = alle zu dir)");
         Chat.raw("§d///autobuild abbauen §7– im Bereich der platzierten Schematic Erde & Co. abbauen (Platz machen)");
         Chat.raw("§d///schematics §7– Fenster: alle Schematics durchsuchen, per Link laden, mit einem Klick §fBauen§7 (AutoBuild) oder §fEinfügen§7 (sofort, mit OP)");
         Chat.raw("§d///schematic <Link> §7– Schematic direkt herunterladen · §d///schematic einfügen §7– geladene sofort einfügen (OP)");

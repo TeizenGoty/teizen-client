@@ -137,6 +137,15 @@ public final class ModuleManager {
         add(new Multitask());
         add(new Portals());
         add(new BetterTab());
+        add(new BetterChat());
+        add(new BookBot());
+        add(new BetterBeacons());
+        add(new AutoBrewer());
+        add(new EntityControl());
+        add(new NoRender());
+        add(new WallHack());
+        add(new HighwayBuilder());
+        add(new Swarm());
         add(new PanicButton());
     }
 

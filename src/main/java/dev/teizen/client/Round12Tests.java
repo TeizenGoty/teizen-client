@@ -21,6 +21,8 @@ final class Round12Tests {
     private static int n0, n1;
     private static float hp0, hpMe;
     private static boolean f1;
+    private static volatile boolean swarmOk;
+    private static volatile String swarmLine;
 
     private Round12Tests() {}
 
@@ -423,7 +425,197 @@ final class Round12Tests {
                 off(get(NoClip.class));
                 cmd("fill " + blk(a.offset(-1, 0, 2)) + " " + blk(a.offset(1, 2, 4)) + " minecraft:air");
                 result("NoClip ohne OP: durch 3 Blöcke Stein gegraben=" + yes(through) + " (" + d + " Blöcke abgebaut) " + ok(through && d >= 3));
+                SelfTest.jump(640);
+            }
+            // ================================================ Paket 2
+            // ------------------------------------------------ BetterChat: Uhrzeit + gleiche Nachrichten zusammen
+            case 640 -> {
+                if (!after(10)) return true;
+                tp(a.getX() + 0.5, a.getY(), a.getZ() + 0.5);
+                on(get(BetterChat.class));
+                n0 = get(BetterChat.class).merged; n1 = get(BetterChat.class).stamped;
+                for (int i = 0; i < 3; i++) mc.gui.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Teizen Spam-Test"));
+                int m = get(BetterChat.class).merged - n0, st = get(BetterChat.class).stamped - n1;
+                off(get(BetterChat.class));
+                result("BetterChat: Uhrzeit dran=" + yes(st >= 3) + ", 3x gleiche Nachricht zusammengefasst (" + m + "x) " + ok(st >= 3 && m >= 2));
                 next();
+            }
+            // ------------------------------------------------ WallHack + NoRender
+            case 641 -> {
+                on(get(FakePlayer.class));
+                on(get(WallHack.class));
+                on(get(NoRender.class));
+                cmd("weather rain");
+                next();
+            }
+            case 642 -> {
+                if (!after(40)) return true;
+                var fp = get(FakePlayer.class).dummy;
+                boolean glow = fp != null && mc.shouldEntityAppearGlowing(fp);
+                int hid = get(NoRender.class).hidden;
+                boolean fire = NoRender.fire();
+                cmd("weather clear");
+                off(get(WallHack.class)); off(get(FakePlayer.class)); off(get(NoRender.class));
+                result("WallHack: Spieler leuchtet durch Wände=" + yes(glow) + ", NoRender: Regen/Feuer ausgeblendet (" + hid + "x)=" + yes(hid > 0 && fire) + " " + ok(glow && hid > 0 && fire));
+                next();
+            }
+            // ------------------------------------------------ BookBot
+            case 643 -> {
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.4 with minecraft:writable_book");
+                next();
+            }
+            case 644 -> {
+                if (!after(10)) return true;
+                if (local() == 10) { n0 = get(BookBot.class).written; on(get(BookBot.class)); return true; }
+                if (!after(60)) return true;
+                var st = mc.player.getInventory().getItem(4);
+                var wb = st.get(net.minecraft.core.component.DataComponents.WRITABLE_BOOK_CONTENT);
+                int pages = wb == null ? 0 : wb.pages().size();
+                off(get(BookBot.class));
+                result("BookBot: Buch geschrieben=" + yes(get(BookBot.class).written > n0) + ", Seiten im Buch " + pages + " " + ok(pages >= 10));
+                next();
+            }
+            // ------------------------------------------------ BetterBeacons: Stärke schon bei kleiner Pyramide
+            case 645 -> {
+                BlockPos b = a.offset(6, 0, -6);
+                cmd("fill " + blk(b.offset(-1, 0, -1)) + " " + blk(b.offset(1, 0, 1)) + " minecraft:iron_block");
+                cmd("setblock " + blk(b.above()) + " minecraft:beacon");
+                cmd("item replace entity @s hotbar.5 with minecraft:iron_ingot 4");
+                tp(b.getX() + 2.5, b.getY() + 1, b.getZ() + 0.5);
+                on(get(BetterBeacons.class));
+                n0 = get(BetterBeacons.class).set;
+                next();
+            }
+            case 646 -> {
+                if (!after(30)) return true;
+                BlockPos bb = a.offset(6, 1, -6);
+                if (local() == 30) {
+                    var hit = new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(bb), net.minecraft.core.Direction.WEST, bb, false);
+                    mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND, hit);
+                    return true;
+                }
+                boolean strength = mc.player.hasEffect(net.minecraft.world.effect.MobEffects.STRENGTH);
+                if (!strength && !after(330)) return true;
+                if (mc.player.containerMenu != mc.player.inventoryMenu) mc.player.closeContainer();
+                off(get(BetterBeacons.class));
+                result("BetterBeacons: Stärke bei Pyramide Stufe 1 gesetzt=" + yes(get(BetterBeacons.class).set > n0) + ", Effekt bekommen=" + yes(strength) + " " + ok(strength));
+                next();
+            }
+            // ------------------------------------------------ EntityControl: Pferd schneller
+            case 647 -> {
+                tp(a.getX() + 0.5, a.getY(), a.getZ() + 0.5);
+                cmd("summon minecraft:horse " + a.getX() + " " + a.getY() + " " + (a.getZ() - 8)
+                        + " {Tame:1b,SaddleItem:{id:\"minecraft:saddle\",count:1},equipment:{saddle:{id:\"minecraft:saddle\",count:1}}}");
+                next();
+            }
+            case 648 -> {
+                if (!after(10)) return true;
+                if (local() == 10) { cmd("ride @s mount @e[type=minecraft:horse,limit=1,sort=nearest]"); return true; }
+                if (local() == 30) {
+                    on(get(EntityControl.class));
+                    mc.player.setYRot(0); mc.player.setXRot(0);
+                    y0 = mc.player.getZ();
+                    mc.options.keyUp.setDown(true);
+                    return true;
+                }
+                if (!after(70)) return true;
+                mc.options.keyUp.setDown(false);
+                double moved = Math.abs(mc.player.getZ() - y0);
+                boolean riding = mc.player.getVehicle() != null;
+                off(get(EntityControl.class));
+                mc.options.keyShift.setDown(true);
+                cmd("ride @s dismount");
+                result(String.format(Locale.ROOT, "EntityControl: auf dem Pferd=%s, in 2 s %.1f Blöcke (normal ~9) %s", yes(riding), moved, ok(riding && moved > 14)));
+                next();
+            }
+            // ------------------------------------------------ HighwayBuilder: 5 Blöcke Tunnel + Boden
+            case 649 -> {
+                if (!after(10)) return true;
+                mc.options.keyShift.setDown(false);
+                cmd("kill @e[type=minecraft:horse,distance=..40]");
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:diamond_pickaxe");
+                cmd("item replace entity @s hotbar.1 with minecraft:netherrack 64");
+                BlockPos h = a.offset(-6, 0, 0);
+                cmd("fill " + blk(h.offset(-2, -1, 1)) + " " + blk(h.offset(2, 3, 7)) + " minecraft:stone");
+                cmd("fill " + blk(h.offset(-1, -1, 3)) + " " + blk(h.offset(1, -1, 4)) + " minecraft:air"); // Loch im Boden
+                cmd("fill " + blk(h.offset(-1, 0, 0)) + " " + blk(h.offset(1, 2, 0)) + " minecraft:air");
+                cmd(String.format(Locale.ROOT, "tp @s %.1f %d %.1f 0 0", h.getX() + 0.5, h.getY(), h.getZ() + 0.5));
+                t("///set highwaybuilder laenge 5");
+                t("///set highwaybuilder boden netherrack");
+                next();
+            }
+            case 650 -> {
+                if (!after(20)) return true;
+                if (local() == 20) { mc.player.setYRot(0); on(get(HighwayBuilder.class)); return true; }
+                if (get(HighwayBuilder.class).isEnabled() && !after(1500)) return true;
+                BlockPos h = a.offset(-6, 0, 0);
+                int clear = 0, floor = 0;
+                for (int z = 1; z <= 5; z++) for (int x = -1; x <= 1; x++) {
+                    boolean air = true;
+                    for (int y = 0; y < 3; y++) if (!mc.level.getBlockState(h.offset(x, y, z)).isAir()) air = false;
+                    if (air) clear++;
+                    if (!mc.level.getBlockState(h.offset(x, -1, z)).isAir()) floor++;
+                }
+                off(get(HighwayBuilder.class));
+                result("HighwayBuilder: 5 Blöcke weit gebaut, Tunnel frei " + clear + "/15, Boden da " + floor + "/15 (Loch zugemacht) " + ok(clear == 15 && floor == 15));
+                cmd("fill " + blk(h.offset(-2, -1, 0)) + " " + blk(h.offset(2, 3, 7)) + " minecraft:air");
+                next();
+            }
+            // ------------------------------------------------ Swarm: Chef schickt, Helfer führt aus
+            case 651 -> {
+                swarmOk = false; swarmLine = null;
+                Thread th = new Thread(() -> {
+                    try (java.net.ServerSocket ss = new java.net.ServerSocket(6971)) {
+                        ss.setSoTimeout(20000);
+                        try (java.net.Socket s = ss.accept()) {
+                            var w = new java.io.PrintWriter(new java.io.OutputStreamWriter(s.getOutputStream(), java.nio.charset.StandardCharsets.UTF_8), true);
+                            w.println("///set trail laenge 777");
+                            Thread.sleep(3000);
+                        }
+                    } catch (Exception e) { swarmLine = "Fehler: " + e; }
+                }, "swarm-test-chef");
+                th.setDaemon(true);
+                th.start();
+                t("///set swarm modus helfer");
+                t("///set swarm port 6971");
+                next();
+            }
+            case 652 -> {
+                if (!after(10)) return true;
+                if (local() == 10) { on(get(Swarm.class)); return true; }
+                var tl = get(Trail.class).settings.get("laenge"); boolean got = tl != null && tl.num() == 777;
+                if (!got && !after(200)) return true;
+                off(get(Swarm.class));
+                swarmOk = got;
+                // jetzt umgekehrt: Teizen ist Chef, der Test ist Helfer
+                t("///set swarm modus chef");
+                t("///set swarm port 6972");
+                on(get(Swarm.class));
+                next();
+            }
+            case 653 -> {
+                if (!after(20)) return true;
+                if (local() == 20) {
+                    Thread th = new Thread(() -> {
+                        try (java.net.Socket s = new java.net.Socket("127.0.0.1", 6972)) {
+                            s.setSoTimeout(15000);
+                            var r = new java.io.BufferedReader(new java.io.InputStreamReader(s.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
+                            swarmLine = r.readLine();
+                        } catch (Exception e) { swarmLine = "Fehler: " + e; }
+                    }, "swarm-test-helfer");
+                    th.setDaemon(true);
+                    th.start();
+                    return true;
+                }
+                if (local() == 60) { t("///swarm ///fly"); return true; }
+                if (swarmLine == null && !after(300)) return true;
+                off(get(Swarm.class));
+                t("///set swarm port 6969");
+                result("Swarm: Helfer führt Befehl vom Chef aus=" + yes(swarmOk) + ", Chef schickt an Helfer ('" + swarmLine + "') " + ok(swarmOk && "///fly".equals(swarmLine)));
+                t("///set trail laenge 600");
+                SelfTest.jump(631);
             }
             case 631 -> {
                 releaseKeys();

@@ -18,7 +18,9 @@ public abstract class MinecraftMixin {
     private void teizen$glow(Entity entity, CallbackInfoReturnable<Boolean> cir) {
         if (TeizenClient.modules() == null) return;
         PlayerESP esp = TeizenClient.modules().get(PlayerESP.class);
-        if (esp != null && esp.shouldGlow(entity)) cir.setReturnValue(true);
+        if (esp != null && esp.shouldGlow(entity)) { cir.setReturnValue(true); return; }
+        var wh = TeizenClient.modules().get(dev.teizen.client.modules.WallHack.class);
+        if (wh != null && wh.shouldGlow(entity)) cir.setReturnValue(true);
     }
 
     @Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
