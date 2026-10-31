@@ -127,7 +127,9 @@ public final class Fly extends Module {
         // (nicht nur beim Fliegen: berührt man den Boden unter der Lava, schaltet Minecraft das Fliegen kurz aus)
         if (f != null && f.isEnabled() && f.lavaGuard.on() && !p.isCreative()) {
             double top = lavaTop(p.getBoundingBox());
-            if (!Double.isNaN(top) && p.getY() < top + LAVA_GAP) {
+            // die kleine Anti-Kick-Absenkung (0.05/Tick) NICHT wieder hochsetzen – sonst sieht der Server keine
+            // Abwärtsbewegung und wirft einen raus ("Flying is not enabled"), wenn man über Lava schwebt
+            if (!Double.isNaN(top) && p.getY() < top + LAVA_GAP - 0.3) {
                 var up = p.getBoundingBox().move(0, top + LAVA_GAP - p.getY(), 0);
                 if (dev.teizen.client.SelfTest.ACTIVE && f.lavaSaves % 5 == 0)
                     dev.teizen.client.TeizenClient.LOG.info(String.format(java.util.Locale.ROOT, "Lavaschutz: y %.3f -> %.3f (Oberkante %.2f, frei=%s, gesendet zuletzt %.3f, gedippt=%s)",
