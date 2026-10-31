@@ -370,6 +370,12 @@ public final class Commands {
                 }
                 mc.execute(() -> mc.gui.setScreen(new dev.teizen.client.gui.SchematicsScreen(null)));
             }
+            case "merken", "remember" -> {
+                if (a.length >= 2) dev.teizen.client.core.Restore.enabled = a[1].equalsIgnoreCase("an") || a[1].equalsIgnoreCase("on");
+                else dev.teizen.client.core.Restore.enabled = !dev.teizen.client.core.Restore.enabled;
+                Config.save();
+                Chat.ok("Eingeschaltete Funktionen nach Neustart wieder an: " + (dev.teizen.client.core.Restore.enabled ? "§aan" : "§caus"));
+            }
             case "panic", "alleaus", "panik" -> {
                 int n = dev.teizen.client.modules.PanicButton.panic();
                 Chat.ok("Alle Funktionen aus (" + n + " ausgeschaltet).");
@@ -585,6 +591,6 @@ public final class Commands {
         Chat.raw("§d///hud <Größe> §7– Liste oben rechts kleiner/größer (z.B. 0.5, 0 = aus, 1 = normal)");
         Chat.raw("§d///profil <Name> §7– Profil an/aus (PvP, Farmen, Bauen, Abbauen, Erkunden) · §d///profil speichern <Name> §7– jetzige Cheats als eigenes Profil");
         Chat.raw("§d///hud verschieben §7– HUD-Teile mit der Maus verschieben (auch Knopf in der Übersicht) · §d///hud reset");
-        Chat.raw("§d///panic §7– alles aus   §d///save §7– speichern");
+        Chat.raw("§d///panic §7– alles aus   §d///save §7– speichern   §d///merken an|aus §7– eingeschaltete Funktionen nach Neustart wieder an");
     }
 }
