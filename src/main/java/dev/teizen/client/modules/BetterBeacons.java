@@ -46,7 +46,13 @@ public final class BetterBeacons extends Module {
 
     @Override
     public void onTick() {
-        if (!inGame() || !(mc.player.containerMenu instanceof BeaconMenu menu)) { lastMenu = -1; return; }
+        if (!inGame()) return;
+        BeaconMenu menu = null;
+        if (mc.player.containerMenu instanceof BeaconMenu bm) menu = bm;
+        else if (mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> cs && cs.getMenu() instanceof BeaconMenu bm) menu = bm;
+        if (menu == null) { lastMenu = -1; return; }
+        if (dev.teizen.client.SelfTest.ACTIVE && mc.player.tickCount % 20 == 0)
+            dev.teizen.client.TeizenClient.LOG.info("BetterBeacons: Menü " + menu.containerId + " bezahlt=" + menu.hasPayment() + " Slots=" + menu.slots.size() + " Slot0=" + menu.getSlot(0).getItem());
         if (menu.containerId == lastMenu) return;
         if (!menu.hasPayment()) {
             // Bezahl-Item selbst reinlegen (Eisen, Gold, Smaragd, Diamant oder Netherit)

@@ -637,6 +637,7 @@ final class Round12Tests {
                 if (m.getReturnType().getSimpleName().equals("SignText")) {
                     if (m.getParameterCount() == 0 && m.getName().toLowerCase(Locale.ROOT).contains("front")) { text = m.invoke(sb); break; }
                     if (m.getParameterCount() == 1 && m.getParameterTypes()[0].isEnum()) {
+                        log("Schild lesen über " + m.getName() + "(" + m.getParameterTypes()[0].getSimpleName() + ")");
                         Object front = m.getParameterTypes()[0].getEnumConstants()[0];
                         for (Object k : m.getParameterTypes()[0].getEnumConstants()) if (k.toString().toUpperCase(Locale.ROOT).contains("FRONT")) front = k;
                         text = m.invoke(sb, front); break;
@@ -662,7 +663,8 @@ final class Round12Tests {
             }
             return "(" + names + ")";
         } catch (Throwable t) {
-            return "(" + t + ")";
+            Throwable c = t instanceof java.lang.reflect.InvocationTargetException ite && ite.getCause() != null ? ite.getCause() : t;
+            return "(" + c + ")";
         }
     }
 
