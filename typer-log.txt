@@ -1,0 +1,6 @@
+typer gestartet (DISPLAY=:99)
+xdotool version 3.20160805.1
+18:31:40 tippe 'abc' in Fenster ''
+18:31:41 fertig (exit 0)
+18:31:42 tippe 'velo' in Fenster ''
+18:31:43 fertig (exit 0)
