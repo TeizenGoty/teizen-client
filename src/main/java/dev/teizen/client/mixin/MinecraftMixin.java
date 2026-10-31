@@ -35,11 +35,19 @@ public abstract class MinecraftMixin {
     private void teizen$freecamUse(CallbackInfo ci) {
         if (Freecam.blocksInteract()) { ci.cancel(); return; }
         if (dev.teizen.client.modules.ClickTP.onUse()) { ci.cancel(); return; }
+        if (dev.teizen.client.modules.GhostHand.onUse()) { ci.cancel(); return; }
         if (dev.teizen.client.modules.AirPlace.onUse()) ci.cancel();
     }
 
     @Inject(method = "pickBlockOrEntity", at = @At("HEAD"), cancellable = true)
     private void teizen$freecamPick(CallbackInfo ci) {
         if (Freecam.blocksInteract()) ci.cancel();
+    }
+
+    /** Timer: Spiel-Tempo. */
+    @Inject(method = "getTickTargetMillis", at = @At("RETURN"), cancellable = true)
+    private void teizen$timer(float def, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Float> cir) {
+        float v = dev.teizen.client.modules.Timer.adjust(cir.getReturnValue());
+        if (v != cir.getReturnValue()) cir.setReturnValue(v);
     }
 }

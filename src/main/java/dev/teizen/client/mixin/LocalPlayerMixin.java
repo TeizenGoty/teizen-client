@@ -31,6 +31,7 @@ public abstract class LocalPlayerMixin {
     @Inject(method = "sendPosition", at = @At("HEAD"), cancellable = true)
     private void teizen$critPosition(CallbackInfo ci) {
         if (dev.teizen.client.modules.Criticals.onSendPosition()) { ci.cancel(); return; }
+        if (dev.teizen.client.modules.MaceSwap.onSendPosition()) { ci.cancel(); return; }
         dev.teizen.client.modules.Fly.beforeSendPosition(); // ändert nur die Höhe, das normale Paket geht raus
     }
 
@@ -38,5 +39,11 @@ public abstract class LocalPlayerMixin {
     @Inject(method = "sendPosition", at = @At("RETURN"))
     private void teizen$afterPosition(CallbackInfo ci) {
         dev.teizen.client.modules.Fly.afterSendPosition();
+    }
+
+    /** Portals: im Portal Menüs offen lassen. */
+    @Inject(method = "handlePortalTransitionEffect", at = @At("HEAD"), cancellable = true)
+    private void teizen$portals(boolean active, CallbackInfo ci) {
+        if (dev.teizen.client.modules.Portals.keep()) ci.cancel();
     }
 }

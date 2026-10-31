@@ -25,7 +25,8 @@
     "LivingEntityMixin",
     "AbstractBoatMixin",
     "ServerGamePacketListenerImplMixin",
-    "ChatComponentMixin"
+    "ChatComponentMixin",
+    "PlayerTabOverlayMixin"
   ],
   "injectors": {
     "defaultRequire": 0

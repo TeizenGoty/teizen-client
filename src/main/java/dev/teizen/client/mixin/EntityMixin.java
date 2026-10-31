@@ -48,4 +48,11 @@ public abstract class EntityMixin {
     private void teizen$flySprint(boolean on, CallbackInfo ci) {
         if ((Object) this == Minecraft.getInstance().player && dev.teizen.client.modules.Fly.blockSprint(on)) ci.cancel();
     }
+
+    /** Hitboxes: Gegner leichter treffen. */
+    @Inject(method = "getPickRadius", at = @At("RETURN"), cancellable = true)
+    private void teizen$hitbox(CallbackInfoReturnable<Float> cir) {
+        float e = dev.teizen.client.modules.Hitboxes.extra((Entity) (Object) this);
+        if (e > 0) cir.setReturnValue(cir.getReturnValue() + e);
+    }
 }

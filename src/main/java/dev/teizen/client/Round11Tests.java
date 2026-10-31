@@ -1164,7 +1164,7 @@ final class Round11Tests {
                         + " " + ok(viaSeed && bySeed != null && wrongPos != null && d >= 0 && (d < 48 || dist2(bySeed) <= dist2(wrongPos) + 32)));
                 dev.teizen.client.core.Locator.forceSeedMode = false;
                 sf.setEnabled(false);
-                SelfTest.jump(526);
+                SelfTest.jump(600); // Runde 12 (Meteor-Funktionen), danach 526
             }
             case 526 -> {
                 if (!after(5)) return;
@@ -1173,7 +1173,7 @@ final class Round11Tests {
                 dev.teizen.client.core.Config.save();
                 SelfTest.jump(152);
             }
-            default -> {}
+            default -> Round12Tests.step(step, o);
         }
     }
 }

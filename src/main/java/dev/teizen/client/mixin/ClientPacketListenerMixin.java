@@ -65,4 +65,18 @@ public abstract class ClientPacketListenerMixin {
 
     @Inject(method = "handleExplosion", at = @At("TAIL"))
     private void teizen$explTail(ClientboundExplodePacket packet, CallbackInfo ci) { teizen$restore(); }
+
+    /** Notifier / PopChams: Totem geplatzt usw. */
+    @Inject(method = "handleEntityEvent", at = @At("TAIL"))
+    private void teizen$entityEvent(net.minecraft.network.protocol.game.ClientboundEntityEventPacket packet, CallbackInfo ci) {
+        var mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        dev.teizen.client.modules.Notifier.onEntityEvent(packet.getEntity(mc.level), packet.getEventId());
+    }
+
+    /** BreakIndicators: was andere gerade abbauen. */
+    @Inject(method = "handleBlockDestruction", at = @At("TAIL"))
+    private void teizen$blockDestruction(net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket packet, CallbackInfo ci) {
+        dev.teizen.client.modules.BreakIndicators.onDestruction(packet.getId(), packet.getPos(), packet.getProgress());
+    }
 }

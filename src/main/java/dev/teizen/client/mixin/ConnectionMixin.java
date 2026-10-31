@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ConnectionMixin {
     @Inject(method = "send(Lnet/minecraft/network/protocol/Packet;Lio/netty/channel/ChannelFutureListener;Z)V", at = @At("HEAD"), cancellable = true)
     private void teizen$fakeLag(Packet<?> packet, ChannelFutureListener listener, boolean flush, CallbackInfo ci) {
+        if (dev.teizen.client.modules.AntiHunger.drop(packet)) { ci.cancel(); return; }
         if (FakeLag.hold((Connection) (Object) this, packet, listener, flush)) ci.cancel();
     }
 }

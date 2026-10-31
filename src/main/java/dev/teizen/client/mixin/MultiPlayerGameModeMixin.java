@@ -20,6 +20,7 @@ public abstract class MultiPlayerGameModeMixin {
     @Inject(method = "attack", at = @At("HEAD"), cancellable = true)
     private void teizen$beforeAttack(Player player, Entity target, CallbackInfo ci) {
         if (Criticals.beforeAttack(target)) { ci.cancel(); return; }
+        if (dev.teizen.client.modules.MaceSwap.beforeAttack(target)) { ci.cancel(); return; }
         dev.teizen.client.modules.HitMarker.onAttack(target);
         dev.teizen.client.modules.TargetESP.onAttack(target);
         if (dev.teizen.client.util.WeaponSwap.before(target)) ci.cancel();
@@ -28,11 +29,25 @@ public abstract class MultiPlayerGameModeMixin {
     @Inject(method = "attack", at = @At("RETURN"))
     private void teizen$weaponBack(Player player, Entity target, CallbackInfo ci) {
         dev.teizen.client.util.WeaponSwap.after();
+        dev.teizen.client.modules.MaceSwap.afterAttack();
     }
 
     /** AutoMine/Nuker: Abbau nicht abbrechen lassen, nur weil die Maustaste nicht gedrückt ist. */
     @Inject(method = "stopDestroyBlock", at = @At("HEAD"), cancellable = true)
     private void teizen$keepBreaking(CallbackInfo ci) {
         if (Breaker.holding()) ci.cancel();
+    }
+
+    /** VeinMiner: wenn du einen Block abbaust, die ganze Ader mit abbauen. */
+    @Inject(method = "destroyBlock", at = @At("HEAD"))
+    private void teizen$vein(net.minecraft.core.BlockPos pos, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+        dev.teizen.client.modules.VeinMiner.onBreak(pos);
+    }
+
+    /** NoInteract: bestimmte Blöcke beim Rechtsklick nicht öffnen. */
+    @Inject(method = "useItemOn", at = @At("HEAD"), cancellable = true)
+    private void teizen$noInteract(net.minecraft.client.player.LocalPlayer player, net.minecraft.world.InteractionHand hand,
+                                   net.minecraft.world.phys.BlockHitResult hit, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<net.minecraft.world.InteractionResult> cir) {
+        if (dev.teizen.client.modules.NoInteract.skip(hit.getBlockPos())) cir.setReturnValue(net.minecraft.world.InteractionResult.PASS);
     }
 }

@@ -111,6 +111,32 @@ public final class ModuleManager {
         add(new AutoRescue());
         add(new NameProtect());
         add(new SkinChanger());
+        add(new AirJump());
+        add(new AntiAFK());
+        add(new AntiHunger());
+        add(new AutoWasp());
+        add(new EndermanLook());
+        add(new FastClimb());
+        add(new GhostHand());
+        add(new Hitboxes());
+        add(new LightOverlay());
+        add(new LiquidFiller());
+        add(new NoInteract());
+        add(new Parkour());
+        add(new ReverseStep());
+        add(new Trail());
+        add(new VeinMiner());
+        add(new Timer());
+        add(new Notifier());
+        add(new PopChams());
+        add(new BreakIndicators());
+        add(new FakePlayer());
+        add(new EntityOwner());
+        add(new AutoBreed());
+        add(new AutoSign());
+        add(new Multitask());
+        add(new Portals());
+        add(new BetterTab());
         add(new PanicButton());
     }
 
