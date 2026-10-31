@@ -1,0 +1,248 @@
+Compiled from "TextInputManager.java"
+public class com.mojang.blaze3d.platform.TextInputManager {
+  private final com.mojang.blaze3d.platform.Window window;
+
+  private boolean textInputEnabled;
+
+  private boolean imeRequested;
+
+  private volatile boolean imeStatusChanged;
+
+  private boolean cachedIMEStatus;
+
+  public com.mojang.blaze3d.platform.TextInputManager(com.mojang.blaze3d.platform.Window);
+    Code:
+         0: aload_0
+         1: invokespecial #17                 // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: iconst_1
+         6: putfield      #19                 // Field imeStatusChanged:Z
+         9: aload_0
+        10: aload_1
+        11: putfield      #21                 // Field window:Lcom/mojang/blaze3d/platform/Window;
+        14: return
+
+  public void setTextInputArea(int, int, int, int);
+    Code:
+         0: aload_0
+         1: getfield      #21                 // Field window:Lcom/mojang/blaze3d/platform/Window;
+         4: invokevirtual #35                 // Method com/mojang/blaze3d/platform/Window.getGuiScale:()I
+         7: istore        5
+         9: aload_0
+        10: getfield      #21                 // Field window:Lcom/mojang/blaze3d/platform/Window;
+        13: invokevirtual #39                 // Method com/mojang/blaze3d/platform/Window.handle:()J
+        16: iload_1
+        17: iload         5
+        19: imul
+        20: iload_2
+        21: iload         5
+        23: imul
+        24: iload_3
+        25: iload_1
+        26: isub
+        27: iload         5
+        29: imul
+        30: iload         4
+        32: iload_2
+        33: isub
+        34: iload         5
+        36: imul
+        37: invokestatic  #45                 // Method org/lwjgl/glfw/GLFW.glfwSetPreeditCursorRectangle:(JIIII)V
+        40: return
+
+  public void notifyIMEChanged();
+    Code:
+         0: aload_0
+         1: iconst_1
+         2: putfield      #19                 // Field imeStatusChanged:Z
+         5: return
+
+  public void tick();
+    Code:
+         0: aload_0
+         1: getfield      #51                 // Field textInputEnabled:Z
+         4: ifeq          14
+         7: aload_0
+         8: invokevirtual #54                 // Method tickDuringTextInput:()V
+        11: goto          18
+        14: aload_0
+        15: invokevirtual #57                 // Method tickOutsideTextInput:()V
+        18: return
+
+  private boolean getIMEStatus();
+    Code:
+         0: aload_0
+         1: getfield      #19                 // Field imeStatusChanged:Z
+         4: ifeq          37
+         7: aload_0
+         8: iconst_0
+         9: putfield      #19                 // Field imeStatusChanged:Z
+        12: aload_0
+        13: aload_0
+        14: getfield      #21                 // Field window:Lcom/mojang/blaze3d/platform/Window;
+        17: invokevirtual #39                 // Method com/mojang/blaze3d/platform/Window.handle:()J
+        20: ldc           #60                 // int 208903
+        22: invokestatic  #64                 // Method org/lwjgl/glfw/GLFW.glfwGetInputMode:(JI)I
+        25: iconst_1
+        26: if_icmpne     33
+        29: iconst_1
+        30: goto          34
+        33: iconst_0
+        34: putfield      #66                 // Field cachedIMEStatus:Z
+        37: aload_0
+        38: getfield      #66                 // Field cachedIMEStatus:Z
+        41: ireturn
+
+  private void tickOutsideTextInput();
+    Code:
+         0: aload_0
+         1: getfield      #21                 // Field window:Lcom/mojang/blaze3d/platform/Window;
+         4: invokevirtual #69                 // Method com/mojang/blaze3d/platform/Window.isFocused:()Z
+         7: ifeq          22
+        10: aload_0
+        11: invokevirtual #71                 // Method getIMEStatus:()Z
+        14: ifeq          22
+        17: aload_0
+        18: iconst_0
+        19: invokevirtual #75                 // Method setIMEInputMode:(Z)V
+        22: return
+
+  private void tickDuringTextInput();
+    Code:
+         0: aload_0
+         1: aload_0
+         2: invokevirtual #71                 // Method getIMEStatus:()Z
+         5: putfield      #77                 // Field imeRequested:Z
+         8: return
+
+  public void startTextInput();
+    Code:
+         0: aload_0
+         1: iconst_1
+         2: putfield      #51                 // Field textInputEnabled:Z
+         5: aload_0
+         6: getfield      #77                 // Field imeRequested:Z
+         9: ifeq          17
+        12: aload_0
+        13: iconst_1
+        14: invokevirtual #75                 // Method setIMEInputMode:(Z)V
+        17: return
+
+  public void stopTextInput();
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: putfield      #51                 // Field textInputEnabled:Z
+         5: return
+
+  public void onTextInputFocusChange(boolean);
+    Code:
+         0: iload_1
+         1: ifeq          11
+         4: aload_0
+         5: invokevirtual #83                 // Method startTextInput:()V
+         8: goto          15
+        11: aload_0
+        12: invokevirtual #85                 // Method stopTextInput:()V
+        15: return
+
+  private void setIMEInputMode(boolean);
+    Code:
+         0: aload_0
+         1: getfield      #21                 // Field window:Lcom/mojang/blaze3d/platform/Window;
+         4: invokevirtual #39                 // Method com/mojang/blaze3d/platform/Window.handle:()J
+         7: ldc           #60                 // int 208903
+         9: iload_1
+        10: invokestatic  #92                 // Method com/mojang/blaze3d/platform/GLX.glfwBool:(Z)I
+        13: invokestatic  #96                 // Method org/lwjgl/glfw/GLFW.glfwSetInputMode:(JII)V
+        16: return
+}
+  public void setFocused(boolean);
+    Code:
+         0: aload_0
+         1: getfield      #85                 // Field canLoseFocus:Z
+         4: ifne          12
+         7: iload_1
+         8: ifne          12
+        11: return
+        12: aload_0
+        13: iload_1
+        14: invokespecial #633                // Method net/minecraft/client/gui/components/AbstractWidget.setFocused:(Z)V
+        17: iload_1
+        18: ifeq          28
+        21: aload_0
+        22: invokestatic  #111                // Method net/minecraft/util/Util.getMillis:()J
+        25: putfield      #113                // Field focusedTime:J
+        28: aload_0
+        29: invokevirtual #367                // Method isEditable:()Z
+        32: ifeq          43
+        35: invokestatic  #351                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+        38: aload_0
+        39: iload_1
+        40: invokevirtual #637                // Method net/minecraft/client/Minecraft.onTextInputFocusChange:(Lnet/minecraft/client/gui/components/events/GuiEventListener;Z)V
+        43: return
+
+        12: invokevirtual #637                // Method net/minecraft/client/Minecraft.onTextInputFocusChange:(Lnet/minecraft/client/gui/components/events/GuiEventListener;Z)V
+        15: aload_0
+        16: iload_1
+        17: putfield      #87                 // Field isEditable:Z
+        20: return
+
+  public void setScreenAndShow(net.minecraft.client.gui.screens.Screen);
+    Code:
+         0: invokestatic  #2634               // Method net/minecraft/util/profiling/Profiler.get:()Lnet/minecraft/util/profiling/ProfilerFiller;
+         3: ldc_w         #4239               // String forcedTick
+         6: invokeinterface #4243,  2         // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.zone:(Ljava/lang/String;)Lnet/minecraft/util/profiling/Zone;
+        11: astore_2
+        12: aload_0
+        13: getfield      #1527               // Field gui:Lnet/minecraft/client/gui/Gui;
+        16: aload_1
+        17: invokevirtual #1707               // Method net/minecraft/client/gui/Gui.setScreen:(Lnet/minecraft/client/gui/screens/Screen;)V
+        20: aload_0
+        21: iconst_0
+        22: invokevirtual #2716               // Method renderFrame:(Z)V
+        25: aload_2
+        26: ifnull        58
+        29: aload_2
+        30: invokevirtual #4246               // Method net/minecraft/util/profiling/Zone.close:()V
+        33: goto          58
+        36: astore_3
+        37: aload_2
+        38: ifnull        56
+        41: aload_2
+        42: invokevirtual #4246               // Method net/minecraft/util/profiling/Zone.close:()V
+        45: goto          56
+        48: astore        4
+        50: aload_3
+        51: aload         4
+        53: invokevirtual #2265               // Method java/lang/Throwable.addSuppressed:(Ljava/lang/Throwable;)V
+        56: aload_3
+        57: athrow
+        58: return
+      Exception table:
+         from    to  target type
+            12    25    36   Class java/lang/Throwable
+            41    45    48   Class java/lang/Throwable
+
+  public void onTextInputFocusChange(net.minecraft.client.gui.components.events.GuiEventListener, boolean);
+    Code:
+         0: aload_0
+         1: getfield      #1084               // Field textInputManager:Lcom/mojang/blaze3d/platform/TextInputManager;
+         4: iload_2
+         5: invokevirtual #5141               // Method com/mojang/blaze3d/platform/TextInputManager.onTextInputFocusChange:(Z)V
+         8: aload_0
+         9: getfield      #1527               // Field gui:Lnet/minecraft/client/gui/Gui;
+        12: invokevirtual #2554               // Method net/minecraft/client/gui/Gui.screen:()Lnet/minecraft/client/gui/screens/Screen;
+        15: ifnull        38
+        18: iload_2
+        19: ifeq          33
+        22: aload_0
+        23: getfield      #1150               // Field keyboardHandler:Lnet/minecraft/client/KeyboardHandler;
+        26: aload_1
+        27: invokevirtual #5145               // Method net/minecraft/client/KeyboardHandler.resubmitLastPreeditEvent:(Lnet/minecraft/client/gui/components/events/GuiEventListener;)V
+        30: goto          38
+        33: aload_1
+        34: aconst_null
+        35: invokestatic  #5149               // Method net/minecraft/client/KeyboardHandler.submitPreeditEvent:(Lnet/minecraft/client/gui/components/events/GuiEventListener;Lnet/minecraft/client/input/PreeditEvent;)V
+        38: return
+
