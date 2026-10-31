@@ -139,7 +139,6 @@ public final class ModuleManager {
         add(new BetterTab());
         add(new BetterChat());
         add(new BookBot());
-        add(new BetterBeacons());
         add(new AutoBrewer());
         add(new EntityControl());
         add(new NoRender());

@@ -474,33 +474,7 @@ final class Round12Tests {
                 int pages = wb == null ? 0 : wb.pages().size();
                 off(get(BookBot.class));
                 result("BookBot: Buch geschrieben=" + yes(get(BookBot.class).written > n0) + ", Seiten im Buch " + pages + " " + ok(pages >= 10));
-                next();
-            }
-            // ------------------------------------------------ BetterBeacons: Stärke schon bei kleiner Pyramide
-            case 645 -> {
-                BlockPos b = a.offset(6, 0, -6);
-                cmd("fill " + blk(b.offset(-1, 0, -1)) + " " + blk(b.offset(1, 0, 1)) + " minecraft:iron_block");
-                cmd("setblock " + blk(b.above()) + " minecraft:beacon");
-                cmd("item replace entity @s hotbar.5 with minecraft:iron_ingot 4");
-                tp(b.getX() + 2.5, b.getY() + 1, b.getZ() + 0.5);
-                on(get(BetterBeacons.class));
-                n0 = get(BetterBeacons.class).set;
-                next();
-            }
-            case 646 -> {
-                if (!after(30)) return true;
-                BlockPos bb = a.offset(6, 1, -6);
-                if (local() == 30) {
-                    var hit = new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(bb), net.minecraft.core.Direction.WEST, bb, false);
-                    mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND, hit);
-                    return true;
-                }
-                boolean strength = mc.player.hasEffect(net.minecraft.world.effect.MobEffects.STRENGTH);
-                if (!strength && !after(330)) return true;
-                if (mc.player.containerMenu != mc.player.inventoryMenu) mc.player.closeContainer();
-                off(get(BetterBeacons.class));
-                result("BetterBeacons: Stärke bei Pyramide Stufe 1 gesetzt=" + yes(get(BetterBeacons.class).set > n0) + ", Effekt bekommen=" + yes(strength) + " " + ok(strength));
-                next();
+                SelfTest.jump(647);
             }
             // ------------------------------------------------ EntityControl: Pferd schneller
             case 647 -> {
@@ -658,6 +632,12 @@ final class Round12Tests {
             for (var m : text.getClass().getMethods()) {
                 if (m.getParameterCount() != 0 || m.getDeclaringClass() == Object.class) continue;
                 Object v = m.invoke(text);
+                if (v instanceof net.minecraft.network.chat.Component[] arr && arr.length > 0) return arr[0].getString();
+                if (v instanceof java.util.List<?> li && !li.isEmpty() && li.get(0) instanceof net.minecraft.network.chat.Component c) return c.getString();
+            }
+            for (var m : text.getClass().getMethods()) {
+                if (m.getParameterCount() != 1 || m.getParameterTypes()[0] != boolean.class || m.getDeclaringClass() == Object.class) continue;
+                Object v = m.invoke(text, false);
                 if (v instanceof net.minecraft.network.chat.Component[] arr && arr.length > 0) return arr[0].getString();
                 if (v instanceof java.util.List<?> li && !li.isEmpty() && li.get(0) instanceof net.minecraft.network.chat.Component c) return c.getString();
             }
