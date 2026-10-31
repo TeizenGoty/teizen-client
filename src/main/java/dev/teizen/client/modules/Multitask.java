@@ -25,13 +25,13 @@ public final class Multitask extends Module {
         if (hr instanceof EntityHitResult eh && hr.getType() == HitResult.Type.ENTITY) {
             if (!wasAttack || mc.player.getAttackStrengthScale(0.5f) >= 1f) {
                 mc.gameMode.attack(mc.player, eh.getEntity());
-                mc.player.swing(InteractionHand.MAIN_HAND);
+                dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
                 hits++;
             }
         } else if (hr instanceof BlockHitResult bh && hr.getType() == HitResult.Type.BLOCK && !mc.level.getBlockState(bh.getBlockPos()).isAir()) {
             if (!wasAttack) mc.gameMode.startDestroyBlock(bh.getBlockPos(), bh.getDirection());
             else mc.gameMode.continueDestroyBlock(bh.getBlockPos(), bh.getDirection());
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             mineTicks++;
         }
         wasAttack = attack;

@@ -39,7 +39,7 @@ public final class GhostHand extends Module {
             if (container(p)) {
                 BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(p), net.minecraft.core.Direction.getApproximateNearest(-dir.x, -dir.y, -dir.z), p, false);
                 mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, hit);
-                mc.player.swing(InteractionHand.MAIN_HAND);
+                dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
                 g.opened++;
                 return true;
             }

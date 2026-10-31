@@ -2,7 +2,6 @@ package dev.teizen.client.modules;
 
 import dev.teizen.client.core.Module;
 import dev.teizen.client.util.Rot;
-import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.phys.Vec3;
 
 /** EndermanLook: Endermen werden nicht wütend, wenn du sie anschaust (für den Server schaust du dann kurz weg). */
@@ -20,7 +19,8 @@ public final class EndermanLook extends Module {
         looking = false;
         Vec3 eye = mc.player.getEyePosition();
         Vec3 look = mc.player.getViewVector(1f).normalize();
-        for (var e : mc.level.getEntitiesOfClass(EnderMan.class, mc.player.getBoundingBox().inflate(64))) {
+        for (var e : mc.level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, mc.player.getBoundingBox().inflate(64),
+                x -> x.getType() == net.minecraft.world.entity.EntityType.ENDERMAN)) {
             if (!e.isAlive()) continue;
             Vec3 d = new Vec3(e.getX() - eye.x, e.getEyeY() - eye.y, e.getZ() - eye.z);
             double len = d.length();

@@ -34,7 +34,7 @@ public final class AntiAFK extends Module {
         actions++;
         if (turn.on()) mc.player.setYRot(mc.player.getYRot() + (float) (Math.random() * 60 - 30));
         if (jump.on() && mc.player.onGround()) { mc.options.keyJump.setDown(true); jumpTicks = 2; }
-        if (swing.on()) mc.player.swing(InteractionHand.MAIN_HAND);
+        if (swing.on()) dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
         if (!chat.str().isBlank()) mc.player.connection.sendChat(chat.str());
     }
 

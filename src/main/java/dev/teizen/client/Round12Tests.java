@@ -313,8 +313,7 @@ final class Round12Tests {
                 }
                 if (!after(40)) return true;
                 String line = "";
-                if (mc.level.getBlockEntity(a.offset(0, 0, 2)) instanceof net.minecraft.world.level.block.entity.SignBlockEntity sb)
-                    line = sb.getFrontText().getMessage(0, false).getString();
+                if (mc.level.getBlockEntity(a.offset(0, 0, 2)) instanceof net.minecraft.world.level.block.entity.SignBlockEntity sb) line = signLine(sb);
                 off(get(AutoSign.class));
                 cmd("setblock " + blk(a.offset(0, 0, 2)) + " minecraft:air");
                 result("AutoSign: Schild beschrieben ('" + line + "') " + ok(line.equals("Teizen")));
@@ -371,7 +370,7 @@ final class Round12Tests {
                     hp0 = z.getHealth();
                     hpMe = mc.player.getHealth();
                     mc.gameMode.attack(mc.player, z);
-                    mc.player.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
+                    dev.teizen.client.compat.V.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
                     return true;
                 }
                 if (!after(70)) return true;
@@ -425,6 +424,32 @@ final class Round12Tests {
             default -> { return false; }
         }
         return true;
+    }
+
+    /** Erste Zeile vorne auf dem Schild (per Reflection: Namen unterscheiden sich zwischen 26.2 und 26.3). */
+    private static String signLine(Object sb) {
+        try {
+            Object text = null;
+            for (var m : sb.getClass().getMethods()) {
+                if (m.getReturnType().getSimpleName().equals("SignText")) {
+                    if (m.getParameterCount() == 0 && m.getName().toLowerCase(Locale.ROOT).contains("front")) { text = m.invoke(sb); break; }
+                    if (m.getParameterCount() == 1 && m.getParameterTypes()[0].isEnum()) {
+                        Object front = m.getParameterTypes()[0].getEnumConstants()[0];
+                        for (Object k : m.getParameterTypes()[0].getEnumConstants()) if (k.toString().toUpperCase(Locale.ROOT).contains("FRONT")) front = k;
+                        text = m.invoke(sb, front); break;
+                    }
+                    if (m.getParameterCount() == 1 && m.getParameterTypes()[0] == boolean.class) { text = m.invoke(sb, true); break; }
+                }
+            }
+            if (text == null) return "(SignText?)";
+            for (var m : text.getClass().getMethods()) {
+                if (m.getName().equals("getMessage") && m.getParameterCount() == 2) return ((net.minecraft.network.chat.Component) m.invoke(text, 0, false)).getString();
+                if (m.getName().equals("getMessage") && m.getParameterCount() == 1) return ((net.minecraft.network.chat.Component) m.invoke(text, 0)).getString();
+            }
+            return "(getMessage?)";
+        } catch (Throwable t) {
+            return "(" + t + ")";
+        }
     }
 
     private static Zombie zombie() {

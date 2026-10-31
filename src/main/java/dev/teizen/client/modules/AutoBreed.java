@@ -37,7 +37,7 @@ public final class AutoBreed extends Module {
             if (Inv.findHotbar(a::isFood) < 0 && Inv.findAny(a::isFood) < 0) continue;
             if (!Inv.ensureInHand(a::isFood)) continue;
             mc.gameMode.interact(mc.player, a, new EntityHitResult(a), InteractionHand.MAIN_HAND);
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             fed.put(a.getId(), 600); // ~30 s nicht nochmal (Liebes-Pause)
             feeds++;
             wait = delay.integer();

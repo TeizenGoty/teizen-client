@@ -34,9 +34,30 @@ public final class AutoSign extends Module {
         }
         if (sign == null) return;
         String[] l = (text.str() + "| | | ").split("\\|", -1);
-        mc.player.connection.send(new ServerboundSignUpdatePacket(sign.getBlockPos(), front, l[0], l[1], l[2], l[3]));
+        Object pkt = packet(sign.getBlockPos(), front, l);
+        if (pkt == null) { dev.teizen.client.TeizenClient.LOG.warn("AutoSign: Schild-Paket nicht gefunden"); return; }
+        mc.player.connection.send((ServerboundSignUpdatePacket) pkt);
         signs++;
         mc.gui.setScreen(null);
+    }
+
+    /** Schild-Paket bauen – 26.2: (pos, vorne?, 4 Zeilen), 26.3: (pos, Liste der Zeilen, Seite). */
+    private static Object packet(net.minecraft.core.BlockPos pos, boolean front, String[] l) {
+        try {
+            for (var c : ServerboundSignUpdatePacket.class.getConstructors()) {
+                Class<?>[] ps = c.getParameterTypes();
+                if (ps.length == 6 && ps[1] == boolean.class) return c.newInstance(pos, front, l[0], l[1], l[2], l[3]);
+                if (ps.length == 3 && java.util.List.class.isAssignableFrom(ps[1]) && ps[2].isEnum()) {
+                    Object side = null;
+                    for (Object k : ps[2].getEnumConstants()) if (k.toString().toUpperCase().contains(front ? "FRONT" : "BACK")) side = k;
+                    if (side == null) side = ps[2].getEnumConstants()[front ? 0 : 1];
+                    return c.newInstance(pos, java.util.List.of(l[0], l[1], l[2], l[3]), side);
+                }
+            }
+        } catch (Throwable t) {
+            dev.teizen.client.TeizenClient.LOG.warn("AutoSign Paket: " + t);
+        }
+        return null;
     }
 
     @Override
