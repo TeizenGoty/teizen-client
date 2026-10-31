@@ -434,7 +434,7 @@ final class Round12Tests {
                 tp(a.getX() + 0.5, a.getY(), a.getZ() + 0.5);
                 on(get(BetterChat.class));
                 n0 = get(BetterChat.class).merged; n1 = get(BetterChat.class).stamped;
-                for (int i = 0; i < 3; i++) mc.gui.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Teizen Spam-Test"));
+                for (int i = 0; i < 3; i++) mc.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal("Teizen Spam-Test"));
                 int m = get(BetterChat.class).merged - n0, st = get(BetterChat.class).stamped - n1;
                 off(get(BetterChat.class));
                 result("BetterChat: Uhrzeit dran=" + yes(st >= 3) + ", 3x gleiche Nachricht zusammengefasst (" + m + "x) " + ok(st >= 3 && m >= 2));
