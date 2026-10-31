@@ -20,7 +20,7 @@ public final class EndermanLook extends Module {
         Vec3 eye = mc.player.getEyePosition();
         Vec3 look = mc.player.getViewVector(1f).normalize();
         for (var e : mc.level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, mc.player.getBoundingBox().inflate(64),
-                x -> x.getType() == net.minecraft.world.entity.EntityType.ENDERMAN)) {
+                x -> net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(x.getType()).getPath().equals("enderman"))) {
             if (!e.isAlive()) continue;
             Vec3 d = new Vec3(e.getX() - eye.x, e.getEyeY() - eye.y, e.getZ() - eye.z);
             double len = d.length();
