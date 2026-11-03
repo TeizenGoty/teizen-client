@@ -22,6 +22,7 @@ public final class NoClip extends Module {
     private final Setting mode = add(Setting.choice("modus", "fliegen = frei durch Wände fliegen (Kamera, nichts abbauen), abbauen = alles im Weg wird abgebaut, zuschauer = echter Zuschauer-Modus (OP)",
             "fliegen", "fliegen", "abbauen", "zuschauer"));
     private final Setting speed = add(Setting.number("tempo", "Flug-Tempo (Blöcke pro Tick beim Fliegen, im Zuschauer-Modus 1 = normal)", 1, 0.1, 10));
+    private final Setting interact = add(Setting.bool("interagieren", "Beim Fliegen Kisten öffnen und schlagen erlauben", true));
     private GameType previous;
     private int enabledTick;
     private boolean warned, flyByUs, camByUs;
@@ -43,12 +44,16 @@ public final class NoClip extends Module {
     /** Fliegt NoClip gerade (Kamera unterwegs)? */
     public boolean flying() { Freecam f = cam(); return f != null && f.active() && f.byNoClip; }
 
+    private boolean interactWas;
     private void startFly() {
         Freecam f = cam();
         if (f == null) return;
         if (!f.isEnabled()) { f.setEnabled(true); camByUs = true; }
         f.byNoClip = true;
         f.speedOverride = speed.num();
+        // beim Fliegen Kisten öffnen / schlagen erlauben
+        interactWas = f.interact.on();
+        if (interact.on()) f.interact.setBool(true);
     }
 
     @Override
@@ -81,6 +86,7 @@ public final class NoClip extends Module {
         digging = null;
         Freecam f = cam();
         if (f != null) {
+            if (interact.on()) f.interact.setBool(interactWas);
             if (camByUs && f.isEnabled()) f.setEnabled(false);
             f.byNoClip = false;
             f.speedOverride = 0;

@@ -111,6 +111,15 @@ public final class Freecam extends Module {
         cam.setYBodyRot(cam.getYRot());
     }
 
+    /** Spieler zur Kamera teleportieren (braucht OP / eigene Welt). @return true wenn der Befehl rausging */
+    public boolean teleportHere() {
+        if (cam == null || !inGame()) return false;
+        if (!dev.teizen.client.util.Op.available()) { dev.teizen.client.util.Chat.error("TP zur Kamera braucht OP (eigener Server)."); return false; }
+        dev.teizen.client.util.Op.run(String.format(java.util.Locale.ROOT, "tp @s %.2f %.2f %.2f", cam.getX(), cam.getY(), cam.getZ()));
+        dev.teizen.client.util.Chat.ok("Zur Kamera teleportiert.");
+        return true;
+    }
+
     /** Blickrichtung der Kamera (Selbsttest). */
     public float camYaw() { return cam == null ? 0 : cam.getYRot(); }
 

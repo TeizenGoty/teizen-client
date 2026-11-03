@@ -172,7 +172,7 @@ public final class CommandSuggestions {
 
         // ///killaura usw. = Modul umschalten; danach optional Einstellung + Wert
         Set<String> taken = new LinkedHashSet<>(List.of("help", "list", "gui", "save", "panic", "toggle", "info", "set",
-                "bind", "menutaste", "reach", "mine", "miner", "tree", "farm", "xray", "autobuild", "find", "friend", "fav", "velocity", "structurefinder", "villagerroller", "moredurability", "opcheats", "hud", "seed", "seedmap", "schematic", "schematics", "shulker", "cheststealer"));
+                "bind", "menutaste", "reach", "mine", "miner", "tree", "farm", "camtp", "xray", "autobuild", "find", "friend", "fav", "velocity", "structurefinder", "villagerroller", "moredurability", "opcheats", "hud", "seed", "seedmap", "schematic", "schematics", "shulker", "cheststealer"));
         for (Module m : TeizenClient.modules().all()) {
             String name = m.name.toLowerCase(Locale.ROOT);
             if (!taken.add(name)) continue;

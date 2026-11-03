@@ -148,6 +148,12 @@ public final class Commands {
                 if (size > 2_000_000) { Chat.error("Bereich zu groß (" + size + " Blöcke, max. 2 Millionen)."); return; }
                 m.startArea(p1, p2);
             }
+            case "camtp", "tpcam", "tpkamera", "kameratp" -> {
+                dev.teizen.client.modules.Freecam fc = mm.get(dev.teizen.client.modules.Freecam.class);
+                dev.teizen.client.modules.NoClip nc = mm.get(dev.teizen.client.modules.NoClip.class);
+                if ((!fc.isEnabled() || fc.cam == null) && !(nc.isEnabled() && nc.flying())) { Chat.error("Keine Freecam aktiv (///freecam oder ///noclip)."); return; }
+                fc.teleportHere();
+            }
             case "tree", "baum", "trees", "baeume" -> {
                 AutoMine m = mm.get(AutoMine.class);
                 if (a.length >= 2 && (a[1].equalsIgnoreCase("stop") || a[1].equalsIgnoreCase("aus"))) { m.setEnabled(false); Chat.info("TreeBot §caus"); return; }
@@ -630,6 +636,7 @@ public final class Commands {
         Chat.raw("§d///miner x1 y1 z1 x2 y2 z2 §7– baut den Bereich in Reihen ab (Schicht für Schicht von oben), §f~ §7= deine Position | §f///miner stop");
         Chat.raw("§d///tree §7– fällt Bäume in der Nähe (TreeBot) | §f///tree stop");
         Chat.raw("§d///farm <bloecke...> [nachpflanzen] §7– baut beliebige Blöcke ab & sammelt ein, z.B. §f///farm wheat carrots nachpflanzen");
+        Chat.raw("§d///camtp §7– teleportiert dich zur Freecam/NoClip-Kamera (braucht OP)");
         Chat.raw("§d///xray §7– an/aus, §f///xray nur diamond §7(nur Dias), §f///xray alle§7, §f///xray add/remove <Erz>");
         Chat.raw("§d///xray lava §7· §d///xray wasser §7· §d///xray hoehlen §7– zusätzlich anzeigen (an/aus)");
         Chat.raw("§d///fav <Funktion> §7– Favorit an/aus (steht oben) · §d///fav §7– alle Favoriten");

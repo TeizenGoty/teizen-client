@@ -105,6 +105,7 @@ final class Round13Tests {
     }
     private static boolean f1, f2;
     private static float maxY;
+    private static double d1;
     private static String f(float v) { return String.format(java.util.Locale.ROOT, "%.2f", v); }
 
     private Round13Tests() {}
@@ -572,6 +573,43 @@ final class Round13Tests {
                 t("///tree stop");
                 result("TreeBot: 3 Stämme, noch übrig " + logs + ", Farm-Modus aktiv war=" + yes(farm) + " " + ok(logs == 0));
                 cmd("fill " + blk(b.offset(5, -1, 5)) + " " + blk(b.offset(5, 3, 5)) + " minecraft:air");
+                SelfTest.jump(768);
+            }
+            // ------------------------------------------------ NoClip-Freecam: Interagieren frei + TP zur Kamera
+            case 768 -> {
+                if (!after(10)) return true;
+                cmd("gamemode creative");
+                cmd("fill " + blk(b.offset(-2, 0, -2)) + " " + blk(b.offset(2, 4, 12)) + " minecraft:air");
+                tp(b.getX() + 0.5, b.getY(), b.getZ() + 0.5);
+                t("///set noclip modus fliegen");
+                t("///set noclip tempo 0.6");
+                get(Freecam.class).interact.setBool(false); // Ausgangszustand
+                next();
+            }
+            case 769 -> {
+                if (!after(10)) return true;
+                if (local() == 10) { p0 = mc.player.position(); on(get(NoClip.class)); mc.player.setYRot(0); mc.player.setXRot(0); return true; }
+                if (local() < 45) { mc.options.keyUp.setDown(true); return true; }
+                mc.options.keyUp.setDown(false);
+                Freecam fc = get(Freecam.class);
+                boolean interactOn = fc.interact.on();
+                boolean flying = get(NoClip.class).flying();
+                double camDist = fc.cam == null ? 0 : fc.cam.distanceTo(mc.player);
+                f1 = interactOn && flying && camDist > 4;
+                d1 = fc.cam == null ? 0 : fc.cam.getZ();
+                t("///camtp");
+                next();
+            }
+            case 770 -> {
+                if (!after(15)) return true;
+                double movedZ = Math.abs(mc.player.getZ() - (b.getZ() + 0.5));
+                boolean tped = Math.abs(mc.player.getZ() - d1) < 2.5; // Spieler jetzt ~bei der Kamera
+                off(get(NoClip.class));
+                boolean restored = !get(Freecam.class).interact.on(); // war vorher aus
+                boolean camGone = mc.getCameraEntity() == mc.player;
+                result("NoClip-Freecam: Interagieren frei + fliegt=" + yes(f1) + ", per ///camtp zur Kamera (Δz " + f((float) movedZ) + ")=" + yes(tped)
+                        + ", danach interagieren zurück=" + yes(restored) + ", Kamera weg=" + yes(camGone) + " " + ok(f1 && tped && restored && camGone));
+                cmd("gamemode survival");
                 SelfTest.jump(709);
             }
             case 709 -> {
