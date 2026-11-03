@@ -6,7 +6,7 @@ import dev.teizen.client.util.Inv;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
@@ -40,8 +40,8 @@ public final class OffhandSwitch extends Module {
                 e -> e != mc.player && e.isAlive() && (e instanceof Enemy || (e instanceof Player p && !p.isCreative() && !p.isSpectator())))) {
             if (e.distanceToSqr(mc.player) <= r * r) return true;
         }
-        // Pfeil/Dreizack, der sich dir nähert
-        for (AbstractArrow a : mc.level.getEntitiesOfClass(AbstractArrow.class, box)) {
+        // Geschoss (Pfeil/Dreizack/…), das sich dir nähert
+        for (Projectile a : mc.level.getEntitiesOfClass(Projectile.class, box)) {
             if (a.getOwner() == mc.player) continue;
             Vec3 v = a.getDeltaMovement();
             if (v.lengthSqr() < 0.1) continue; // am Boden steckende Pfeile haben ~0 Tempo
