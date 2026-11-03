@@ -362,6 +362,8 @@ final class Round13Tests {
                 dev.teizen.client.compat.LitematicaCompat.testOverride = house;
                 cmd("fill " + blk(h.offset(-12, 0, -12)) + " " + blk(h.offset(18, 8, 12)) + " minecraft:air");
                 cmd("fill " + blk(h.offset(-12, -1, -12)) + " " + blk(h.offset(18, -1, 12)) + " minecraft:stone");
+                t("///set autobuild laufen an"); // ältere Tests schalten Laufen aus
+                t("///set autobuild abbauen an");
                 cmd("gamemode survival");
                 cmd("clear @s");
                 cmd("give @s minecraft:oak_planks 128");
