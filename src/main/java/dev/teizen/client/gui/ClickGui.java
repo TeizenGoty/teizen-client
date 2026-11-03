@@ -152,14 +152,17 @@ public final class ClickGui extends Screen {
 
     // ------------------------------------------------------------------ Zeichnen
 
+    private int sideW() { return Math.max(112, Math.min(140, width * 22 / 100)); }
+
+    /** Rechte Spalte (bei sehr schmalem Fenster weg). */
+    private int rightW() { return width < 360 ? 0 : Math.max(118, Math.min(190, width * 27 / 100)); }
+
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
         if (!textOn) { textOn = true; TextFocus.on(); } // 26.3: sonst kommen keine Buchstaben an
         Font font = getFont();
         hits.clear();
-        int side = Math.max(96, Math.min(132, width * 18 / 100));
-        int right = Math.max(124, Math.min(190, width * 28 / 100));
-        if (width < 380) right = 0; // sehr schmal: keine rechte Spalte
+        int side = sideW(), right = rightW();
         int midX = side, midW = width - side - right;
 
         g.fill(0, 0, width, height, GROUND);
@@ -175,7 +178,7 @@ public final class ClickGui extends Screen {
         g.fill(6, 6, 20, 20, ACCENT);
         g.centeredText(font, "§lT", 13, 9, 0xFFFFFFFF);
         g.text(font, "§lTEIZEN", 24, 6, TEXT, false);
-        g.text(font, "Client · 26.2/26.3", 24, 15, MUTED, false);
+        g.text(font, cut(font, "26.2 / 26.3", w - 28), 24, 15, MUTED, false);
         // Suche
         search.render(g, font, 6, 26, w - 12, mx, my);
         // Kategorien
@@ -195,14 +198,15 @@ public final class ClickGui extends Screen {
         int by = height - 16;
         boolean ph = mx >= 6 && mx < w - 6 && my >= by && my < by + 12;
         g.fill(6, by, w - 6, by + 12, ph ? PANIC_HOVER : PANIC);
-        g.centeredText(font, "§lPANIK · alles aus", w / 2, by + 2, 0xFFFFFFFF);
+        String pl = font.width("PANIK · alles aus") + 8 <= w - 12 ? "§lPANIK · alles aus" : "§lPANIK";
+        g.centeredText(font, pl, w / 2, by + 2, 0xFFFFFFFF);
         hits.add(new Hit(Kind.PANIC, 6, by, w - 6, by + 12, null, null));
         by -= 14;
         boolean merken = dev.teizen.client.core.Restore.enabled;
         drawChipRow(g, font, 6, by, w - 12, "Merken", merken ? "§aan" : "§caus", mx, my);
         hits.add(new Hit(Kind.MERKEN, 6, by, w - 6, by + 12, null, null));
         by -= 14;
-        drawChipRow(g, font, 6, by, w - 12, "OP-Cheats", ModuleManager.hideOp ? "§cversteckt" : "§asichtbar", mx, my);
+        drawChipRow(g, font, 6, by, w - 12, "OP", ModuleManager.hideOp ? "§cversteckt" : "§asichtbar", mx, my);
         hits.add(new Hit(Kind.OP, 6, by, w - 6, by + 12, null, null));
     }
 
@@ -219,8 +223,8 @@ public final class ClickGui extends Screen {
         if (cur || h) g.fill(4, y, w - 4, y + 14, cur ? CARD_SEL : CARD_HOVER);
         if (cur) g.fill(4, y, 5, y + 14, ACCENT);
         g.fill(9, y + 5, 13, y + 9, dot);
-        g.text(font, title, 17, y + 3, cur ? 0xFFFFFFFF : 0xFFC9BFE6, false);
         String cnt = onCount(l) + "/" + l.size();
+        g.text(font, cut(font, title, w - 26 - font.width(cnt)), 17, y + 3, cur ? 0xFFFFFFFF : 0xFFC9BFE6, false);
         g.text(font, cnt, w - 8 - font.width(cnt), y + 3, cur ? 0xFFC4B5FD : DIM, false);
         hits.add(new Hit(kind, 4, y, w - 4, y + 14, c, null));
         return y + 15;
@@ -316,8 +320,8 @@ public final class ClickGui extends Screen {
         hits.add(new Hit(Kind.DETAIL_SWITCH, sx, 6, sx + sw, 17, m, null));
         int y = 21;
         for (String line : wrap(font, m.description, iw, 3)) { g.text(font, line, x, y, MUTED, false); y += 9; }
-        String key = m.key >= 0 ? "Taste: §f" + Keys.name(m.key) : "Taste: §7keine (Mittelklick)";
-        g.text(font, key, x, y + 2, MUTED, false);
+        String key = m.key >= 0 ? "Taste: §f" + Keys.name(m.key) : "Taste: §7keine";
+        g.text(font, cut(font, key, iw), x, y + 2, MUTED, false);
         y += 14;
         g.fill(x, y, x + iw, y + 1, LINE);
         y += 4;
@@ -423,8 +427,7 @@ public final class ClickGui extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
-        int side = Math.max(96, Math.min(132, width * 18 / 100));
-        int right = width < 380 ? 0 : Math.max(124, Math.min(190, width * 28 / 100));
+        int side = sideW(), right = rightW();
         if (right > 0 && mx >= width - right) scrollRight = Math.max(0, scrollRight - (int) (sy * 16));
         else if (mx >= side) scrollMid = Math.max(0, scrollMid - (int) (sy * 16));
         return true;

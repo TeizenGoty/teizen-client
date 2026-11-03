@@ -366,7 +366,11 @@ public final class AutoMine extends Module {
         Chat.info("AutoMine: hängt fest (" + status + ") – versuche etwas anderes.");
         Breaker.stop();
         releaseKeys();
-        if (target != null) failed.merge(target, 2, Integer::sum);
+        if (target != null) {
+            failed.merge(target, 2, Integer::sum);
+            // die ganze Ader aufgeben (sonst hing er an jedem Block der Ader nochmal 8 s)
+            if (!areaMode()) for (BlockPos p : scanner.results()) if (p.distSqr(target) <= 9) failed.merge(p, 2, Integer::sum);
+        }
         if (pickup != null) { ignoredItems.add(pickup.getId()); pickup = null; }
         if (tunnelling && tunnelDir != null) tunnelDir = tunnelDir.getClockWise();
         tunnelling = false;
