@@ -271,37 +271,38 @@ public final class Overview extends Screen {
         int on = 0;
         for (Module m : TeizenClient.modules().all()) if (m.isEnabled()) on++;
         g.fill(0, 0, width, height, 0x80000000);
-
+        MenuFont.active = true;
+        try {
         int off = TOP - scroll;
         int clipTop = TOP - 2, clipBottom = height - 16;
         for (Header h : headers) {
             int y = h.y() + off;
             if (y < clipTop - HEAD_H || y > clipBottom) continue;
             g.fill(gridX, y + HEAD_H - 3, gridX + gridW, y + HEAD_H - 2, (h.color() & 0x00FFFFFF) | 0x80000000);
-            g.text(font, "§l" + h.title(), gridX + 2, y + 2, h.color(), true);
+            MenuFont.text(g, font, "§l" + h.title(), gridX + 2, y + 2, h.color(), true);
         }
         for (Cell c : cells) {
             Module m = c.m();
             int x = c.x(), y = c.y() + off;
             if (y + CELL_H < clipTop || y > clipBottom) continue;
             boolean hover = in(mouseX, mouseY, x, y, CELL_W, CELL_H) && mouseY >= clipTop && mouseY < clipBottom;
-            g.fill(x, y, x + CELL_W, y + CELL_H, m.isEnabled() ? ON : (hover ? HOVER : OFF));
-            g.fill(x, y, x + 3, y + CELL_H, catColor(m.category));
+            ClickGui.round(g, x, y, x + CELL_W, y + CELL_H, m.isEnabled() ? ON : (hover ? HOVER : OFF));
+            g.fill(x + 1, y + 3, x + 3, y + CELL_H - 3, catColor(m.category));
             if (m.favorite) g.fill(x, y, x + CELL_W, y + 1, 0xFFE8B030);
             if (m == expanded) g.fill(x, y + CELL_H - 2, x + CELL_W, y + CELL_H, 0xFFFFD040);
             String state = m.isEnabled() ? "§aAN" : "§8aus";
             String name = (m.favorite ? "§6★ §r" : "") + m.name;
-            int room = CELL_W - 7 - font.width(state) - 6;
-            if (font.width(name) > room) name = font.plainSubstrByWidth(name, room - font.width("…")) + "…";
-            g.text(font, name, x + 7, y + 2, m.isEnabled() ? 0xFFFFFFFF : 0xFFC8B8E8, false);
-            g.text(font, state, x + CELL_W - 4 - font.width(state), y + 2, 0xFFFFFFFF, false);
+            int room = CELL_W - 7 - MenuFont.width(font, state) - 6;
+            if (MenuFont.width(font, name) > room) name = MenuFont.cut(font, name, room);
+            MenuFont.text(g, font, name, x + 7, y + 2, m.isEnabled() ? 0xFFFFFFFF : 0xFFC8B8E8, false);
+            MenuFont.text(g, font, state, x + CELL_W - 4 - MenuFont.width(font, state), y + 2, 0xFFFFFFFF, false);
             String sub = "§7" + m.category.title + (m.needsOp() ? " §6OP" : "") + (m.key >= 0 ? " §8· §fTaste " + Keys.name(m.key) : "");
             if (m.requirement() != null) sub += " §c" + m.requirement();
             String info = m.isEnabled() ? m.info() : "";
             if (info != null && !info.isEmpty()) sub += " §8· §b" + info;
             if (!m.settings.isEmpty()) sub += m == expanded ? " §e▾" : " §8▸";
-            if (font.width(sub) > CELL_W - 10) sub = font.plainSubstrByWidth(sub, CELL_W - 14) + "…";
-            g.text(font, sub, x + 7, y + 13, 0xFFFFFFFF, false);
+            sub = MenuFont.cut(font, sub, CELL_W - 10);
+            MenuFont.text(g, font, sub, x + 7, y + 13, 0xFFFFFFFF, false);
             if (hover) g.setTooltipForNextFrame(font, Component.literal(m.description + " §7(Rechtsklick = Einstellungen)"), mouseX, mouseY);
         }
         if (expanded != null && panelY >= 0) {
@@ -316,32 +317,32 @@ public final class Overview extends Screen {
             btnOnX = btnKeyX - 4 - btnW;
             String title = "§e§l" + expanded.name + " §7– " + expanded.description;
             int titleRoom = btnOnX - gridX - 10;
-            if (font.width(title) > titleRoom) title = font.plainSubstrByWidth(title, titleRoom - 6) + "…";
-            g.text(font, title, gridX + 5, y + 5, 0xFFFFFFFF, false);
+            title = MenuFont.cut(font, title, titleRoom);
+            MenuFont.text(g, font, title, gridX + 5, y + 5, 0xFFFFFFFF, false);
             button(g, btnOnX, y + 2, btnW, expanded.isEnabled() ? "§aAN" : "§caus", expanded.isEnabled(), mouseX, mouseY);
             button(g, btnKeyX, y + 2, btnW, binding == expanded ? "§eTaste drücken…" : "Taste: §f" + (expanded.key >= 0 ? Keys.name(expanded.key) : "keine"), binding == expanded, mouseX, mouseY);
             button(g, btnFavX, y + 2, btnW, expanded.favorite ? "§6★ Favorit" : "☆ Favorit", false, mouseX, mouseY);
             button(g, btnCloseX, y + 2, 14, "§c✕", false, mouseX, mouseY);
-            if (panelRows.isEmpty()) g.text(font, "§7Dieser Cheat hat keine Einstellungen.", gridX + 6, y + 21, 0xFFFFFFFF, false);
+            if (panelRows.isEmpty()) MenuFont.text(g, font, "§7Dieser Cheat hat keine Einstellungen.", gridX + 6, y + 21, 0xFFFFFFFF, false);
             for (PanelRow r : panelRows) {
                 int ry = r.y() + off;
                 if (ry + ROW_H < clipTop || ry > clipBottom) continue;
                 rows.render(g, font, expanded, r.row(), r.x(), ry, r.w(), ROW_H - 1, mouseX, mouseY);
             }
         }
-        if (search.active() && cells.isEmpty()) g.centeredText(font, "§7Kein Cheat gefunden für \"" + search.query + "\"", width / 2, TOP + 20, 0xFFFFFFFF);
+        if (search.active() && cells.isEmpty()) MenuFont.centered(g, font, "§7Kein Cheat gefunden für \"" + search.query + "\"", width / 2, TOP + 20, 0xFFFFFFFF);
 
         // Kategorie-Knöpfe rechts
         g.fill(sideX - 3, TOP - 2, sideX + SIDE_W + 2, clipBottom, 0x90100820);
-        g.text(font, "§7Kategorien", sideX + 2, TOP + 1, 0xFFFFFFFF, false);
+        MenuFont.text(g, font, "§7Kategorien", sideX + 2, TOP + 1, 0xFFFFFFFF, false);
         for (int i = 0; i <= Module.Category.values().length; i++) {
             Module.Category c = i == 0 ? null : Module.Category.values()[i - 1];
             int by = sideButtonY(i);
             boolean active = filter == c;
             boolean hover = in(mouseX, mouseY, sideX, by, SIDE_W, sbh() - 2);
             int col = c == null ? 0xFFB0A0D0 : catColor(c);
-            g.fill(sideX, by, sideX + SIDE_W, by + sbh() - 2, active ? 0xFF6A24D8 : (hover ? 0xE0362060 : 0xD0281646));
-            g.fill(sideX, by, sideX + 3, by + sbh() - 2, col);
+            ClickGui.round(g, sideX, by, sideX + SIDE_W, by + sbh() - 2, active ? 0xFF6A24D8 : (hover ? 0xE0362060 : 0xD0281646));
+            g.fill(sideX + 1, by + 2, sideX + 3, by + sbh() - 4, col);
             int n = 0, an = 0;
             for (Module m : TeizenClient.modules().all()) {
                 if (!ModuleManager.shown(m) || (c != null && m.category != c)) continue;
@@ -349,14 +350,14 @@ public final class Overview extends Screen {
                 if (m.isEnabled()) an++;
             }
             String label = (c == null ? "Alle" : c.title);
-            g.text(font, (active ? "§f§l" : "§f") + label, sideX + 7, by + textDy(), 0xFFFFFFFF, false);
+            MenuFont.text(g, font, (active ? "§f§l" : "§f") + label, sideX + 7, by + textDy(), 0xFFFFFFFF, false);
             String cnt = (an > 0 ? "§a" + an + "§7/" : "§7") + n;
-            g.text(font, cnt, sideX + SIDE_W - 4 - font.width(cnt), by + textDy(), 0xFFFFFFFF, false);
+            MenuFont.text(g, font, cnt, sideX + SIDE_W - 4 - MenuFont.width(font, cnt), by + textDy(), 0xFFFFFFFF, false);
         }
 
         // Profile (ein Klick = mehrere Cheats an/aus) + HUD verschieben
         int py = profileTop();
-        if (py + 12 < clipBottom) g.text(font, "§7Profile", sideX + 2, py + 1, 0xFFFFFFFF, false);
+        if (py + 12 < clipBottom) MenuFont.text(g, font, "§7Profile", sideX + 2, py + 1, 0xFFFFFFFF, false);
         java.util.List<dev.teizen.client.core.Profiles.Profile> profs = dev.teizen.client.core.Profiles.all();
         for (int j = 0; j < profs.size(); j++) {
             int by = profileButtonY(j);
@@ -364,18 +365,18 @@ public final class Overview extends Screen {
             var pr = profs.get(j);
             boolean act = dev.teizen.client.core.Profiles.isActive(pr);
             boolean hover = in(mouseX, mouseY, sideX, by, SIDE_W, sbh() - 2);
-            g.fill(sideX, by, sideX + SIDE_W, by + sbh() - 2, act ? 0xFF2E9A50 : (hover ? 0xE0362060 : 0xD0281646));
-            g.fill(sideX, by, sideX + 3, by + sbh() - 2, pr.builtIn() ? 0xFF50E080 : 0xFFE080FF);
+            ClickGui.round(g, sideX, by, sideX + SIDE_W, by + sbh() - 2, act ? 0xFF2E9A50 : (hover ? 0xE0362060 : 0xD0281646));
+            g.fill(sideX + 1, by + 2, sideX + 3, by + sbh() - 4, pr.builtIn() ? 0xFF50E080 : 0xFFE080FF);
             String pl = (act ? "§f§l" : "§f") + pr.name();
-            if (font.width(pl) > SIDE_W - 22) pl = font.plainSubstrByWidth(pl, SIDE_W - 24);
-            g.text(font, pl, sideX + 7, by + textDy(), 0xFFFFFFFF, false);
-            g.text(font, act ? "§aan" : "§8aus", sideX + SIDE_W - 4 - font.width(act ? "an" : "aus"), by + textDy(), 0xFFFFFFFF, false);
+            pl = MenuFont.cut(font, pl, SIDE_W - 20);
+            MenuFont.text(g, font, pl, sideX + 7, by + textDy(), 0xFFFFFFFF, false);
+            MenuFont.text(g, font, act ? "§aan" : "§8aus", sideX + SIDE_W - 4 - MenuFont.width(font, act ? "an" : "aus"), by + textDy(), 0xFFFFFFFF, false);
             if (hover) g.setTooltipForNextFrame(font, Component.literal(pr.name() + ": " + String.join(", ", pr.modules())), mouseX, mouseY);
         }
         int hy = hudButtonY();
         boolean hh = in(mouseX, mouseY, sideX, hy, SIDE_W, sbh() - 2);
-        g.fill(sideX, hy, sideX + SIDE_W, hy + sbh() - 2, hh ? 0xFF7A2CF0 : 0xD0402080);
-        g.centeredText(font, "§fHUD verschieben", sideX + SIDE_W / 2, hy + textDy(), 0xFFFFFFFF);
+        ClickGui.round(g, sideX, hy, sideX + SIDE_W, hy + sbh() - 2, hh ? 0xFF7A2CF0 : 0xD0402080);
+        MenuFont.centered(g, font, "§fHUD verschieben", sideX + SIDE_W / 2, hy + textDy(), 0xFFFFFFFF);
 
         // Bildlaufleiste
         if (maxS > 0) {
@@ -388,28 +389,28 @@ public final class Overview extends Screen {
 
         // Kopf (über dem Inhalt)
         g.fill(0, 0, width, TOP - 3, 0xE0100820);
-        g.text(font, "§5§lTEIZEN §7Übersicht", 6, 6, 0xFFFFFFFF, true);
-        int sw = Math.max(80, Math.min(220, width - 2 * (font.width("TEIZEN Übersicht") + 60)));
+        MenuFont.text(g, font, "§5§lTEIZEN §7Übersicht", 6, 6, 0xFFFFFFFF, true);
+        int sw = Math.max(80, Math.min(220, width - 2 * (MenuFont.width(font, "TEIZEN Übersicht") + 60)));
         search.render(g, font, width / 2 - sw / 2, 4, sw, mouseX, mouseY);
-        panicW = font.width("PANIK – alles aus") + 10;
+        panicW = MenuFont.width(font, "PANIK – alles aus") + 10;
         panicX = width - panicW - 6;
         panicY = 4;
         boolean ph = in(mouseX, mouseY, panicX, panicY, panicW, 13);
-        g.fill(panicX, panicY, panicX + panicW, panicY + 13, ph ? 0xFFFF4040 : 0xFFC02020);
-        g.text(font, "§lPANIK §r– alles aus", panicX + 5, panicY + 3, 0xFFFFFFFF, false);
+        ClickGui.round(g, panicX, panicY, panicX + panicW, panicY + 13, ph ? 0xFFFF4040 : 0xFFC02020);
+        MenuFont.text(g, font, "§lPANIK §r– alles aus", panicX + 5, panicY + 3, 0xFFFFFFFF, false);
         String opLabel = ModuleManager.hideOp ? "§6OP-Cheats: §cversteckt" : "§6OP-Cheats: §asichtbar";
-        opW = font.width(opLabel) + 10;
+        opW = MenuFont.width(font, opLabel) + 10;
         opX = width - opW - 6;
         boolean oh = in(mouseX, mouseY, opX, opY, opW, 13);
-        g.fill(opX, opY, opX + opW, opY + 13, oh ? 0xFF5A3A10 : 0xFF3A2408);
+        ClickGui.round(g, opX, opY, opX + opW, opY + 13, oh ? 0xFF5A3A10 : 0xFF3A2408);
         g.fill(opX, opY + 12, opX + opW, opY + 13, 0xFFE8A030);
-        g.text(font, opLabel, opX + 5, opY + 3, 0xFFFFFFFF, false);
+        MenuFont.text(g, font, opLabel, opX + 5, opY + 3, 0xFFFFFFFF, false);
         if (oh) g.setTooltipForNextFrame(font, Component.literal("Cheats, die OP-Rechte brauchen (z.B. God, NoClip, NoCooldown), ein-/ausblenden"), mouseX, mouseY);
         String head = "§a" + on + "§7 von §f" + TeizenClient.modules().all().size() + "§7 an  §8|  §7Links: an/aus · Rechts: Einstellungen · Mitte/Shift: §6★ · §7Mausrad: scrollen";
         int room = width - 2 * (opW + 12);
-        if (font.width(head) > room) head = "§a" + on + "§7 an §8| §7L: an/aus · R: Einst. · Mitte: §6★ §7· Mausrad";
-        if (font.width(head) > room) head = "§a" + on + "§7 an §8| §7R: Einstellungen";
-        g.centeredText(font, head, width / 2, 24, 0xFFFFFFFF);
+        if (MenuFont.width(font, head) > room) head = "§a" + on + "§7 an §8| §7L: an/aus · R: Einst. · Mitte: §6★ §7· Mausrad";
+        if (MenuFont.width(font, head) > room) head = "§a" + on + "§7 an §8| §7R: Einstellungen";
+        MenuFont.centered(g, font, head, width / 2, 24, 0xFFFFFFFF);
 
         String foot;
         if (binding != null) foot = "§eDrück eine Taste für " + binding.name + " (Entf = keine)";
@@ -417,16 +418,17 @@ public final class Overview extends Screen {
         else foot = "§8Schließen: Esc oder " + KeyBinds.overviewName() + "  ·  Großes Menü: " + SettingsScreen.keyName(TeizenClient.menuKey)
                 + "  ·  Tasten: Optionen → Steuerung → Teizen Client";
         g.fill(0, height - 14, width, height, 0xC0000000);
-        if (font.width(foot) > width - 4) foot = font.plainSubstrByWidth(foot, width - 8);
-        g.centeredText(font, foot, width / 2, height - 11, 0xFFFFFFFF);
+        foot = MenuFont.cut(font, foot, width - 6);
+        MenuFont.centered(g, font, foot, width / 2, height - 11, 0xFFFFFFFF);
+        } finally { MenuFont.active = false; }
     }
 
     private void button(GuiGraphicsExtractor g, int x, int y, int w, String label, boolean active, int mx, int my) {
         boolean hover = in(mx, my, x, y, w, 13);
-        g.fill(x, y, x + w, y + 13, active ? 0xFF7A2CF0 : (hover ? 0xE0362060 : 0xD0281646));
+        ClickGui.round(g, x, y, x + w, y + 13, active ? 0xFF7A2CF0 : (hover ? 0xE0362060 : 0xD0281646));
         var font = getFont();
-        String l = font.width(label) > w - 4 ? font.plainSubstrByWidth(label, w - 6) : label;
-        g.text(font, l, x + (w - font.width(l)) / 2, y + 3, 0xFFFFFFFF, false);
+        String l = MenuFont.cut(font, label, w - 4);
+        MenuFont.text(g, font, l, x + (w - MenuFont.width(font, l)) / 2, y + 3, 0xFFFFFFFF, false);
     }
 
     private int sideButtonY(int i) { return TOP + 12 + i * sbh(); }
