@@ -87,6 +87,12 @@ final class Round13Tests {
         return new int[]{good, bad, total};
     }
 
+    private static String invSummary() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 36; i++) { var st = mc.player.getInventory().getItem(i); if (!st.isEmpty()) sb.append(st.getCount()).append('x').append(st.getItem()).append(' '); }
+        return sb.toString();
+    }
+
     private static void logWrong() {
         int n = 0;
         for (var e : house.entrySet()) {
@@ -397,6 +403,16 @@ final class Round13Tests {
                 off(get(AutoBuild.class));
                 releaseKeys();
                 logWrong();
+                // wo sind Bretter gelandet, die nicht zum Haus gehören?
+                int stray = 0;
+                for (BlockPos q : BlockPos.betweenClosed(h.offset(-12, 0, -12), h.offset(18, 8, 12))) {
+                    var st = mc.level.getBlockState(q);
+                    if (st.isAir()) continue;
+                    var want = house.get(q.immutable());
+                    if (want != null && same(st, want)) continue;
+                    if (stray++ < 15) log("AutoBuild Haus fremder Block bei " + q.subtract(h).toShortString() + ": " + st + " (soll " + want + ")");
+                }
+                log("AutoBuild Haus: " + stray + " fremde Blöcke; Inventar: " + invSummary());
                 result(String.format(Locale.ROOT, "AutoBuild Haus (Überleben, laufen): richtig %d/%d, falsch %d, nach %d Ticks, %.0f Blöcke gelaufen %s",
                         c[0], c[2], c[1], local(), walked, ok(c[0] >= c[2] - 2 && c[1] == 0)));
                 dev.teizen.client.compat.LitematicaCompat.testOverride = null;

@@ -79,6 +79,7 @@ public final class AutoBuild extends Module {
     private int wait;
     private int missingMsg;
     public int placedTotal;
+    private int dbgDig, dbgPlace;
     /** Abbau-Modus: im Schematic-Bereich alles abbauen, was nicht dazugehört (Erde usw.), ohne zu bauen. */
     public boolean demolish;
     private int idleTicks;
@@ -183,6 +184,9 @@ public final class AutoBuild extends Module {
             digging = best;
             digTicks = 0;
         }
+        if (dev.teizen.client.SelfTest.ACTIVE && digTicks == 0 && dbgDig++ < 40)
+            dev.teizen.client.TeizenClient.LOG.info("AutoBuild baut ab " + digging.toShortString() + ": ist " + mc.level.getBlockState(digging)
+                    + " soll " + dev.teizen.client.compat.LitematicaCompat.schematicState(digging));
         boolean gone = dev.teizen.client.util.Breaker.tick(digging, true, true);
         if (gone) {
             dugTotal++;
@@ -253,7 +257,11 @@ public final class AutoBuild extends Module {
             if (cooldown.containsKey(p)) { waiting = true; continue; } // gerade probiert -> gleich nochmal, nicht weglaufen
             BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
             if (!hasItem(want.getBlock().asItem())) continue;
-            if (tryPlace(p, want)) {
+            boolean okPlace = tryPlace(p, want);
+            if (dev.teizen.client.SelfTest.ACTIVE && dbgPlace++ < 80)
+                dev.teizen.client.TeizenClient.LOG.info("AutoBuild setzt " + p.toShortString() + " " + want + " -> " + okPlace + " Hand=" + mc.player.getMainHandItem().getItem()
+                        + " jetzt=" + mc.level.getBlockState(p).getBlock() + " ich=" + mc.player.blockPosition().toShortString());
+            if (okPlace) {
                 done++;
                 placedTotal++;
                 lastPlaced.add(p);
