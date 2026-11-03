@@ -41,9 +41,9 @@ public final class SearchBox {
         String text;
         if (query.isEmpty() && !focused) text = "§8Cheat suchen… (einfach lostippen)";
         else text = "§f" + query + (focused && (System.currentTimeMillis() / 500) % 2 == 0 ? "§e_" : "");
-        if (font.width(text) > w - 22) text = "§f…" + query.substring(Math.max(0, query.length() - 20));
-        g.text(font, text, x + 16, y + 2, 0xFFFFFFFF, false);
-        if (active()) g.text(font, "§7✕", x + w - 9, y + 2, 0xFFFFFFFF, false);
+        if (MenuFont.width(font, text) > w - 22) text = "§f…" + query.substring(Math.max(0, query.length() - 20));
+        MenuFont.text(g, font, text, x + 16, y + 2, 0xFFFFFFFF, false);
+        if (active()) MenuFont.text(g, font, "§7✕", x + w - 9, y + 2, 0xFFFFFFFF, false);
     }
 
     public boolean inside(double mx, double my) {

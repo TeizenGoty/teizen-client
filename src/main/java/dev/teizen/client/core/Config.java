@@ -61,6 +61,7 @@ public final class Config {
             root.addProperty("hudGroesse", dev.teizen.client.gui.Hud.scale);
             root.addProperty("hudLetzte", dev.teizen.client.gui.Hud.lastScale);
             root.addProperty("seedProgressHud", dev.teizen.client.core.Seed.showProgress);
+            root.addProperty("menuFont", dev.teizen.client.gui.MenuFont.enabled);
             root.addProperty("merken", Restore.enabled);
             JsonObject ms = new JsonObject();
             for (var e : dev.teizen.client.core.Seed.MANUAL.entrySet()) ms.addProperty(e.getKey(), e.getValue());
@@ -85,6 +86,7 @@ public final class Config {
             if (root.has("hudLetzte")) dev.teizen.client.gui.Hud.lastScale = Math.max(0.1f, Math.min(2f, root.get("hudLetzte").getAsFloat()));
             if (root.has("merken")) Restore.enabled = root.get("merken").getAsBoolean();
             if (root.has("seedProgressHud")) dev.teizen.client.core.Seed.showProgress = root.get("seedProgressHud").getAsBoolean();
+            if (root.has("menuFont")) dev.teizen.client.gui.MenuFont.enabled = root.get("menuFont").getAsBoolean();
             if (root.has("eigeneSeeds")) for (var e : root.getAsJsonObject("eigeneSeeds").entrySet()) dev.teizen.client.core.Seed.MANUAL.put(e.getKey(), e.getValue().getAsLong());
             if (root.has("profile")) Profiles.fromJson(root.getAsJsonObject("profile"));
             if (root.has("hudPositionen")) dev.teizen.client.gui.HudLayout.fromJson(root.getAsJsonObject("hudPositionen"));

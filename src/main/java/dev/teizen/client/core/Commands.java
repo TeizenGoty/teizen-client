@@ -406,6 +406,13 @@ public final class Commands {
                 if (a.length >= 2) { Chat.info(dev.teizen.client.modules.Swarm.send(String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length)))); return; }
                 mm.get(dev.teizen.client.modules.Swarm.class).toggle();
             }
+            case "menuschrift", "menufont" -> {
+                // weiche Schrift im Menü an/aus (aus = normale Minecraft-Schrift)
+                if (a.length >= 2) dev.teizen.client.gui.MenuFont.enabled = a[1].equalsIgnoreCase("an") || a[1].equalsIgnoreCase("on");
+                else dev.teizen.client.gui.MenuFont.enabled = !dev.teizen.client.gui.MenuFont.enabled;
+                Config.save();
+                Chat.ok("Weiche Schrift im Menü: " + (dev.teizen.client.gui.MenuFont.enabled ? "§aan" : "§caus"));
+            }
             case "merken", "remember" -> {
                 if (a.length >= 2) dev.teizen.client.core.Restore.enabled = a[1].equalsIgnoreCase("an") || a[1].equalsIgnoreCase("on");
                 else dev.teizen.client.core.Restore.enabled = !dev.teizen.client.core.Restore.enabled;

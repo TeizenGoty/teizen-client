@@ -113,22 +113,39 @@ public final class ClickGui extends Screen {
 
     // ------------------------------------------------------------------ Zeichnen: Helfer
 
+    /** Fläche mit runden Ecken (Radius 2 Pixel). */
+    static void round(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, int c) {
+        if (x2 - x1 < 4 || y2 - y1 < 4) { g.fill(x1, y1, x2, y2, c); return; }
+        g.fill(x1 + 2, y1, x2 - 2, y2, c);
+        g.fill(x1 + 1, y1 + 1, x1 + 2, y2 - 1, c);
+        g.fill(x2 - 2, y1 + 1, x2 - 1, y2 - 1, c);
+        g.fill(x1, y1 + 2, x1 + 1, y2 - 2, c);
+        g.fill(x2 - 1, y1 + 2, x2, y2 - 2, c);
+    }
+
+    /** Runde Fläche mit Rand. */
     private static void box(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, int fill, int border) {
-        g.fill(x1, y1, x2, y2, border);
-        g.fill(x1 + 1, y1 + 1, x2 - 1, y2 - 1, fill);
+        round(g, x1, y1, x2, y2, border);
+        round(g, x1 + 1, y1 + 1, x2 - 1, y2 - 1, fill);
     }
 
-    /** Kleiner Schalter (Spur + Knopf). */
+    /** Schalter (Spur + runder Knopf), 18x10. */
     private static void toggle(GuiGraphicsExtractor g, int x, int y, boolean on) {
-        g.fill(x, y, x + 16, y + 8, on ? ACCENT : TRACK_OFF);
+        round(g, x, y, x + 18, y + 10, on ? ACCENT : TRACK_OFF);
         int k = on ? x + 9 : x + 1;
-        g.fill(k, y + 1, k + 6, y + 7, 0xFFFFFFFF);
+        round(g, k, y + 1, k + 8, y + 9, 0xFFFFFFFF);
     }
 
-    private static String cut(Font font, String s, int w) {
-        if (font.width(s) <= w) return s;
-        return font.plainSubstrByWidth(s, Math.max(0, w - font.width("…"))) + "…";
+    /** Größere Überschrift (1,5-fach). */
+    private static void big(GuiGraphicsExtractor g, Font font, String s, int x, int y, int color) {
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        g.pose().scale(1.5f, 1.5f);
+        MenuFont.text(g, font, s, 0, 0, color, false);
+        g.pose().popMatrix();
     }
+
+    private static String cut(Font font, String s, int w) { return MenuFont.cut(font, s, w); }
 
     /** Text in Zeilen umbrechen (an Leerzeichen). */
     private static List<String> wrap(Font font, String s, int w, int maxLines) {
@@ -136,14 +153,14 @@ public final class ClickGui extends Screen {
         StringBuilder line = new StringBuilder();
         for (String word : s.split(" ")) {
             String test = line.isEmpty() ? word : line + " " + word;
-            if (font.width(test) > w && !line.isEmpty()) {
+            if (MenuFont.width(font, test) > w && !line.isEmpty()) {
                 out.add(line.toString());
                 line = new StringBuilder(word);
                 if (out.size() == maxLines) break;
             } else line = new StringBuilder(test);
         }
         if (out.size() < maxLines && !line.isEmpty()) out.add(line.toString());
-        if (out.size() == maxLines && font.width(String.join(" ", out)) < font.width(s) - 2) {
+        if (out.size() == maxLines && MenuFont.width(font, String.join(" ", out)) < MenuFont.width(font, s) - 2) {
             String last = out.get(maxLines - 1);
             out.set(maxLines - 1, cut(font, last + " …", w));
         }
@@ -166,24 +183,29 @@ public final class ClickGui extends Screen {
         int midX = side, midW = width - side - right;
 
         g.fill(0, 0, width, height, GROUND);
-        drawSide(g, font, side, mouseX, mouseY);
-        drawMiddle(g, font, midX, midW, mouseX, mouseY);
-        if (right > 0) drawRight(g, font, width - right, right, mouseX, mouseY);
+        MenuFont.active = true;
+        try {
+            drawSide(g, font, side, mouseX, mouseY);
+            drawMiddle(g, font, midX, midW, mouseX, mouseY);
+            if (right > 0) drawRight(g, font, width - right, right, mouseX, mouseY);
+        } finally {
+            MenuFont.active = false;
+        }
     }
 
     private void drawSide(GuiGraphicsExtractor g, Font font, int w, int mx, int my) {
         g.fill(0, 0, w, height, SIDE);
         g.fill(w - 1, 0, w, height, LINE);
         // Logo
-        g.fill(6, 6, 20, 20, ACCENT);
-        g.centeredText(font, "§lT", 13, 9, 0xFFFFFFFF);
-        g.text(font, "§lTEIZEN", 24, 6, TEXT, false);
-        g.text(font, cut(font, "26.2 / 26.3", w - 28), 24, 15, MUTED, false);
+        round(g, 6, 6, 20, 20, ACCENT);
+        MenuFont.centered(g, font, "§lT", 13, 9, 0xFFFFFFFF);
+        MenuFont.text(g, font, "§lTEIZEN", 24, 6, TEXT, false);
+        MenuFont.text(g, font, cut(font, "26.2 / 26.3", w - 28), 24, 15, MUTED, false);
         // Suche
         search.render(g, font, 6, 26, w - 12, mx, my);
         // Kategorien
         int y = 46;
-        g.text(font, "§lKATEGORIEN", 8, y, DIM, false);
+        MenuFont.text(g, font, "§lKATEGORIEN", 8, y, DIM, false);
         y += 11;
         List<Module> fl = favs();
         if (!fl.isEmpty()) {
@@ -197,9 +219,9 @@ public final class ClickGui extends Screen {
         // unten: OP, Merken, PANIK
         int by = height - 16;
         boolean ph = mx >= 6 && mx < w - 6 && my >= by && my < by + 12;
-        g.fill(6, by, w - 6, by + 12, ph ? PANIC_HOVER : PANIC);
-        String pl = font.width("PANIK · alles aus") + 8 <= w - 12 ? "§lPANIK · alles aus" : "§lPANIK";
-        g.centeredText(font, pl, w / 2, by + 2, 0xFFFFFFFF);
+        round(g, 6, by, w - 6, by + 12, ph ? PANIC_HOVER : PANIC);
+        String pl = MenuFont.width(font, "PANIK · alles aus") + 8 <= w - 12 ? "§lPANIK · alles aus" : "§lPANIK";
+        MenuFont.centered(g, font, pl, w / 2, by + 2, 0xFFFFFFFF);
         hits.add(new Hit(Kind.PANIC, 6, by, w - 6, by + 12, null, null));
         by -= 14;
         boolean merken = dev.teizen.client.core.Restore.enabled;
@@ -213,19 +235,19 @@ public final class ClickGui extends Screen {
     private void drawChipRow(GuiGraphicsExtractor g, Font font, int x, int y, int w, String label, String value, int mx, int my) {
         boolean h = mx >= x && mx < x + w && my >= y && my < y + 12;
         box(g, x, y, x + w, y + 12, h ? CARD_HOVER : CARD, LINE2);
-        g.text(font, label, x + 4, y + 2, MUTED, false);
-        g.text(font, value, x + w - 4 - font.width(value), y + 2, TEXT, false);
+        MenuFont.text(g, font, label, x + 4, y + 2, MUTED, false);
+        MenuFont.text(g, font, value, x + w - 4 - MenuFont.width(font, value), y + 2, TEXT, false);
     }
 
     private int catRow(GuiGraphicsExtractor g, Font font, int w, int y, String title, int dot, List<Module> l, boolean cur,
                        int mx, int my, Kind kind, Module.Category c) {
         boolean h = mx >= 4 && mx < w - 4 && my >= y && my < y + 14;
-        if (cur || h) g.fill(4, y, w - 4, y + 14, cur ? CARD_SEL : CARD_HOVER);
-        if (cur) g.fill(4, y, 5, y + 14, ACCENT);
-        g.fill(9, y + 5, 13, y + 9, dot);
+        if (cur || h) round(g, 4, y, w - 4, y + 14, cur ? CARD_SEL : CARD_HOVER);
+        if (cur) g.fill(4, y + 3, 5, y + 11, ACCENT);
+        round(g, 8, y + 4, 14, y + 10, dot);
         String cnt = onCount(l) + "/" + l.size();
-        g.text(font, cut(font, title, w - 26 - font.width(cnt)), 17, y + 3, cur ? 0xFFFFFFFF : 0xFFC9BFE6, false);
-        g.text(font, cnt, w - 8 - font.width(cnt), y + 3, cur ? 0xFFC4B5FD : DIM, false);
+        MenuFont.text(g, font, cut(font, title, w - 26 - MenuFont.width(font, cnt)), 17, y + 3, cur ? 0xFFFFFFFF : 0xFFC9BFE6, false);
+        MenuFont.text(g, font, cnt, w - 8 - MenuFont.width(font, cnt), y + 3, cur ? 0xFFC4B5FD : DIM, false);
         hits.add(new Hit(kind, 4, y, w - 4, y + 14, c, null));
         return y + 15;
     }
@@ -240,29 +262,29 @@ public final class ClickGui extends Screen {
         if (search.active()) { title = "Suche"; base = list; }
         else if (favTab) { title = "★ Favoriten"; base = favs(); }
         else { title = category.title; base = inCat(category); }
-        g.text(font, "§l" + title, x, 8, TEXT, false);
+        big(g, font, "§l" + title, x, 6, TEXT);
         String sub = search.active() ? list.size() + " Treffer für \"" + search.query + "\""
                 : base.size() + " Funktionen · " + onCount(base) + " an";
-        g.text(font, sub, x, 19, MUTED, false);
+        MenuFont.text(g, font, sub, x, 22, MUTED, false);
         // Filter (nicht bei Suche)
         if (!search.active()) {
             String[] labels = {"Alle", "An", "Aus"};
             int fx = x + iw;
             for (int i = labels.length - 1; i >= 0; i--) {
-                int bw = font.width(labels[i]) + 10;
+                int bw = MenuFont.width(font, labels[i]) + 10;
                 fx -= bw;
                 boolean act = filter == i, h = mx >= fx && mx < fx + bw && my >= 8 && my < 20;
-                g.fill(fx, 8, fx + bw, 20, act ? ACCENT : (h ? CARD_HOVER : CARD));
-                g.centeredText(font, labels[i], fx + bw / 2, 10, act ? 0xFFFFFFFF : 0xFFC9BFE6);
+                round(g, fx, 8, fx + bw, 20, act ? ACCENT : (h ? CARD_HOVER : CARD));
+                MenuFont.centered(g, font, labels[i], fx + bw / 2, 10, act ? 0xFFFFFFFF : 0xFFC9BFE6);
                 hits.add(new Hit(Kind.FILTER, fx, 8, fx + bw, 20, i, null));
                 fx -= 2;
             }
         }
         // Karten
-        int top = 32, bottom = height - 16;
+        int top = 36, bottom = height - 16;
         int cols = Math.max(1, iw / 150);
-        int gap = 5;
-        int cw = (iw - gap * (cols - 1)) / cols, ch = 38;
+        int gap = 6;
+        int cw = (iw - gap * (cols - 1)) / cols, ch = 42;
         int rowsN = (list.size() + cols - 1) / cols;
         midContent = rowsN * (ch + gap);
         scrollMid = Math.max(0, Math.min(scrollMid, Math.max(0, midContent - (bottom - top))));
@@ -274,32 +296,32 @@ public final class ClickGui extends Screen {
             boolean sel = m == selected, h = mx >= cx && mx < cx + cw && my >= cy && my < cy + ch && my >= top && my < bottom;
             box(g, cx, cy, cx + cw, cy + ch, sel ? CARD_SEL : (h ? CARD_HOVER : CARD), sel ? ACCENT : LINE);
             String name = (m.favorite ? "§6★ §r" : "") + m.name + (m.needsOp() ? " §6OP" : "");
-            g.text(font, cut(font, name, cw - 30), cx + 5, cy + 4, TEXT, false);
-            g.text(font, cut(font, m.description, cw - 10), cx + 5, cy + 15, MUTED, false);
+            MenuFont.text(g, font, cut(font, "§l" + name, cw - 32), cx + 6, cy + 5, TEXT, false);
+            MenuFont.text(g, font, cut(font, m.description, cw - 12), cx + 6, cy + 16, MUTED, false);
             // Schalter
-            toggle(g, cx + cw - 21, cy + 4, m.isEnabled());
-            hits.add(new Hit(Kind.SWITCH, cx + cw - 23, cy + 2, cx + cw - 3, cy + 14, m, null));
+            toggle(g, cx + cw - 24, cy + 5, m.isEnabled());
+            hits.add(new Hit(Kind.SWITCH, cx + cw - 26, cy + 3, cx + cw - 3, cy + 17, m, null));
             // Taste + Status
             String key = m == binding ? "§eTaste drücken…" : (m.key >= 0 ? "Taste " + Keys.name(m.key) : "keine Taste");
-            g.fill(cx + 5, cy + 26, cx + 7 + font.width(key) + 2, cy + 35, ACCENT_SOFT);
-            g.text(font, key, cx + 7, cy + 27, 0xFFC4B5FD, false);
+            round(g, cx + 6, cy + 28, cx + 10 + MenuFont.width(font, key), cy + 38, ACCENT_SOFT);
+            MenuFont.text(g, font, key, cx + 8, cy + 29, 0xFFC4B5FD, false);
             String st = m.isEnabled() ? "an" : "aus";
-            g.text(font, st, cx + cw - 5 - font.width(st), cy + 27, m.isEnabled() ? ON_TEXT : DIM, false);
+            MenuFont.text(g, font, st, cx + cw - 6 - MenuFont.width(font, st), cy + 29, m.isEnabled() ? ON_TEXT : DIM, false);
             if (h) g.setTooltipForNextFrame(font, Component.literal(m.description + (m.favorite ? " (★ Favorit)" : "")), mx, my);
             if (cy + ch > top && cy < bottom) hits.add(new Hit(Kind.CARD, cx, Math.max(cy, top), cx + cw, Math.min(cy + ch, bottom), m, null));
         }
         g.disableScissor();
         if (list.isEmpty())
-            g.centeredText(font, search.active() ? "§7Kein Cheat gefunden für \"" + search.query + "\"" : "§7Hier ist gerade nichts.", x0 + w / 2, top + 20, 0xFFFFFFFF);
+            MenuFont.centered(g, font, search.active() ? "§7Kein Cheat gefunden für \"" + search.query + "\"" : "§7Hier ist gerade nichts.", x0 + w / 2, top + 20, 0xFFFFFFFF);
         // Fuß
         g.fill(x0, bottom + 1, x0 + w, bottom + 2, LINE);
         String foot;
         if (binding != null) foot = "§eDrück eine Taste für " + binding.name + " (Entf = keine)";
         else if (rows.hint() != null) foot = rows.hint();
         else foot = "§fKlick§7 an/aus · §fRechtsklick§7 Einstellungen · §fMitte§7 Taste · §fShift§7 Favorit · Übersicht: §f" + KeyBinds.overviewName();
-        if (font.width(foot) > iw) foot = "§fKlick§7 an/aus · §fRechts§7 Einst. · §fMitte§7 Taste";
-        if (font.width(foot) > iw) foot = cut(font, foot, iw);
-        g.text(font, foot, x, bottom + 4, MUTED, false);
+        if (MenuFont.width(font, foot) > iw) foot = "§fKlick§7 an/aus · §fRechts§7 Einst. · §fMitte§7 Taste";
+        if (MenuFont.width(font, foot) > iw) foot = cut(font, foot, iw);
+        MenuFont.text(g, font, foot, x, bottom + 4, MUTED, false);
     }
 
     private void drawRight(GuiGraphicsExtractor g, Font font, int x0, int w, int mx, int my) {
@@ -308,27 +330,27 @@ public final class ClickGui extends Screen {
         Module m = selected;
         int x = x0 + 8, iw = w - 16;
         if (m == null) {
-            g.text(font, "§7Rechtsklick auf eine Funktion", x, 10, MUTED, false);
+            MenuFont.text(g, font, "§7Rechtsklick auf eine Funktion", x, 10, MUTED, false);
             return;
         }
-        g.text(font, "§l" + cut(font, m.name, iw - 30), x, 8, TEXT, false);
+        big(g, font, "§l" + cut(font, m.name, (iw - 30) * 2 / 3), x, 6, TEXT);
         // Status-Knopf (anklickbar)
         String st = m.isEnabled() ? "AN" : "AUS";
-        int sw = font.width(st) + 8, sx = x + iw - sw;
-        g.fill(sx, 6, sx + sw, 17, m.isEnabled() ? ON_BG : CARD);
-        g.text(font, st, sx + 4, 8, m.isEnabled() ? ON_TEXT : DIM, false);
+        int sw = MenuFont.width(font, st) + 8, sx = x + iw - sw;
+        round(g, sx, 6, sx + sw, 17, m.isEnabled() ? ON_BG : CARD);
+        MenuFont.text(g, font, st, sx + 4, 8, m.isEnabled() ? ON_TEXT : DIM, false);
         hits.add(new Hit(Kind.DETAIL_SWITCH, sx, 6, sx + sw, 17, m, null));
-        int y = 21;
-        for (String line : wrap(font, m.description, iw, 3)) { g.text(font, line, x, y, MUTED, false); y += 9; }
+        int y = 24;
+        for (String line : wrap(font, m.description, iw, 3)) { MenuFont.text(g, font, line, x, y, MUTED, false); y += 9; }
         String key = m.key >= 0 ? "Taste: §f" + Keys.name(m.key) : "Taste: §7keine";
-        g.text(font, cut(font, key, iw), x, y + 2, MUTED, false);
+        MenuFont.text(g, font, cut(font, key, iw), x, y + 2, MUTED, false);
         y += 14;
         g.fill(x, y, x + iw, y + 1, LINE);
         y += 4;
-        g.text(font, "§lEINSTELLUNGEN", x, y, DIM, false);
+        MenuFont.text(g, font, "§lEINSTELLUNGEN", x, y, DIM, false);
         y += 11;
         List<SettingRows.Row> rs = SettingRows.rows(m);
-        if (rs.isEmpty()) { g.text(font, "§7Keine Einstellungen.", x, y, MUTED, false); return; }
+        if (rs.isEmpty()) { MenuFont.text(g, font, "§7Keine Einstellungen.", x, y, MUTED, false); return; }
         int rh = 14, top = y, bottom = height - 4;
         rightContent = rs.size() * (rh + 1);
         scrollRight = Math.max(0, Math.min(scrollRight, Math.max(0, rightContent - (bottom - top))));

@@ -76,7 +76,7 @@ public final class SettingRows {
             case MULTI_ALL -> {
                 g.fill(x, y, x + w, y + h, hover ? 0xE0241440 : 0xD0120A20);
                 checkbox(g, x + 12, ty, s.allSelected());
-                g.text(font, "§falle " + (s.allSelected() ? "§7(alle aus)" : "§7(alle an)"), x + 24, ty, 0xFFFFFFFF, false);
+                MenuFont.text(g, font, "§falle " + (s.allSelected() ? "§7(alle aus)" : "§7(alle an)"), x + 24, ty, 0xFFFFFFFF, false);
                 return;
             }
             case MULTI_OPTION -> {
@@ -84,8 +84,8 @@ public final class SettingRows {
                 boolean on = s.isSelected(r.option());
                 checkbox(g, x + 18, ty, on);
                 String label = s.optionLabel(r.option());
-                if (font.width(label) > w - 34) label = font.plainSubstrByWidth(label, w - 38) + "…";
-                g.text(font, (on ? "§f" : "§7") + label, x + 30, ty, 0xFFFFFFFF, false);
+                if (MenuFont.width(font, label) > w - 34) label = MenuFont.cut(font, label, w - 34);
+                MenuFont.text(g, font, (on ? "§f" : "§7") + label, x + 30, ty, 0xFFFFFFFF, false);
                 return;
             }
             default -> { }
@@ -95,8 +95,8 @@ public final class SettingRows {
             g.fill(x, y, x + w, y + h, hover ? 0xF05A2CB0 : 0xE03A1A70);
             g.fill(x, y + h - 1, x + w, y + h, 0xFFB088F0);
             String l = "§f▶ " + s.str();
-            if (font.width(l) > w - 10) l = font.plainSubstrByWidth(l, w - 14) + "…";
-            g.text(font, l, x + 8, ty, 0xFFFFFFFF, false);
+            if (MenuFont.width(font, l) > w - 10) l = MenuFont.cut(font, l, w - 10);
+            MenuFont.text(g, font, l, x + 8, ty, 0xFFFFFFFF, false);
             if (hover) g.setTooltipForNextFrame(font, Component.literal(s.description), mouseX, mouseY);
             return;
         }
@@ -107,7 +107,7 @@ public final class SettingRows {
             boolean blink = (System.currentTimeMillis() / 500) % 2 == 0;
             String vis = buffer;
             boolean cut = false;
-            while (!vis.isEmpty() && font.width("§7" + s.name + ": §e" + (cut ? "…" : "") + vis + "_") > w - 10) {
+            while (!vis.isEmpty() && MenuFont.width(font, "§7" + s.name + ": §e" + (cut ? "…" : "") + vis + "_") > w - 10) {
                 vis = vis.substring(1);
                 cut = true;
             }
@@ -121,9 +121,9 @@ public final class SettingRows {
                 default -> "§f" + s.display();
             };
             label = "§7" + s.name + ": " + value;
-            if (font.width(label) > w - 10) label = font.plainSubstrByWidth(label, w - 14) + "…";
+            if (MenuFont.width(font, label) > w - 10) label = MenuFont.cut(font, label, w - 10);
         }
-        g.text(font, label, x + 8, ty, 0xFFFFFFFF, false);
+        MenuFont.text(g, font, label, x + 8, ty, 0xFFFFFFFF, false);
         if (hover && !isEditing) {
             String extra = switch (s.type) {
                 case NUMBER -> " (anklicken = Zahl eintippen, " + Setting.fmt(s.min) + " bis " + Setting.fmt(s.max) + ")";
