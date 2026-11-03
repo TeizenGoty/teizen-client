@@ -523,11 +523,12 @@ final class Round13Tests {
             case 762 -> {
                 if (!after(5)) return true;
                 on(get(Chunks.class));
-                cmd(String.format(Locale.ROOT, "summon minecraft:ender_pearl %.1f %d %.1f", b.getX() + 2.5, b.getY() + 1, b.getZ() + 2.5));
+                // hoch spawnen, damit die Perle noch fliegt, wenn wir gleich nachschauen (am Boden wird sie sofort entfernt)
+                cmd(String.format(Locale.ROOT, "summon minecraft:ender_pearl %.1f %d %.1f", b.getX() + 2.5, b.getY() + 40, b.getZ() + 2.5));
                 next();
             }
             case 763 -> {
-                if (!after(20)) return true;
+                if (!after(8)) return true;
                 int act = get(Chunks.class).activeCount;
                 off(get(Chunks.class));
                 cmd("kill @e[type=minecraft:ender_pearl,distance=..20]");
