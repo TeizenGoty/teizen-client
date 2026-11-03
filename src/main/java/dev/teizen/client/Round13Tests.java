@@ -7,6 +7,7 @@ import dev.teizen.client.modules.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.Locale;
@@ -17,6 +18,85 @@ final class Round13Tests {
     private static BlockPos b;
     private static net.minecraft.world.phys.Vec3 p0;
     private static int n0, n1;
+    private static BlockPos h;
+    private static java.util.Map<BlockPos, net.minecraft.world.level.block.state.BlockState> house;
+    private static double walked;
+
+    /** Testhaus 7x5x7: Boden, Wände mit Stamm-Ecken, Tür, Fenster, Fackel, Balken, Dach aus Treppen und oberen Stufen. */
+    private static java.util.Map<BlockPos, net.minecraft.world.level.block.state.BlockState> buildHouse(BlockPos o) {
+        var P = net.minecraft.world.level.block.state.properties.BlockStateProperties.class;
+        java.util.Map<BlockPos, net.minecraft.world.level.block.state.BlockState> m = new java.util.HashMap<>();
+        var air = Blocks.AIR.defaultBlockState();
+        var planks = Blocks.OAK_PLANKS.defaultBlockState();
+        for (int x = 0; x < 7; x++) for (int z = 0; z < 7; z++) for (int y = 0; y <= 4; y++) {
+            BlockPos p = o.offset(x, y, z);
+            boolean edgeX = x == 0 || x == 6, edgeZ = z == 0 || z == 6, edge = edgeX || edgeZ, corner = edgeX && edgeZ;
+            net.minecraft.world.level.block.state.BlockState st;
+            if (y == 0) st = planks;
+            else if (y <= 3) {
+                if (!edge) st = air;
+                else if (corner) st = Blocks.OAK_LOG.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS, net.minecraft.core.Direction.Axis.Y);
+                else if (z == 0 && x == 3 && y <= 2) st = Blocks.OAK_DOOR.defaultBlockState()
+                        .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, net.minecraft.core.Direction.NORTH)
+                        .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF,
+                                y == 1 ? net.minecraft.world.level.block.state.properties.DoubleBlockHalf.LOWER : net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER);
+                else if (z == 0 && y == 3 && x >= 2 && x <= 4) st = Blocks.OAK_LOG.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS, net.minecraft.core.Direction.Axis.X);
+                else if (y == 2 && (x == 1 || x == 5) && (z == 0 || z == 6)) st = Blocks.GLASS.defaultBlockState();
+                else st = planks;
+            } else {
+                if (corner) st = planks;
+                else if (edge) {
+                    net.minecraft.core.Direction f = z == 0 ? net.minecraft.core.Direction.SOUTH : z == 6 ? net.minecraft.core.Direction.NORTH
+                            : x == 0 ? net.minecraft.core.Direction.EAST : net.minecraft.core.Direction.WEST;
+                    st = Blocks.OAK_STAIRS.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, f);
+                } else st = Blocks.OAK_SLAB.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.SLAB_TYPE,
+                        net.minecraft.world.level.block.state.properties.SlabType.TOP);
+            }
+            m.put(p, st);
+        }
+        // Fackel innen an der Nordwand
+        m.put(o.offset(1, 2, 1), Blocks.WALL_TORCH.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, net.minecraft.core.Direction.SOUTH));
+        return m;
+    }
+
+    /** Gleicher Block und gleiche Ausrichtung (Scharnier/Treppenform/Verbindungen zählen nicht). */
+    private static boolean same(net.minecraft.world.level.block.state.BlockState have, net.minecraft.world.level.block.state.BlockState want) {
+        if (have.getBlock() != want.getBlock()) return false;
+        for (var prop : new net.minecraft.world.level.block.state.properties.Property<?>[]{
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING,
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING,
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS,
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.HALF,
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.SLAB_TYPE,
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF}) {
+            if (want.hasProperty(prop) && !java.util.Objects.equals(have.getValue(prop), want.getValue(prop))) return false;
+        }
+        return true;
+    }
+
+    /** [richtig, falsch, gesamt] – nur Stellen, wo ein Block hin soll. */
+    private static int[] houseCheck() {
+        int good = 0, bad = 0, total = 0;
+        for (var e : house.entrySet()) {
+            if (e.getValue().isAir()) continue;
+            total++;
+            var have = mc.level.getBlockState(e.getKey());
+            if (have.isAir() || have.canBeReplaced()) continue;
+            if (same(have, e.getValue())) good++; else bad++;
+        }
+        return new int[]{good, bad, total};
+    }
+
+    private static void logWrong() {
+        int n = 0;
+        for (var e : house.entrySet()) {
+            if (e.getValue().isAir()) continue;
+            var have = mc.level.getBlockState(e.getKey());
+            if (same(have, e.getValue())) continue;
+            if (n++ < 25) log("AutoBuild Haus falsch/fehlt bei " + e.getKey().subtract(h).toShortString() + ": soll " + e.getValue() + " ist " + have);
+        }
+        log("AutoBuild Haus: " + n + " Stellen falsch/fehlen");
+    }
     private static boolean f1, f2;
 
     private Round13Tests() {}
@@ -271,6 +351,55 @@ final class Round13Tests {
                 result("Neues Menü: offen=" + yes(open) + ", AutoMine rechts gewählt=" + yes(sel) + ", Abbau-Liste zeigt AutoMine+XRay=" + yes(listed)
                         + ", Einstellung per Klick umgeschaltet=" + yes(flipped) + " " + ok(open && sel && listed && flipped));
                 mc.gui.setScreen(null);
+                SelfTest.jump(740);
+            }
+            // ------------------------------------------------ AutoBuild realistisch: Haus (Überleben, laufen, Treppen/Stämme/Stufen/Tür/Fackel)
+            case 740 -> {
+                if (!after(10)) return true;
+                if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica")) { result("AutoBuild Haus: Litematica fehlt – übersprungen"); SelfTest.jump(709); return true; }
+                h = b.offset(40, 0, 1);
+                house = buildHouse(h);
+                dev.teizen.client.compat.LitematicaCompat.testOverride = house;
+                cmd("fill " + blk(h.offset(-12, 0, -12)) + " " + blk(h.offset(18, 8, 12)) + " minecraft:air");
+                cmd("fill " + blk(h.offset(-12, -1, -12)) + " " + blk(h.offset(18, -1, 12)) + " minecraft:stone");
+                cmd("gamemode survival");
+                cmd("clear @s");
+                cmd("give @s minecraft:oak_planks 128");
+                cmd("give @s minecraft:oak_log 16");
+                cmd("give @s minecraft:oak_stairs 32");
+                cmd("give @s minecraft:oak_slab 32");
+                cmd("give @s minecraft:glass 8");
+                cmd("give @s minecraft:oak_door 1");
+                cmd("give @s minecraft:torch 4");
+                cmd("effect give @s minecraft:instant_health 1 10 true");
+                tp(h.getX() + 3.5, h.getY(), h.getZ() - 9.5);
+                next();
+            }
+            case 741 -> {
+                if (!after(20)) return true;
+                off(get(AutoBuild.class));
+                on(get(AutoBuild.class));
+                p0 = mc.player.position();
+                walked = 0;
+                next();
+            }
+            case 742 -> {
+                Vec3 now = mc.player.position();
+                walked += now.distanceTo(p0);
+                p0 = now;
+                int[] c = houseCheck();
+                if (local() % 200 == 0) log("AutoBuild Haus " + local() + ": richtig " + c[0] + "/" + c[2] + ", falsch " + c[1] + ", gesetzt " + get(AutoBuild.class).placedTotal
+                        + ", pos " + mc.player.blockPosition().toShortString() + ", gelaufen " + Math.round(walked));
+                if (c[0] + c[1] < c[2] && !after(2400)) return true;
+                SelfTest.shot2("95-autobuild-haus");
+                off(get(AutoBuild.class));
+                releaseKeys();
+                logWrong();
+                result(String.format(Locale.ROOT, "AutoBuild Haus (Überleben, laufen): richtig %d/%d, falsch %d, nach %d Ticks, %.0f Blöcke gelaufen %s",
+                        c[0], c[2], c[1], local(), walked, ok(c[0] >= c[2] - 2 && c[1] == 0)));
+                dev.teizen.client.compat.LitematicaCompat.testOverride = null;
+                cmd("fill " + blk(h.offset(-12, 0, -12)) + " " + blk(h.offset(18, 8, 12)) + " minecraft:air");
+                cmd("gamemode survival");
                 SelfTest.jump(709);
             }
             case 709 -> {

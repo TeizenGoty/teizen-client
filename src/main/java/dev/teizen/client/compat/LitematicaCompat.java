@@ -12,8 +12,12 @@ import net.minecraft.world.level.block.state.BlockState;
 public final class LitematicaCompat {
     private LitematicaCompat() {}
 
+    /** Nur Selbsttest: statt Litematica diese Blöcke als Schematic nehmen (Luft-Stellen als AIR eintragen). */
+    public static java.util.Map<BlockPos, BlockState> testOverride;
+
     /** Block aus dem Schematic-Hologramm an dieser Stelle (oder null). */
     public static BlockState schematicState(BlockPos pos) {
+        if (testOverride != null) return testOverride.get(pos);
         WorldSchematic w = SchematicWorldHandler.getSchematicWorld();
         if (w == null) return null;
         return w.getBlockState(pos);
@@ -58,12 +62,22 @@ public final class LitematicaCompat {
     }
 
     public static boolean hasSchematic() {
+        if (testOverride != null) return true;
         return SchematicWorldHandler.getSchematicWorld() != null;
     }
 
     /** Alle Bereiche (min/max x,y,z) der eingeschalteten Platzierungen – einmal pro Tick holen. */
     public static java.util.List<int[]> regionBoxes() {
         java.util.List<int[]> out = new java.util.ArrayList<>();
+        if (testOverride != null && !testOverride.isEmpty()) {
+            int[] b = {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE};
+            for (BlockPos p : testOverride.keySet()) {
+                b[0] = Math.min(b[0], p.getX()); b[1] = Math.min(b[1], p.getY()); b[2] = Math.min(b[2], p.getZ());
+                b[3] = Math.max(b[3], p.getX()); b[4] = Math.max(b[4], p.getY()); b[5] = Math.max(b[5], p.getZ());
+            }
+            out.add(b);
+            return out;
+        }
         for (SchematicPlacement pl : DataManager.getSchematicPlacementManager().getAllSchematicsPlacements()) {
             if (!pl.isEnabled() || !pl.isRenderingEnabled()) continue;
             for (fi.dy.masa.litematica.selection.Box b : pl.getSubRegionBoxes(fi.dy.masa.litematica.schematic.placement.SubRegionPlacement.RequiredEnabled.PLACEMENT_ENABLED).values()) {

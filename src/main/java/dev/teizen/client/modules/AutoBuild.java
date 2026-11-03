@@ -72,10 +72,13 @@ public final class AutoBuild extends Module {
     private java.util.List<int[]> boxes = java.util.List.of();
 
     private final Map<BlockPos, Integer> cooldown = new HashMap<>();
+    /** Wie oft das Setzen an einer Stelle schon nicht geklappt hat (ab 5: Stelle eine Weile überspringen). */
+    private final Map<BlockPos, Integer> fails = new HashMap<>();
+    private final Map<BlockPos, Integer> skip = new HashMap<>();
     private final List<BlockPos> lastPlaced = new ArrayList<>();
     private int wait;
     private int missingMsg;
-    private int placedTotal;
+    public int placedTotal;
     /** Abbau-Modus: im Schematic-Bereich alles abbauen, was nicht dazugehört (Erde usw.), ohne zu bauen. */
     public boolean demolish;
     private int idleTicks;
@@ -95,6 +98,8 @@ public final class AutoBuild extends Module {
             Chat.info("Lade zuerst eine Schematic in Litematica (Taste M) und platziere sie.");
         }
         cooldown.clear();
+        fails.clear();
+        skip.clear();
         idleTicks = 0;
         path = null; walkTarget = null; unreachable.clear(); pathDug = 0;
         if (demolish) Chat.info("AutoBuild §cmacht Platz§7: baut Erde & Co. im Schematic-Bereich ab (die Schematic selbst bleibt). Aus mit ///autobuild.");
@@ -193,6 +198,8 @@ public final class AutoBuild extends Module {
         if (wait > 0) { wait--; return; }
         cooldown.replaceAll((k, v) -> v - 1);
         cooldown.values().removeIf(v -> v <= 0);
+        skip.replaceAll((k, v) -> v - 1);
+        skip.values().removeIf(v -> v <= 0);
         lastPlaced.clear();
 
         double r = range.num();
@@ -226,7 +233,7 @@ public final class AutoBuild extends Module {
         List<BlockPos> todo = new ArrayList<>();
         for (BlockPos p : BlockPos.betweenClosed(me.offset(-ri, -ri, -ri), me.offset(ri, ri + 1, ri))) {
             if (eye.distanceToSqr(Vec3.atCenterOf(p)) > r * r) continue;
-            if (cooldown.containsKey(p)) continue;
+            if (skip.containsKey(p)) continue;
             BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
             if (want == null || want.isAir()) continue;
             BlockState have = mc.level.getBlockState(p);
@@ -240,21 +247,28 @@ public final class AutoBuild extends Module {
                 : Double.compare(a.distSqr(me), b.distSqr(me)));
 
         int done = 0;
+        boolean waiting = false;
         for (BlockPos p : todo) {
             if (done >= speed.integer()) break;
+            if (cooldown.containsKey(p)) { waiting = true; continue; } // gerade probiert -> gleich nochmal, nicht weglaufen
             BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+            if (!hasItem(want.getBlock().asItem())) continue;
             if (tryPlace(p, want)) {
                 done++;
                 placedTotal++;
                 lastPlaced.add(p);
                 cooldown.put(p, 10);
+                fails.remove(p);
             } else {
-                cooldown.put(p, 6);
+                cooldown.put(p, 4);
+                waiting = true;
+                // mehrmals nicht geklappt (keine Stütze, Spieler im Weg …) -> eine Weile überspringen
+                if (fails.merge(p, 1, Integer::sum) >= 5) { fails.remove(p); skip.put(p, 200); }
             }
         }
         if (done > 0) wait = delay.integer();
-        // nichts in Reichweite gebaut -> von selbst zur nächsten Baustelle laufen
-        if (autoWalk.on() && done == 0) walkToWork(me, eye);
+        // nichts in Reichweite zu tun -> von selbst zur nächsten Baustelle laufen (aber nicht, solange hier noch probiert wird)
+        if (autoWalk.on() && done == 0 && !waiting) walkToWork(me, eye);
         else releaseWalkKeys();
     }
 
@@ -280,7 +294,8 @@ public final class AutoBuild extends Module {
         if (mc.gui.screen() != null) { releaseWalkKeys(); return; }
         unreachable.replaceAll((k, v) -> v - 1);
         unreachable.values().removeIf(v -> v <= 0);
-        if (walkTarget == null || !isWork(walkTarget) || unreachable.containsKey(walkTarget) || --walkScan <= 0) {
+        // Ziel nur wechseln, wenn es erledigt/unerreichbar ist (vorher alle 2 s neu -> lief hin und her)
+        if (walkTarget == null || !isWork(walkTarget) || unreachable.containsKey(walkTarget)) {
             BlockPos nt = findWork(me);
             if (nt == null || !nt.equals(walkTarget)) path = null;
             walkTarget = nt;
@@ -337,7 +352,8 @@ public final class AutoBuild extends Module {
         BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
         if (want == null) return false;
         BlockState have = mc.level.getBlockState(p);
-        if (!want.isAir()) return have != want && (have.canBeReplaced() || needsSecondSlab(have, want)) && placeable(want);
+        if (!want.isAir()) return have != want && (have.canBeReplaced() || needsSecondSlab(have, want)) && placeable(want)
+                && !skip.containsKey(p) && hasItem(want.getBlock().asItem());
         return dig.on() && !have.isAir() && have.getFluidState().isEmpty() && !p.equals(mc.player.blockPosition().below());
     }
 
@@ -348,7 +364,8 @@ public final class AutoBuild extends Module {
         int R = 14;
         for (BlockPos p : BlockPos.betweenClosed(me.offset(-R, -R, -R), me.offset(R, R, R))) {
             if (!isWork(p) || unreachable.containsKey(p)) continue;
-            double d = p.distSqr(me);
+            // unterste Schicht zuerst (Stützen), dann die nächste Stelle
+            double d = p.distSqr(me) + (demolish ? 0 : (p.getY() - me.getY() + R) * 40.0);
             if (d < bd) { bd = d; best = p.immutable(); }
         }
         if (best != null || !demolish) return best;
@@ -374,6 +391,11 @@ public final class AutoBuild extends Module {
         if (s.hasProperty(BlockStateProperties.BED_PART) && s.getValue(BlockStateProperties.BED_PART) == BedPart.HEAD) return false;
         if (!s.getFluidState().isEmpty() && s.getBlock() instanceof net.minecraft.world.level.block.LiquidBlock) return false;
         return s.getBlock().asItem() != Items.AIR;
+    }
+
+    /** Hat man das Item (oder Kreativ)? */
+    private boolean hasItem(Item item) {
+        return item != Items.AIR && (mc.player.isCreative() || Inv.findAny(s -> s.is(item)) >= 0);
     }
 
     private boolean ensureItem(Item item) {
