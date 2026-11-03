@@ -26,6 +26,7 @@ public final class GodPvP extends Module {
     private final Setting mace = add(Setting.bool("mace", "Streitkolben: im Fallen und beim Fliegen kurz zum Mace wechseln (MaceSwap, Mace in der Hotbar)", true));
     private final Setting shield = add(Setting.bool("schildbrecher", "Blockt der Gegner, kurz zur Axt: Schild kaputt (ShieldBreaker, Axt in der Hotbar)", true));
     private final Setting weapon = add(Setting.bool("bestewaffe", "Beim Kampf automatisch die beste Waffe aus der Hotbar nehmen", true));
+    private final Setting crystal = add(Setting.bool("crystal", "AutoCrystal dazuschalten (End-Kristall-PvP, braucht Kristalle)", false));
     private final Setting protect = add(Setting.bool("schutz", "Schutz: AutoTotem, AutoArmor, AutoShield, AntiKnockback, Velocity", true));
 
     /** Name -> Klasse, in der Reihenfolge wie im Menü. */
@@ -63,6 +64,7 @@ public final class GodPvP extends Module {
         if (crits.on()) turnOn(Criticals.class);
         if (mace.on()) turnOn(MaceSwap.class);
         if (shield.on()) turnOn(ShieldBreaker.class);
+        if (crystal.on()) turnOn(AutoCrystal.class);
         if (protect.on()) for (Class<? extends Module> c : PROTECT) turnOn(c);
         if (turnedOn.isEmpty()) Chat.info("GodPvP: diese Helfer waren schon alle an.");
         else Chat.ok("§c§lGodPvP an§a – " + turnedOn.size() + " Kampf-Helfer dazugeschaltet (kein OP nötig).");

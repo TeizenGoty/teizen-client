@@ -497,6 +497,52 @@ final class Round13Tests {
                 cmd("setblock " + blk(sp) + " minecraft:air");
                 result("SpawnerProtect: Spawner geschützt (canBreak=nein)=" + yes(prot) + ", nach 60 Versuchen noch da=" + yes(still) + ", aus -> wieder abbaubar=" + yes(nowBreakable) + " "
                         + ok(prot && still && nowBreakable));
+                SelfTest.jump(760);
+            }
+            // ------------------------------------------------ BlockESP, Chunks (aktive Chunks), GodPvP+Crystal
+            case 760 -> {
+                if (!after(10)) return true;
+                releaseKeys();
+                cmd("setblock " + blk(b.offset(3, 0, 3)) + " minecraft:spawner");
+                cmd("setblock " + blk(b.offset(3, 0, 5)) + " minecraft:spawner");
+                tp(b.getX() + 0.5, b.getY(), b.getZ() + 0.5);
+                t("///set blockesp bloecke spawner");
+                on(get(BlockESP.class));
+                next();
+            }
+            case 761 -> {
+                if (!after(40)) return true;
+                int found = get(BlockESP.class).results().size();
+                off(get(BlockESP.class));
+                cmd("setblock " + blk(b.offset(3, 0, 3)) + " minecraft:air");
+                cmd("setblock " + blk(b.offset(3, 0, 5)) + " minecraft:air");
+                result("BlockESP: 2 Spawner gesetzt, gefunden " + found + " " + ok(found >= 2));
+                next();
+            }
+            case 762 -> {
+                if (!after(5)) return true;
+                on(get(Chunks.class));
+                cmd(String.format(Locale.ROOT, "summon minecraft:ender_pearl %.1f %d %.1f", b.getX() + 2.5, b.getY() + 1, b.getZ() + 2.5));
+                next();
+            }
+            case 763 -> {
+                if (!after(20)) return true;
+                int act = get(Chunks.class).activeCount;
+                off(get(Chunks.class));
+                cmd("kill @e[type=minecraft:ender_pearl,distance=..20]");
+                result("Chunks: aktiver Chunk durch Ender-Perle erkannt=" + yes(act > 0) + " (" + act + ") " + ok(act > 0));
+                next();
+            }
+            case 764 -> {
+                if (!after(5)) return true;
+                for (String m : new String[]{"autocrystal", "killaura", "godpvp"}) { Module mm = TeizenClient.modules().byName(m); if (mm != null && mm.isEnabled()) mm.setEnabled(false); }
+                t("///set godpvp crystal an");
+                on(get(GodPvP.class));
+                boolean crystalOn = get(AutoCrystal.class).isEnabled();
+                t("///godpvp");
+                t("///set godpvp crystal aus");
+                boolean crystalOff = !get(AutoCrystal.class).isEnabled();
+                result("GodPvP+Crystal: AutoCrystal mit an=" + yes(crystalOn) + ", nach aus wieder aus=" + yes(crystalOff) + " " + ok(crystalOn && crystalOff));
                 SelfTest.jump(709);
             }
             case 709 -> {

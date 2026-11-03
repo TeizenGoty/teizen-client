@@ -77,6 +77,7 @@ public final class ModuleManager {
         add(new Tracers());
         add(new ItemESP());
         add(new StorageESP());
+        add(new BlockESP());
         add(new PlayerFinder());
         add(new Radar());
         add(new PotionHUD());
@@ -88,6 +89,7 @@ public final class ModuleManager {
         add(new HoleESP());
         add(new LowHealthWarning());
         add(new ChunkFinder());
+        add(new Chunks());
         add(new TimeChanger());
         add(new WeatherChanger());
         // Bauen
