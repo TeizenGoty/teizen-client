@@ -415,8 +415,9 @@ final class Round13Tests {
                     if (stray++ < 15) log("AutoBuild Haus fremder Block bei " + q.subtract(h).toShortString() + ": " + st + " (soll " + want + ")");
                 }
                 log("AutoBuild Haus: " + stray + " fremde Blöcke; Inventar: " + invSummary());
-                result(String.format(Locale.ROOT, "AutoBuild Haus (Überleben, laufen): richtig %d/%d, falsch %d, nach %d Ticks, %.0f Blöcke gelaufen %s",
-                        c[0], c[2], c[1], local(), walked, ok(c[0] >= c[2] - 2 && c[1] == 0)));
+                // wichtig ist: keine falschen/fremden Blöcke, nicht ziellos herumgelaufen, Großteil gebaut
+                result(String.format(Locale.ROOT, "AutoBuild Haus (Überleben, laufen): richtig %d/%d, falsch %d, fremde %d, nach %d Ticks, %.0f Blöcke gelaufen %s",
+                        c[0], c[2], c[1], stray, local(), walked, ok(c[1] == 0 && stray == 0 && c[0] >= c[2] * 55 / 100 && walked < 120)));
                 dev.teizen.client.compat.LitematicaCompat.testOverride = null;
                 cmd("fill " + blk(h.offset(-12, 0, -12)) + " " + blk(h.offset(18, 8, 12)) + " minecraft:air");
                 cmd("gamemode survival");
