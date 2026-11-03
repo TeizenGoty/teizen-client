@@ -42,6 +42,12 @@ public final class AutoMine extends Module {
     private final Setting tunnel = add(Setting.bool("tunnel", "Keine Erze in der Nähe -> auf dieser Höhe einen Suchtunnel graben statt stehen zu bleiben", true));
     private final Setting eat = add(Setting.bool("essen", "Bei Hunger automatisch essen (wie AutoEat, auch aus dem Inventar)", true));
     private final Setting human = add(Setting.bool("menschlich", "Weich drehen wie ein echter Spieler (nicht ruckartig)", true));
+    // Schnell-Schalter: die wichtigsten Helfer direkt hier im AutoMiner an/aus (gehen mit dem AutoMiner an und wieder aus)
+    private final Setting hXray = add(Setting.bool("mitxray", "Mit AutoMine zusammen: X-Ray (Erze durch Wände sehen)", false));
+    private final Setting hBright = add(Setting.bool("mithell", "Mit AutoMine zusammen: Fullbright (alles hell)", false));
+    private final Setting hNoFall = add(Setting.bool("mitnofall", "Mit AutoMine zusammen: NoFall (kein Fallschaden)", false));
+    private final Setting hFast = add(Setting.bool("mitschnell", "Mit AutoMine zusammen: FastBreak (schneller abbauen)", false));
+    private final Setting hTotem = add(Setting.bool("mittotem", "Mit AutoMine zusammen: AutoTotem (Totem in die Zweithand)", false));
     private final Setting turnSpeed = add(Setting.number("drehtempo", "Wie schnell gedreht wird (Grad pro Sekunde)", 260, 60, 1500));
 
     private Set<Block> blocks = new HashSet<>();
@@ -58,6 +64,38 @@ public final class AutoMine extends Module {
     private int idleMsg;
     private int lastFailMsg = -1000;
     private String status = "sucht";
+
+    // ------------------------------------------------------------ Schnell-Schalter (Helfer)
+    private final java.util.Map<Setting, Class<? extends Module>> helpers = new java.util.LinkedHashMap<>();
+    private final java.util.Map<Setting, Boolean> helperLast = new java.util.HashMap<>();
+    /** Helfer, die der AutoMiner selbst angemacht hat (nur die macht er beim Ausschalten wieder aus). */
+    private final java.util.Set<Module> helpersOn = new java.util.HashSet<>();
+
+    private void initHelpers() {
+        if (!helpers.isEmpty()) return;
+        helpers.put(hXray, XRay.class);
+        helpers.put(hBright, Fullbright.class);
+        helpers.put(hNoFall, NoFall.class);
+        helpers.put(hFast, FastBreak.class);
+        helpers.put(hTotem, AutoTotem.class);
+    }
+
+    /** Helfer passend zu den Schaltern an/aus (beim Start und wenn ein Schalter umgelegt wird). */
+    private void syncHelpers(boolean force) {
+        initHelpers();
+        for (var e : helpers.entrySet()) {
+            boolean want = e.getKey().on();
+            Boolean last = helperLast.put(e.getKey(), want);
+            if (!force && last != null && last == want) continue;
+            Module m = dev.teizen.client.TeizenClient.modules().get(e.getValue());
+            if (m == null) continue;
+            if (want && !m.isEnabled()) { m.setEnabled(true); helpersOn.add(m); }
+            else if (!want && helpersOn.remove(m) && m.isEnabled()) m.setEnabled(false);
+        }
+    }
+
+    /** Für Selbsttest: wie viele Helfer der AutoMiner gerade angemacht hat. */
+    public int helpersActive() { return helpersOn.size(); }
 
     // ------------------------------------------------------------ Bereich (Koordinaten)
     private BlockPos areaMin, areaMax;
@@ -153,6 +191,8 @@ public final class AutoMine extends Module {
         failed.clear();
         lastProgress = 0;
         progressSig = null;
+        helperLast.clear();
+        syncHelpers(true);
         if (areaMode()) Chat.info("AutoMine baut Bereich ab: §f" + areaMin.toShortString() + " §7bis §f" + areaMax.toShortString() + " §7(" + areaTotal + " Blöcke)");
         else if (blocks.isEmpty()) Chat.error("Keine gültigen Erze in: " + ores.str());
         else Chat.info("AutoMine sucht: §f" + ores.str());
@@ -164,6 +204,8 @@ public final class AutoMine extends Module {
         Breaker.stop();
         reset();
         areaMin = areaMax = null;
+        for (Module m : helpersOn) if (m.isEnabled()) m.setEnabled(false);
+        helpersOn.clear();
         dev.teizen.client.TeizenClient.modules().get(AutoEat.class).stopEating();
     }
 
@@ -187,6 +229,7 @@ public final class AutoMine extends Module {
     public void onTick() {
         if (!inGame()) return;
         if (!ores.str().equals(lastOres)) rebuild();
+        if (mc.player.tickCount % 10 == 0) syncHelpers(false); // Schalter im Menü umgelegt -> gleich übernehmen
         if (!areaMode()) {
             scanner.setRadius(radius.integer());
             scanner.tick();

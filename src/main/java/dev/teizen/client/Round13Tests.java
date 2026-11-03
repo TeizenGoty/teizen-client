@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 
+import java.util.List;
 import java.util.Locale;
 
 /** Selbsttest Runde 13: Sus-Chunk (Ambosse, Kisten-Häufung, Bauwerke ignorieren), NoClip fliegen, Bereichs-Miner. */
@@ -14,7 +15,8 @@ final class Round13Tests {
     private static final Minecraft mc = Minecraft.getInstance();
     private static BlockPos b;
     private static net.minecraft.world.phys.Vec3 p0;
-    private static int n0;
+    private static int n0, n1;
+    private static boolean f1, f2;
 
     private Round13Tests() {}
 
@@ -165,7 +167,84 @@ final class Round13Tests {
                 result("Bereichs-Miner: 18 Blöcke im Bereich, noch übrig " + left + ", Boden darunter heil " + floor + "/9, festgehangen " + am.unstuckCount + "x "
                         + ok(left == 0 && floor == 9 && stopped));
                 off(am);
+                SelfTest.jump(720);
+            }
+            // ------------------------------------------------ AutoMine-Schnellschalter: Helfer gehen mit an und wieder aus
+            case 720 -> {
+                if (!after(10)) return true;
+                for (Class<? extends Module> c : List.of(XRay.class, Fullbright.class, NoFall.class, FastBreak.class, AutoTotem.class)) off(get(c));
+                t("///set automine mitxray an");
+                t("///set automine mithell an");
+                t("///mine diamond");
                 next();
+            }
+            case 721 -> {
+                if (!after(20)) return true;
+                boolean xr = get(XRay.class).isEnabled(), fb = get(Fullbright.class).isEnabled(), nf = get(NoFall.class).isEnabled();
+                t("///set automine mitnofall an"); // während er läuft umschalten
+                next();
+                f1 = xr && fb && !nf;
+            }
+            case 722 -> {
+                if (!after(20)) return true;
+                boolean nf = get(NoFall.class).isEnabled();
+                int helpers = get(AutoMine.class).helpersActive();
+                t("///mine stop");
+                next();
+                f2 = nf && helpers == 3;
+            }
+            case 723 -> {
+                if (!after(10)) return true;
+                boolean allOff = !get(XRay.class).isEnabled() && !get(Fullbright.class).isEnabled() && !get(NoFall.class).isEnabled();
+                result("AutoMine-Schalter: X-Ray + Fullbright gehen mit an=" + yes(f1) + ", NoFall im Laufen dazugeschaltet=" + yes(f2)
+                        + ", beim Stoppen wieder aus=" + yes(allOff) + " " + ok(f1 && f2 && allOff));
+                t("///set automine mitxray aus");
+                t("///set automine mithell aus");
+                t("///set automine mitnofall aus");
+                next();
+            }
+            // ------------------------------------------------ GodPvP: beste Waffe + Mace beim Fliegen
+            case 724 -> {
+                if (!after(10)) return true;
+                for (String m : new String[]{"killaura", "reach", "aimassist", "triggerbot", "criticals", "maceswap", "shieldbreaker", "fly", "godpvp"}) {
+                    Module mm = TeizenClient.modules().byName(m);
+                    if (mm != null && mm.isEnabled()) mm.setEnabled(false);
+                }
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:wooden_sword");
+                cmd("item replace entity @s hotbar.1 with minecraft:mace");
+                cmd("item replace entity @s hotbar.2 with minecraft:diamond_sword");
+                cmd("fill " + blk(b.offset(-4, 0, -4)) + " " + blk(b.offset(11, 8, 11)) + " minecraft:air");
+                tp(b.getX() + 0.5, b.getY() + 2, b.getZ() + 0.5);
+                cmd(String.format(Locale.ROOT, "summon minecraft:zombie %d %d %d {NoAI:1b,PersistenceRequired:1b,attributes:[{id:\"minecraft:max_health\",base:300}],Health:300f}",
+                        b.getX() + 2, b.getY(), b.getZ()));
+                dev.teizen.client.util.Inv.select(0);
+                t("///set fly doppelsprung aus");
+                next();
+            }
+            case 725 -> {
+                if (!after(20)) return true;
+                if (local() == 20) {
+                    n0 = get(MaceSwap.class).fakeFalls;
+                    n1 = get(GodPvP.class).weaponPicks;
+                    on(get(Fly.class));
+                    t("///godpvp");
+                    return true;
+                }
+                if (!after(120)) return true;
+                var zs = mc.level.getEntitiesOfClass(net.minecraft.world.entity.monster.zombie.Zombie.class, new net.minecraft.world.phys.AABB(b).inflate(8), e -> e.isAlive());
+                float hp = zs.isEmpty() ? 0 : zs.get(0).getHealth();
+                boolean mace = get(MaceSwap.class).isEnabled(), sb = get(ShieldBreaker.class).isEnabled();
+                int ff = get(MaceSwap.class).fakeFalls - n0;
+                int picks = get(GodPvP.class).weaponPicks - n1;
+                boolean best = mc.player.getMainHandItem().is(net.minecraft.world.item.Items.DIAMOND_SWORD) || picks > 0;
+                SelfTest.shot2("93-godpvp-fliegen");
+                t("///godpvp");
+                off(get(Fly.class));
+                result(String.format(Locale.ROOT, "GodPvP: Mace+Schildbrecher an=%s, beste Waffe genommen=%s (%dx), beim Fliegen Mace-Sturz gezeigt=%dx, Zombie 300 -> %.0f Leben %s",
+                        yes(mace && sb), yes(best), picks, ff, hp, ok(mace && sb && best && ff > 0 && hp < 300 - 30)));
+                cmd("kill @e[type=minecraft:zombie,distance=..20]");
+                SelfTest.jump(709);
             }
             case 709 -> {
                 if (!after(10)) return true;
