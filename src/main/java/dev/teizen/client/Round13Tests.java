@@ -2,6 +2,7 @@ package dev.teizen.client;
 
 import dev.teizen.client.core.Commands;
 import dev.teizen.client.core.Module;
+import dev.teizen.client.core.Setting;
 import dev.teizen.client.modules.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -244,6 +245,32 @@ final class Round13Tests {
                 result(String.format(Locale.ROOT, "GodPvP: Mace+Schildbrecher an=%s, beste Waffe genommen=%s (%dx), beim Fliegen Mace-Sturz gezeigt=%dx, Zombie 300 -> %.0f Leben %s",
                         yes(mace && sb), yes(best), picks, ff, hp, ok(mace && sb && best && ff > 0 && hp < 300 - 30)));
                 cmd("kill @e[type=minecraft:zombie,distance=..20]");
+                SelfTest.jump(730);
+            }
+            // ------------------------------------------------ Neues Menü: AutoMine rechts, Kategorie Abbau, Schalter per Klick
+            case 730 -> {
+                if (!after(10)) return true;
+                dev.teizen.client.gui.ClickGui gui = new dev.teizen.client.gui.ClickGui();
+                mc.gui.setScreen(gui);
+                gui.expand(get(AutoMine.class));
+                next();
+            }
+            case 731 -> {
+                if (!after(20)) return true;
+                boolean open = mc.gui.screen() instanceof dev.teizen.client.gui.ClickGui;
+                dev.teizen.client.gui.ClickGui gui = open ? (dev.teizen.client.gui.ClickGui) mc.gui.screen() : null;
+                boolean sel = gui != null && gui.selected() == get(AutoMine.class);
+                boolean listed = gui != null && gui.shownModules().contains(get(AutoMine.class)) && gui.shownModules().contains(get(XRay.class));
+                SelfTest.shot2("94-neues-menue");
+                // Einstellung rechts per Klick: "mitxray" umschalten
+                Setting sx = get(AutoMine.class).setting("mitxray");
+                boolean before = sx.on();
+                if (gui != null) gui.clickSetting(get(AutoMine.class), sx, 0);
+                boolean flipped = sx.on() != before;
+                sx.setBool(before);
+                result("Neues Menü: offen=" + yes(open) + ", AutoMine rechts gewählt=" + yes(sel) + ", Abbau-Liste zeigt AutoMine+XRay=" + yes(listed)
+                        + ", Einstellung per Klick umgeschaltet=" + yes(flipped) + " " + ok(open && sel && listed && flipped));
+                mc.gui.setScreen(null);
                 SelfTest.jump(709);
             }
             case 709 -> {
