@@ -498,10 +498,9 @@ public final class AutoMine extends Module {
         if (!tunnelling || path == null || index >= path.size()) {
             if (tunnelDir == null) tunnelDir = mc.player.getDirection();
             BlockPos feet = mc.player.blockPosition();
-            BlockPos goal = feet.relative(tunnelDir, 12);
             // Reichweite 2.5: vom Nachbarblock aus erreichbar (1.5 war von keinem Standplatz aus zu schaffen -> nie ein Weg,
             // der Miner blieb ohne Erze einfach stehen)
-            path = MinePath.find(feet, goal, 2.5, Math.min(4000, nodes.integer()), canPlace());
+            path = straightTunnel(feet, tunnelDir, 12);
             index = 0;
             if (path == null || path.isEmpty()) {
                 // da geht's nicht weiter (Lava, Wasser, Grundgestein) -> andere Richtung
@@ -520,6 +519,28 @@ public final class AutoMine extends Module {
         if (index > before) tunnelSteps++;
         if (status.equals("gräbt")) status = "gräbt Suchtunnel";
         return true;
+    }
+
+    /**
+     * Gerader 1x2-Tunnel auf genau dieser Höhe (vorher suchte der Weg-Finder den billigsten Weg und kletterte dabei auf
+     * Oberflächen oder lief zurück). Stoppt vor Flüssigkeiten/Grundgestein; Lücken im Boden werden überbrückt (wenn Blöcke da).
+     */
+    private List<MinePath.Step> straightTunnel(BlockPos feet, net.minecraft.core.Direction dir, int len) {
+        List<MinePath.Step> out = new ArrayList<>();
+        boolean place = canPlace();
+        for (int i = 1; i <= len; i++) {
+            BlockPos p = feet.relative(dir, i);
+            if (!mc.level.hasChunk(p.getX() >> 4, p.getZ() >> 4)) break;
+            if (!MinePath.canClear(mc.level, p) || !MinePath.canClear(mc.level, p.above())) break;
+            BlockPos floor = p.below();
+            BlockPos put = null;
+            if (!MinePath.solidFloor(mc.level, floor)) {
+                if (!mc.level.getFluidState(floor).isEmpty() || !place || !mc.level.getBlockState(floor).canBeReplaced()) break;
+                put = floor;
+            }
+            out.add(new MinePath.Step(p, MinePath.Kind.WALK, List.of(p, p.above()), put));
+        }
+        return out.isEmpty() ? null : out;
     }
 
     /** Für den Selbsttest: aktuelles Ziel. */
