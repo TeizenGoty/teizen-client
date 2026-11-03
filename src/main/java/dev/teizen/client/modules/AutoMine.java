@@ -200,6 +200,7 @@ public final class AutoMine extends Module {
         }
         if (mc.gui.screen() != null) { releaseKeys(); return; }
         if (watchdog()) return;
+        waitedLastTick = false;
         // Hunger? Erst essen (AutoEat eingebaut)
         if (eat.on()) {
             var ae = dev.teizen.client.TeizenClient.modules().get(AutoEat.class);
@@ -207,6 +208,7 @@ public final class AutoMine extends Module {
                 releaseKeys();
                 Breaker.stop();
                 status = "isst";
+                waitedLastTick = true;
                 return;
             }
         }
@@ -221,7 +223,7 @@ public final class AutoMine extends Module {
         }
         // erst die Erze einsammeln, die herumliegen (auch wenn schon das nächste Erz ausgesucht ist)
         if (collectTick()) return;
-        if (dropWait > 0) { dropWait--; releaseKeys(); status = "wartet auf Drop"; return; }
+        if (dropWait > 0) { dropWait--; releaseKeys(); status = "wartet auf Drop"; waitedLastTick = true; return; }
         if (target == null && areaMode()) {
             target = nextAreaBlock();
             path = null;
@@ -236,6 +238,7 @@ public final class AutoMine extends Module {
             if (!pickTarget()) {
                 if (tunnel.on() && scanner.finishedOnce() && tunnelTick()) return;
                 releaseKeys();
+                waitedLastTick = true;
                 status = scanner.finishedOnce() ? "keine Erze in der Nähe" : "sucht";
                 if (scanner.finishedOnce() && ++idleMsg % 200 == 1) Chat.info("AutoMine: keine passenden Erze in der Nähe – lauf ein Stück weiter.");
                 return;
@@ -298,6 +301,7 @@ public final class AutoMine extends Module {
 
     // ------------------------------------------------------------ Hängen-Wächter
     private int lastProgress;
+    private boolean waitedLastTick;
     private String progressSig;
     public int unstuckCount;
 
@@ -311,7 +315,7 @@ public final class AutoMine extends Module {
         try { prog = ((dev.teizen.client.mixin.MultiPlayerGameModeAccessor) mc.gameMode).teizen$getDestroyProgress(); } catch (Throwable ignored) {}
         String sig = mc.player.blockPosition().toShortString() + "|" + broken + "|" + placed + "|" + collected + "|" + Math.round(prog * 20);
         int now = mc.player.tickCount;
-        boolean waiting = status.equals("isst") || status.startsWith("keine Erze") || status.equals("sucht") || status.equals("wartet auf Drop");
+        boolean waiting = waitedLastTick; // letzter Tick: absichtlich gewartet (isst, keine Erze, wartet auf Drop)
         if (!sig.equals(progressSig) || waiting) { progressSig = sig; lastProgress = now; return false; }
         if (now - lastProgress < 160) return false;
         lastProgress = now;
@@ -511,6 +515,7 @@ public final class AutoMine extends Module {
             tunnelling = true;
         }
         int before = index;
+        status = "Suchtunnel";
         follow();
         if (index > before) tunnelSteps++;
         if (status.equals("gräbt")) status = "gräbt Suchtunnel";

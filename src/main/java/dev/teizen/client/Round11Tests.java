@@ -1040,6 +1040,8 @@ final class Round11Tests {
                 next();
             }
             case 563 -> {
+                if (SelfTest.ticksInStep() % 50 == 0)
+                    SelfTest.log2("Suchtunnel " + SelfTest.ticksInStep() + ": " + TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class).debugState());
                 if (!after(500)) return;
                 var am = TeizenClient.modules().get(dev.teizen.client.modules.AutoMine.class);
                 double moved = Math.hypot(mc.player.getX() - maxY, mc.player.getZ() - h0);
