@@ -495,7 +495,9 @@ public final class AutoMine extends Module {
             if (tunnelDir == null) tunnelDir = mc.player.getDirection();
             BlockPos feet = mc.player.blockPosition();
             BlockPos goal = feet.relative(tunnelDir, 12);
-            path = MinePath.find(feet, goal, 1.5, Math.min(4000, nodes.integer()), canPlace());
+            // Reichweite 2.5: vom Nachbarblock aus erreichbar (1.5 war von keinem Standplatz aus zu schaffen -> nie ein Weg,
+            // der Miner blieb ohne Erze einfach stehen)
+            path = MinePath.find(feet, goal, 2.5, Math.min(4000, nodes.integer()), canPlace());
             index = 0;
             if (path == null || path.isEmpty()) {
                 // da geht's nicht weiter (Lava, Wasser, Grundgestein) -> andere Richtung
