@@ -954,6 +954,8 @@ final class Round11Tests {
                 if (!after(20)) return;
                 TeizenClient.modules().get(dev.teizen.client.modules.AutoEat.class).setEnabled(false);
                 area = o.offset(80, 90, -60);
+                cmd("effect give @s minecraft:instant_health 1 10 true"); // volle Leben (vorige Tests ziehen Leben ab -> AutoMine stoppte sofort)
+                cmd("effect give @s minecraft:saturation 5 10 true");
                 cmd("fill " + blk(area.offset(-4, -7, -4)) + " " + blk(area.offset(11, -7, 4)) + " minecraft:stone"); // Sicherheitsboden
                 cmd("fill " + blk(area.offset(-4, -6, -4)) + " " + blk(area.offset(11, 6, 4)) + " minecraft:air");
                 cmd("setblock " + blk(area.below()) + " minecraft:stone");
@@ -986,6 +988,8 @@ final class Round11Tests {
             case 558 -> {
                 if (!after(20)) return;
                 area = o.offset(80, 90, -80);
+                cmd("effect give @s minecraft:instant_health 1 10 true"); // volle Leben (vorige Tests ziehen Leben ab -> AutoMine stoppte sofort)
+                cmd("effect give @s minecraft:saturation 5 10 true");
                 cmd("fill " + blk(area.offset(-4, -7, -4)) + " " + blk(area.offset(4, -7, 4)) + " minecraft:stone");
                 cmd("fill " + blk(area.offset(-4, -6, -4)) + " " + blk(area.offset(4, 9, 4)) + " minecraft:air");
                 cmd("setblock " + blk(area.below()) + " minecraft:stone");
@@ -1022,6 +1026,7 @@ final class Round11Tests {
                 cmd("clear @s");
                 cmd("item replace entity @s hotbar.0 with minecraft:diamond_pickaxe");
                 cmd("item replace entity @s inventory.5 with minecraft:bread 8"); // Essen NICHT in der Hotbar
+                cmd("effect give @s minecraft:instant_health 1 10 true");
                 cmd("effect give @s minecraft:hunger 3 255 true");
                 next();
             }

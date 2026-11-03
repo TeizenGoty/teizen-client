@@ -28,6 +28,7 @@ import java.util.Set;
 /**
  * Auto-Miner: sucht Erze, läuft/gräbt selbst dorthin und baut sie ab – ohne dass du etwas machen musst.
  * Befehl: ///mine diamond iron gold   oder   ///mine stop
+ * Bereich: ///miner x1 y1 z1 x2 y2 z2 -> baut alles im Bereich ab, Schicht für Schicht von oben, in Reihen (Schlangenlinie).
  */
 public final class AutoMine extends Module {
     public final Setting ores = add(Setting.multi("erze", "Welche Erze abgebaut werden: \"alle\" = alle an/aus, dann einzeln wählen",
@@ -58,6 +59,74 @@ public final class AutoMine extends Module {
     private int lastFailMsg = -1000;
     private String status = "sucht";
 
+    // ------------------------------------------------------------ Bereich (Koordinaten)
+    private BlockPos areaMin, areaMax;
+    private long areaCursor, areaTotal;
+    public int areaMined;
+    /** Bereich-Modus aktiv? */
+    public boolean areaMode() { return areaMin != null; }
+
+    /** Bereich setzen und starten. */
+    public void startArea(BlockPos a, BlockPos b) {
+        if (isEnabled()) setEnabled(false);
+        areaMin = new BlockPos(Math.min(a.getX(), b.getX()), Math.min(a.getY(), b.getY()), Math.min(a.getZ(), b.getZ()));
+        areaMax = new BlockPos(Math.max(a.getX(), b.getX()), Math.max(a.getY(), b.getY()), Math.max(a.getZ(), b.getZ()));
+        areaTotal = (long) (areaMax.getX() - areaMin.getX() + 1) * (areaMax.getY() - areaMin.getY() + 1) * (areaMax.getZ() - areaMin.getZ() + 1);
+        areaCursor = 0;
+        areaMined = 0;
+        setEnabled(true);
+    }
+
+    /** Der i-te Block in Abbau-Reihenfolge: oberste Schicht zuerst, dann Reihen entlang X, Schlangenlinie. */
+    private BlockPos areaAt(long i) {
+        int sx = areaMax.getX() - areaMin.getX() + 1, sz = areaMax.getZ() - areaMin.getZ() + 1;
+        long layer = i / ((long) sx * sz);
+        int rest = (int) (i % ((long) sx * sz));
+        int row = rest / sx, col = rest % sx;
+        if ((row & 1) == 1) col = sx - 1 - col;          // jede 2. Reihe zurück
+        if ((layer & 1) == 1) row = sz - 1 - row;         // jede 2. Schicht von der anderen Seite
+        return new BlockPos(areaMin.getX() + col, areaMax.getY() - (int) layer, areaMin.getZ() + row);
+    }
+
+    /** Soll dieser Block im Bereich abgebaut werden? */
+    private boolean areaMinable(BlockPos p) {
+        if (!mc.level.hasChunk(p.getX() >> 4, p.getZ() >> 4)) return false;
+        BlockState st = mc.level.getBlockState(p);
+        if (st.isAir() || !st.getFluidState().isEmpty()) return false;
+        if (st.getCollisionShape(mc.level, p).isEmpty() && st.canBeReplaced()) return false; // Gras, Schnee-Schicht ...
+        return Breaker.canBreak(p) && MinePath.canClear(mc.level, p);
+    }
+
+    /** Ist dieser Block gerade ein gültiges Ziel? */
+    private boolean isTarget(BlockPos p) {
+        if (areaMode()) return areaMinable(p) && failed.getOrDefault(p, 0) < 2;
+        return blocks.contains(mc.level.getBlockState(p).getBlock());
+    }
+
+    /** Nächster Block im Bereich (fertige/übersprungene werden nur einmal durchgegangen). */
+    private BlockPos nextAreaBlock() {
+        // Blöcke, die schon weg oder unmöglich sind, hinter uns lassen
+        int budget = 20000;
+        while (areaCursor < areaTotal && budget-- > 0) {
+            BlockPos p = areaAt(areaCursor);
+            if (areaMinable(p) && failed.getOrDefault(p, 0) < 2) break;
+            areaCursor++;
+        }
+        if (areaCursor >= areaTotal) return null;
+        // in der aktuellen Schicht: den nächsten noch vorhandenen Block in Reihenfolge, aber nicht unter den eigenen Füßen
+        BlockPos feet = mc.player.blockPosition();
+        long layerSize = (long) (areaMax.getX() - areaMin.getX() + 1) * (areaMax.getZ() - areaMin.getZ() + 1);
+        long end = Math.min(areaTotal, (areaCursor / layerSize + 1) * layerSize);
+        BlockPos fallback = null;
+        for (long i = areaCursor; i < end && i < areaCursor + 4096; i++) {
+            BlockPos p = areaAt(i);
+            if (!areaMinable(p) || failed.getOrDefault(p, 0) >= 2) continue;
+            if (p.equals(feet.below()) && !safeToDig(p)) { if (fallback == null) fallback = p; continue; }
+            return p;
+        }
+        return fallback != null ? fallback : areaAt(areaCursor);
+    }
+
     public AutoMine() {
         super("AutoMine", Category.ABBAU, "Läuft selbst zu Erzen und baut sie ab.");
     }
@@ -82,7 +151,10 @@ public final class AutoMine extends Module {
         tunnelDir = null;
         tunnelling = false;
         failed.clear();
-        if (blocks.isEmpty()) Chat.error("Keine gültigen Erze in: " + ores.str());
+        lastProgress = 0;
+        progressSig = null;
+        if (areaMode()) Chat.info("AutoMine baut Bereich ab: §f" + areaMin.toShortString() + " §7bis §f" + areaMax.toShortString() + " §7(" + areaTotal + " Blöcke)");
+        else if (blocks.isEmpty()) Chat.error("Keine gültigen Erze in: " + ores.str());
         else Chat.info("AutoMine sucht: §f" + ores.str());
     }
 
@@ -91,6 +163,7 @@ public final class AutoMine extends Module {
         releaseKeys();
         Breaker.stop();
         reset();
+        areaMin = areaMax = null;
         dev.teizen.client.TeizenClient.modules().get(AutoEat.class).stopEating();
     }
 
@@ -114,9 +187,11 @@ public final class AutoMine extends Module {
     public void onTick() {
         if (!inGame()) return;
         if (!ores.str().equals(lastOres)) rebuild();
-        scanner.setRadius(radius.integer());
-        scanner.tick();
-        if (mc.player.tickCount % 10 == 0) scanner.validate();
+        if (!areaMode()) {
+            scanner.setRadius(radius.integer());
+            scanner.tick();
+            if (mc.player.tickCount % 10 == 0) scanner.validate();
+        }
 
         if (mc.player.getHealth() <= minHealth.num()) {
             Chat.error("AutoMine gestoppt – zu wenig Leben!");
@@ -124,6 +199,7 @@ public final class AutoMine extends Module {
             return;
         }
         if (mc.gui.screen() != null) { releaseKeys(); return; }
+        if (watchdog()) return;
         // Hunger? Erst essen (AutoEat eingebaut)
         if (eat.on()) {
             var ae = dev.teizen.client.TeizenClient.modules().get(AutoEat.class);
@@ -136,14 +212,26 @@ public final class AutoMine extends Module {
         }
 
         // Ziel prüfen / neues Ziel wählen
-        if (target != null && !blocks.contains(mc.level.getBlockState(target).getBlock())) {
+        if (target != null && !isTarget(target)) {
+            boolean wasMined = mc.level.getBlockState(target).isAir();
             Breaker.stop();
+            if (areaMode() && wasMined) areaMined++;
             reset();
-            dropWait = 7; // kurz warten, bis der Drop da ist (sonst läuft er schon zum nächsten Erz)
+            if (!areaMode()) dropWait = 7; // kurz warten, bis der Drop da ist (sonst läuft er schon zum nächsten Erz)
         }
         // erst die Erze einsammeln, die herumliegen (auch wenn schon das nächste Erz ausgesucht ist)
         if (collectTick()) return;
         if (dropWait > 0) { dropWait--; releaseKeys(); status = "wartet auf Drop"; return; }
+        if (target == null && areaMode()) {
+            target = nextAreaBlock();
+            path = null;
+            if (target == null) {
+                Chat.ok("AutoMine: Bereich fertig – " + areaMined + " Blöcke abgebaut.");
+                setEnabled(false);
+                return;
+            }
+            status = "Bereich " + (areaTotal == 0 ? 0 : areaCursor * 100 / areaTotal) + "%";
+        }
         if (target == null) {
             if (!pickTarget()) {
                 if (tunnel.on() && scanner.finishedOnce() && tunnelTick()) return;
@@ -164,7 +252,7 @@ public final class AutoMine extends Module {
                 releaseKeys();
                 status = "baut ab";
                 lookAt(Vec3.atCenterOf(target));
-                if (aimed()) Breaker.tick(target, false, true);
+                if (aimed()) dig(target, false, true);
                 return;
             }
             BlockPos obs = obstruction(target);
@@ -172,14 +260,14 @@ public final class AutoMine extends Module {
                 releaseKeys();
                 status = "gräbt zum Erz";
                 lookAt(Vec3.atCenterOf(obs));
-                if (aimed()) Breaker.tick(obs, false, true);
+                if (aimed()) dig(obs, false, true);
                 return;
             }
             // Block davor wäre gefährlich (Lava/Wasser/tiefer Fall) -> Erz direkt durch die Wand abbauen (Server erlaubt das)
             releaseKeys();
             status = "baut ab (durch Wand)";
             lookAt(Vec3.atCenterOf(target));
-            if (aimed()) Breaker.tick(target, false, true);
+            if (aimed()) dig(target, false, true);
             return;
         }
 
@@ -198,6 +286,46 @@ public final class AutoMine extends Module {
             }
         }
         follow();
+    }
+
+    /** Abbauen + mitzählen (für den Hängen-Wächter). */
+    private int broken;
+    private boolean dig(BlockPos p, boolean rotate, boolean tool) {
+        boolean r = Breaker.tick(p, rotate, tool);
+        if (r) broken++;
+        return r;
+    }
+
+    // ------------------------------------------------------------ Hängen-Wächter
+    private int lastProgress;
+    private String progressSig;
+    public int unstuckCount;
+
+    /**
+     * Passiert 8 Sekunden lang gar nichts (kein Schritt, kein Block weg, nichts gesetzt/eingesammelt, Abbau kommt nicht
+     * voran), dann aufgeben und etwas anderes probieren statt ewig dazustehen oder herumzuspringen.
+     * @return true wenn gerade neu angesetzt wurde
+     */
+    private boolean watchdog() {
+        float prog = 0;
+        try { prog = ((dev.teizen.client.mixin.MultiPlayerGameModeAccessor) mc.gameMode).teizen$getDestroyProgress(); } catch (Throwable ignored) {}
+        String sig = mc.player.blockPosition().toShortString() + "|" + broken + "|" + placed + "|" + collected + "|" + Math.round(prog * 20);
+        int now = mc.player.tickCount;
+        boolean waiting = status.equals("isst") || status.startsWith("keine Erze") || status.equals("sucht") || status.equals("wartet auf Drop");
+        if (!sig.equals(progressSig) || waiting) { progressSig = sig; lastProgress = now; return false; }
+        if (now - lastProgress < 160) return false;
+        lastProgress = now;
+        unstuckCount++;
+        Chat.info("AutoMine: hängt fest (" + status + ") – versuche etwas anderes.");
+        Breaker.stop();
+        releaseKeys();
+        if (target != null) failed.merge(target, 2, Integer::sum);
+        if (pickup != null) { ignoredItems.add(pickup.getId()); pickup = null; }
+        if (tunnelling && tunnelDir != null) tunnelDir = tunnelDir.getClockWise();
+        tunnelling = false;
+        placeStep = null;
+        reset();
+        return true;
     }
 
     /** Erster Block, der zwischen Augen und Erz im Weg ist (oder null). */
@@ -400,7 +528,7 @@ public final class AutoMine extends Module {
                 releaseKeys();
                 status = "gräbt";
                 lookAt(Vec3.atCenterOf(c));
-                if (aimed()) Breaker.tick(c, false, true);
+                if (aimed()) dig(c, false, true);
                 stuck = 0;
                 return;
             }
@@ -418,7 +546,8 @@ public final class AutoMine extends Module {
         double horiz = Math.sqrt(dx * dx + dz * dz);
         BlockPos feet = mc.player.blockPosition();
 
-        if (feet.equals(dest) && horiz < 0.3) {
+        // im Ziel-Block und nah genug an der Mitte (0.3 war zu knapp: er lief drüber hinaus und wieder zurück)
+        if (feet.equals(dest) && horiz < 0.45) {
             index++;
             stuck = 0;
             releaseKeys();
@@ -431,6 +560,8 @@ public final class AutoMine extends Module {
         float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
         aim(yaw, 25f);
         boolean move = horiz > 0.15 && (!human.on() || Math.abs(net.minecraft.util.Mth.wrapDegrees(yaw - mc.player.getYRot())) < 50);
+        // kurz vor der Mitte nur antippen (sonst über das Ziel hinaus -> hin und her)
+        if (move && horiz < 0.6 && feet.equals(dest) && (mc.player.tickCount & 1) == 1) move = false;
         mc.options.keyUp.setDown(move);
         mc.options.keyJump.setDown(step.kind() == MinePath.Kind.UP && mc.player.onGround() && horiz < 1.3);
         mc.player.setSprinting(false);
@@ -440,7 +571,8 @@ public final class AutoMine extends Module {
                 Chat.info("AutoMine: festgesteckt – suche neuen Weg.");
                 path = null;
                 stuck = 0;
-                failed.merge(target, 1, Integer::sum);
+                if (target != null) failed.merge(target, 1, Integer::sum);
+                else if (tunnelling && tunnelDir != null) { tunnelDir = tunnelDir.getClockWise(); tunnelling = false; }
             }
         } else stuck = 0;
         lastFeet = feet;
@@ -556,7 +688,7 @@ public final class AutoMine extends Module {
 
     /** Liegt ein Erz-Drop in der Nähe? Dann hinlaufen. @return true wenn gerade eingesammelt wird */
     private boolean collectTick() {
-        if (!collect.on()) return false;
+        if (!collect.on() || areaMode()) return false;
         int now = mc.player.tickCount;
         if (pickup != null && (!pickup.isAlive() || ++pickupTicks > (pickupDirect ? 120 : 300) || noProgress > 60)) {
             if (!pickup.isAlive()) collected++;
@@ -644,7 +776,7 @@ public final class AutoMine extends Module {
             releaseKeys();
             status = "gräbt zum Erz";
             lookAt(Vec3.atCenterOf(above));
-            if (aimed()) Breaker.tick(above, false, true);
+            if (aimed()) dig(above, false, true);
             return true;
         }
         // auf ~gleicher Höhe, aber eine Wand dazwischen -> die Wand wegbauen statt stehen zu bleiben
@@ -654,12 +786,16 @@ public final class AutoMine extends Module {
                 releaseKeys();
                 status = "gräbt zum Erz";
                 lookAt(Vec3.atCenterOf(wall));
-                if (aimed()) Breaker.tick(wall, false, true);
+                if (aimed()) dig(wall, false, true);
                 return true;
             }
         }
-        // Drop höher als man selbst (auf einer Stufe) -> hochspringen
-        boolean jump = it.y > me.y + 0.6 && mc.player.onGround();
+        // Drop höher als man selbst (auf einer Stufe) -> hochspringen. Nur wenn der Drop liegt (nicht beim Herunterfallen)
+        // und vorne wirklich eine Stufe ist – vorher sprang er beim Abbauen über sich ständig herum.
+        BlockPos step1 = mc.player.blockPosition().relative(net.minecraft.core.Direction.getApproximateNearest(dx, 0, dz));
+        boolean jump = it.y > me.y + 0.6 && it.y < me.y + 1.6 && pickup.onGround() && mc.player.onGround() && horiz > 0.5
+                && !MinePath.passable(mc.level, step1) && MinePath.passable(mc.level, step1.above()) && MinePath.passable(mc.level, step1.above(2))
+                && MinePath.passable(mc.level, mc.player.blockPosition().above(2));
         float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
         aim(yaw, 30f);
         mc.options.keyUp.setDown(horiz > 0.25);
@@ -706,6 +842,7 @@ public final class AutoMine extends Module {
         sb.append(" abbau=").append(mc.gameMode.isDestroying());
         try { sb.append(" fortschritt=").append(((dev.teizen.client.mixin.MultiPlayerGameModeAccessor) mc.gameMode).teizen$getDestroyProgress()); } catch (Throwable ignored) {}
         sb.append(" stuck=").append(stuck);
+        if (areaMode()) sb.append(" bereich=").append(areaCursor).append('/').append(areaTotal).append(" abgebaut=").append(areaMined);
         return sb.toString();
     }
 }

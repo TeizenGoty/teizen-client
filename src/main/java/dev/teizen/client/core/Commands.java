@@ -9,6 +9,7 @@ import dev.teizen.client.modules.XRay;
 import dev.teizen.client.util.Chat;
 import dev.teizen.client.util.Keys;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -16,6 +17,22 @@ import java.util.Locale;
 /** Alle Befehle beginnen mit ///  – sie werden nie an den Server geschickt. */
 public final class Commands {
     public static final String PREFIX = "///";
+    /** Drei Koordinaten ab a[i] lesen; "~" / "~5" = relativ zur eigenen Position. */
+    private static BlockPos coords(String[] a, int i) {
+        if (mc.player == null) return null;
+        BlockPos me = mc.player.blockPosition();
+        int[] base = {me.getX(), me.getY(), me.getZ()};
+        int[] out = new int[3];
+        for (int k = 0; k < 3; k++) {
+            String t = a[i + k].trim();
+            try {
+                if (t.startsWith("~")) out[k] = base[k] + (t.length() > 1 ? (int) Math.floor(Double.parseDouble(t.substring(1))) : 0);
+                else out[k] = (int) Math.floor(Double.parseDouble(t));
+            } catch (NumberFormatException e) { return null; }
+        }
+        return new BlockPos(out[0], out[1], out[2]);
+    }
+
     private static final Minecraft mc = Minecraft.getInstance();
 
     private Commands() {}
@@ -115,6 +132,21 @@ public final class Commands {
                 if (!r.isEnabled()) r.setEnabled(true);
                 Chat.ok("Reach an: Kampf " + r.fight.display() + ", Bauen " + r.build.display());
                 Config.save();
+            }
+            case "miner", "bereich", "area" -> {
+                // ///miner x1 y1 z1 x2 y2 z2  (auch ~ für die eigene Position, z.B. ~ ~-1 ~)
+                AutoMine m = mm.get(AutoMine.class);
+                if (a.length >= 2 && (a[1].equalsIgnoreCase("stop") || a[1].equalsIgnoreCase("aus"))) {
+                    m.setEnabled(false);
+                    Chat.info("Bereichs-Miner §caus");
+                    return;
+                }
+                if (a.length < 7) { Chat.error("///miner x1 y1 z1 x2 y2 z2   (z.B. ///miner 100 60 100 110 50 110, ~ = deine Position)"); return; }
+                BlockPos p1 = coords(a, 1), p2 = coords(a, 4);
+                if (p1 == null || p2 == null) { Chat.error("Ungültige Koordinaten. Beispiel: ///miner 100 60 100 110 50 110"); return; }
+                long size = (long) (Math.abs(p1.getX() - p2.getX()) + 1) * (Math.abs(p1.getY() - p2.getY()) + 1) * (Math.abs(p1.getZ() - p2.getZ()) + 1);
+                if (size > 2_000_000) { Chat.error("Bereich zu groß (" + size + " Blöcke, max. 2 Millionen)."); return; }
+                m.startArea(p1, p2);
             }
             case "mine" -> {
                 AutoMine m = mm.get(AutoMine.class);
@@ -566,6 +598,7 @@ public final class Commands {
         Chat.raw("§d///reach <Kampf> [Bauen] §7– z.B. §f///reach 6 7 §7oder §f///reach 2");
         Chat.raw("§d///fly <Tempo> §7· §d///speed <Tempo> §7· §d///highjump <Blöcke> §7– z.B. §f///speed 0.5§7, §f///highjump 5");
         Chat.raw("§d///mine <Erze...> §7– Auto-Miner, z.B. §f///mine diamond iron §7| §f///mine stop");
+        Chat.raw("§d///miner x1 y1 z1 x2 y2 z2 §7– baut den Bereich in Reihen ab (Schicht für Schicht von oben), §f~ §7= deine Position | §f///miner stop");
         Chat.raw("§d///xray §7– an/aus, §f///xray nur diamond §7(nur Dias), §f///xray alle§7, §f///xray add/remove <Erz>");
         Chat.raw("§d///xray lava §7· §d///xray wasser §7· §d///xray hoehlen §7– zusätzlich anzeigen (an/aus)");
         Chat.raw("§d///fav <Funktion> §7– Favorit an/aus (steht oben) · §d///fav §7– alle Favoriten");

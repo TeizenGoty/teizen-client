@@ -589,7 +589,8 @@ final class Round12Tests {
                 t("///set swarm port 6969");
                 result("Swarm: Helfer führt Befehl vom Chef aus=" + yes(swarmOk) + ", Chef schickt an Helfer ('" + swarmLine + "') " + ok(swarmOk && "///fly".equals(swarmLine)));
                 t("///set trail laenge 600");
-                SelfTest.jump(631);
+                SelfTest.jump(700); // Runde 13
+
             }
             case 631 -> {
                 releaseKeys();
@@ -598,7 +599,7 @@ final class Round12Tests {
                 tp(o.getX() + 0.5, o.getY() + 1, o.getZ() + 0.5);
                 SelfTest.jump(526);
             }
-            default -> { return false; }
+            default -> { return Round13Tests.step(step, o); }
         }
         return true;
     }

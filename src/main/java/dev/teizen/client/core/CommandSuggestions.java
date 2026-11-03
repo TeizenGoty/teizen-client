@@ -79,6 +79,7 @@ public final class CommandSuggestions {
             case 1 -> List.of("4.5", "7", "10");
             default -> List.of();
         });
+        withArgs(d, "miner", t -> t.isEmpty() ? List.of("stop", "~") : t.size() < 6 ? List.of("~") : List.of());
         withArgs(d, "mine", t -> {
             List<String> out = new ArrayList<>();
             if (t.isEmpty()) out.add("stop");
@@ -169,7 +170,7 @@ public final class CommandSuggestions {
 
         // ///killaura usw. = Modul umschalten; danach optional Einstellung + Wert
         Set<String> taken = new LinkedHashSet<>(List.of("help", "list", "gui", "save", "panic", "toggle", "info", "set",
-                "bind", "menutaste", "reach", "mine", "xray", "autobuild", "find", "friend", "fav", "velocity", "structurefinder", "villagerroller", "moredurability", "opcheats", "hud", "seed", "seedmap", "schematic", "schematics", "shulker", "cheststealer"));
+                "bind", "menutaste", "reach", "mine", "miner", "xray", "autobuild", "find", "friend", "fav", "velocity", "structurefinder", "villagerroller", "moredurability", "opcheats", "hud", "seed", "seedmap", "schematic", "schematics", "shulker", "cheststealer"));
         for (Module m : TeizenClient.modules().all()) {
             String name = m.name.toLowerCase(Locale.ROOT);
             if (!taken.add(name)) continue;
