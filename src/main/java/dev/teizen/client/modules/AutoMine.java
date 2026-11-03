@@ -322,7 +322,8 @@ public final class AutoMine extends Module {
             path = MinePath.find(mc.player.blockPosition(), target, mc.player.blockInteractionRange(), nodes.integer(), canPlace());
             index = 0;
             if (path == null || path.isEmpty()) {
-                failed.merge(target, 2, Integer::sum);
+                // nahes Erz nicht gleich aufgeben (z.B. gerade erst eine Brücke gebaut, Block noch nicht beim Client) -> nochmal probieren
+                failed.merge(target, target.distSqr(mc.player.blockPosition()) < 100 ? 1 : 2, Integer::sum);
                 if (mc.player.tickCount - lastFailMsg > 100) {
                     lastFailMsg = mc.player.tickCount;
                     Chat.info("AutoMine: kein sicherer Weg zu " + target.toShortString() + " – nächstes Erz.");
