@@ -16,6 +16,7 @@ public final class Breaker {
     private Breaker() {}
 
     public static boolean canBreak(BlockPos pos) {
+        if (dev.teizen.client.modules.SpawnerProtect.protects(pos)) return false;
         BlockState s = mc.level.getBlockState(pos);
         if (s.isAir() || !s.getFluidState().isEmpty() && s.getBlock() instanceof net.minecraft.world.level.block.LiquidBlock) return false;
         float h = s.getDestroySpeed(mc.level, pos);

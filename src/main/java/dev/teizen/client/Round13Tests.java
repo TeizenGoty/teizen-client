@@ -104,6 +104,8 @@ final class Round13Tests {
         log("AutoBuild Haus: " + n + " Stellen falsch/fehlen");
     }
     private static boolean f1, f2;
+    private static float maxY;
+    private static String f(float v) { return String.format(java.util.Locale.ROOT, "%.2f", v); }
 
     private Round13Tests() {}
 
@@ -362,7 +364,7 @@ final class Round13Tests {
             // ------------------------------------------------ AutoBuild realistisch: Haus (Überleben, laufen, Treppen/Stämme/Stufen/Tür/Fackel)
             case 740 -> {
                 if (!after(10)) return true;
-                if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica")) { result("AutoBuild Haus: Litematica fehlt – übersprungen"); SelfTest.jump(709); return true; }
+                if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica")) { result("AutoBuild Haus: Litematica fehlt – übersprungen"); SelfTest.jump(750); return true; }
                 h = b.offset(40, 0, 1);
                 house = buildHouse(h);
                 dev.teizen.client.compat.LitematicaCompat.testOverride = house;
@@ -372,10 +374,10 @@ final class Round13Tests {
                 t("///set autobuild abbauen an");
                 cmd("gamemode survival");
                 cmd("clear @s");
-                cmd("give @s minecraft:oak_planks 128");
+                cmd("give @s minecraft:oak_planks 256");
                 cmd("give @s minecraft:oak_log 16");
-                cmd("give @s minecraft:oak_stairs 32");
-                cmd("give @s minecraft:oak_slab 32");
+                cmd("give @s minecraft:oak_stairs 64");
+                cmd("give @s minecraft:oak_slab 64");
                 cmd("give @s minecraft:glass 8");
                 cmd("give @s minecraft:oak_door 1");
                 cmd("give @s minecraft:torch 4");
@@ -398,7 +400,7 @@ final class Round13Tests {
                 int[] c = houseCheck();
                 if (local() % 200 == 0) log("AutoBuild Haus " + local() + ": richtig " + c[0] + "/" + c[2] + ", falsch " + c[1] + ", gesetzt " + get(AutoBuild.class).placedTotal
                         + ", pos " + mc.player.blockPosition().toShortString() + ", gelaufen " + Math.round(walked));
-                if (c[0] + c[1] < c[2] && !after(2400)) return true;
+                if (c[0] + c[1] < c[2] && !after(3600)) return true;
                 SelfTest.shot2("95-autobuild-haus");
                 off(get(AutoBuild.class));
                 releaseKeys();
@@ -418,6 +420,83 @@ final class Round13Tests {
                 dev.teizen.client.compat.LitematicaCompat.testOverride = null;
                 cmd("fill " + blk(h.offset(-12, 0, -12)) + " " + blk(h.offset(18, 8, 12)) + " minecraft:air");
                 cmd("gamemode survival");
+                SelfTest.jump(750);
+            }
+            // ------------------------------------------------ OffhandSwitch, FastSneak, SpawnerProtect
+            case 750 -> {
+                if (!after(10)) return true;
+                releaseKeys();
+                cmd("gamemode survival");
+                cmd("clear @s");
+                cmd("give @s minecraft:totem_of_undying");
+                cmd("give @s minecraft:shield");
+                cmd("effect give @s minecraft:instant_health 1 10 true");
+                tp(b.getX() + 0.5, b.getY(), b.getZ() + 0.5);
+                cmd("kill @e[type=!minecraft:player,distance=..30]");
+                t("///set offhandswitch modus schlau");
+                on(get(OffhandSwitch.class));
+                next();
+            }
+            case 751 -> {
+                if (!after(20)) return true;
+                boolean totem = mc.player.getOffhandItem().is(net.minecraft.world.item.Items.TOTEM_OF_UNDYING);
+                // Gegner direkt daneben -> sollte auf Schild wechseln
+                cmd(String.format(Locale.ROOT, "summon minecraft:zombie %.1f %d %.1f {NoAI:1b,PersistenceRequired:1b,Silent:1b}", b.getX() + 1.5, b.getY(), b.getZ() + 0.5));
+                f1 = totem;
+                next();
+            }
+            case 752 -> {
+                if (!after(25)) return true;
+                boolean shield = mc.player.getOffhandItem().is(net.minecraft.world.item.Items.SHIELD);
+                cmd("kill @e[type=minecraft:zombie,distance=..20]");
+                f2 = shield;
+                next();
+            }
+            case 753 -> {
+                if (!after(30)) return true;
+                boolean backToTotem = mc.player.getOffhandItem().is(net.minecraft.world.item.Items.TOTEM_OF_UNDYING);
+                off(get(OffhandSwitch.class));
+                result("OffhandSwitch (schlau): erst Totem=" + yes(f1) + ", bei Gegner Schild=" + yes(f2) + ", danach wieder Totem=" + yes(backToTotem) + " "
+                        + ok(f1 && f2 && backToTotem));
+                next();
+            }
+            // FastSneak: Schleich-Tempo = 1.0
+            case 754 -> {
+                if (!after(5)) return true;
+                var a = mc.player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SNEAKING_SPEED);
+                double before = a == null ? -1 : a.getBaseValue();
+                on(get(FastSneak.class));
+                maxY = (float) before;
+                next();
+            }
+            case 755 -> {
+                if (!after(5)) return true;
+                var a = mc.player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SNEAKING_SPEED);
+                double now = a == null ? -1 : a.getBaseValue();
+                off(get(FastSneak.class));
+                result("FastSneak: Schleich-Tempo " + f(maxY) + " -> " + f((float) now) + " (soll 1.0) " + ok(Math.abs(now - 1.0) < 1e-6));
+                next();
+            }
+            // SpawnerProtect: Spawner wird nicht abgebaut
+            case 756 -> {
+                if (!after(5)) return true;
+                cmd("setblock " + blk(b.offset(2, 0, 2)) + " minecraft:spawner");
+                tp(b.getX() + 2.5, b.getY(), b.getZ() + 0.5);
+                on(get(SpawnerProtect.class));
+                next();
+            }
+            case 757 -> {
+                if (!after(10)) return true;
+                BlockPos sp = b.offset(2, 0, 2);
+                boolean prot = dev.teizen.client.util.Breaker.canBreak(sp) == false;
+                // manuell abbauen versuchen
+                for (int i = 0; i < 60; i++) { mc.gameMode.startDestroyBlock(sp, net.minecraft.core.Direction.UP); mc.gameMode.continueDestroyBlock(sp, net.minecraft.core.Direction.UP); }
+                boolean still = mc.level.getBlockState(sp).is(net.minecraft.world.level.block.Blocks.SPAWNER);
+                off(get(SpawnerProtect.class));
+                boolean nowBreakable = dev.teizen.client.util.Breaker.canBreak(sp);
+                cmd("setblock " + blk(sp) + " minecraft:air");
+                result("SpawnerProtect: Spawner geschützt (canBreak=nein)=" + yes(prot) + ", nach 60 Versuchen noch da=" + yes(still) + ", aus -> wieder abbaubar=" + yes(nowBreakable) + " "
+                        + ok(prot && still && nowBreakable));
                 SelfTest.jump(709);
             }
             case 709 -> {

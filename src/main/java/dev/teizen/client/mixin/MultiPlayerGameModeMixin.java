@@ -38,6 +38,25 @@ public abstract class MultiPlayerGameModeMixin {
         if (Breaker.holding()) ci.cancel();
     }
 
+    /** SpawnerProtect: Spawner/Tresore gar nicht erst anfangen abzubauen. */
+    @Inject(method = "startDestroyBlock", at = @At("HEAD"), cancellable = true)
+    private void teizen$protectStart(net.minecraft.core.BlockPos pos, net.minecraft.core.Direction dir,
+                                     org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+        if (dev.teizen.client.modules.SpawnerProtect.protects(pos)) cir.setReturnValue(false);
+    }
+
+    @Inject(method = "continueDestroyBlock", at = @At("HEAD"), cancellable = true)
+    private void teizen$protectContinue(net.minecraft.core.BlockPos pos, net.minecraft.core.Direction dir,
+                                        org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+        if (dev.teizen.client.modules.SpawnerProtect.protects(pos)) cir.setReturnValue(false);
+    }
+
+    @Inject(method = "destroyBlock", at = @At("HEAD"), cancellable = true)
+    private void teizen$protectDestroy(net.minecraft.core.BlockPos pos,
+                                       org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+        if (dev.teizen.client.modules.SpawnerProtect.protects(pos)) cir.setReturnValue(false);
+    }
+
     /** VeinMiner: wenn du einen Block abbaust, die ganze Ader mit abbauen. */
     @Inject(method = "destroyBlock", at = @At("HEAD"))
     private void teizen$vein(net.minecraft.core.BlockPos pos, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {

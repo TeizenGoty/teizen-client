@@ -25,6 +25,7 @@ public final class ModuleManager {
         add(new AntiKnockback());
         add(new Velocity());
         add(new AutoTotem());
+        add(new OffhandSwitch());
         add(new AutoArmor());
         add(new AutoShield());
         add(new ShieldBreaker());
@@ -40,12 +41,14 @@ public final class ModuleManager {
         add(new AutoMine());
         add(new Nuker());
         add(new AutoTool());
+        add(new SpawnerProtect());
         add(new FastBreak());
         // Bewegung
         add(new Fly());
         add(new Speed());
         add(new NoFall());
         add(new Step());
+        add(new FastSneak());
         add(new AutoSprint());
         add(new Jesus());
         add(new HighJump());
