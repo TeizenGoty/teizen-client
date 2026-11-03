@@ -494,7 +494,10 @@ final class Round9Tests {
                 next();
             }
             case 344 -> {
-                if (!after(20)) return;
+                // erst Chunks fest laden (sonst "That position is not loaded" -> kein Wasser -> Test rot)
+                if (SelfTest.ticksInStep() == 1)
+                    cmd("forceload add " + (area.getX() - 8) + " " + (area.getZ() - 8) + " " + (area.getX() + 8) + " " + (area.getZ() + 8));
+                if (!after(40)) return;
                 arena(area, 5, 8);
                 cmd("fill " + blk(area.offset(-1, -2, -1)) + " " + blk(area.offset(1, -2, 1)) + " minecraft:stone");
                 cmd("fill " + blk(area.offset(-1, -1, -1)) + " " + blk(area.offset(1, 0, 1)) + " minecraft:water");
@@ -523,6 +526,7 @@ final class Round9Tests {
                         + ok(tb.boosts > n0 && tb.lastSpeed > 1.5));
                 t("///tridentboost");
                 allKeysUp();
+                cmd("forceload remove " + (area.getX() - 8) + " " + (area.getZ() - 8) + " " + (area.getX() + 8) + " " + (area.getZ() + 8));
                 arena(area, 5, 8);
                 tp(area, 0.5, 0, 0.5, -90, 0);
                 next();
