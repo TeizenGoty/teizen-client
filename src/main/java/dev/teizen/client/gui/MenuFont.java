@@ -7,7 +7,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 
 /**
- * Weiche Menü-Schrift (Inter, im Mod mitgeliefert, Lizenz: assets/teizenclient/font/INTER-LICENSE.txt).
+ * Weiche Menü-Schrift (Inter, im Mod mitgeliefert, Lizenz: assets/teizenclient/licenses/inter-license.txt).
  * Solange {@link #active} an ist (nur während das Teizen-Menü zeichnet), schreiben Menü-Teile damit statt mit der
  * Minecraft-Pixelschrift. Klappt das Laden nicht, wird einfach die normale Schrift genommen.
  */
