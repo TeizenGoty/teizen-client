@@ -42,7 +42,7 @@ public final class Breaker {
         BlockState s = mc.level.getBlockState(pos);
         if (s.isAir()) { current = null; return true; }
         if (autoTool) {
-            int t = Inv.bestTool(s);
+            int t = pos.equals(current) ? Inv.bestTool(s) : Inv.bestToolAnywhere(s); // pro Block 1x im Inventar suchen
             if (t >= 0) Inv.select(t);
         }
         Direction dir = face(pos);

@@ -79,4 +79,32 @@ public final class Inv {
         }
         return best;
     }
+
+    /**
+     * Bestes Werkzeug auch aus dem Inventar holen: ist im Rucksack ein besseres als in der Hotbar (z.B. weil Essen die
+     * Spitzhacke aus der Hotbar geschoben hat), wird es in die Hotbar getauscht – in einen freien Platz, sonst in den
+     * aktuellen. @return Hotbar-Slot oder -1
+     */
+    public static int bestToolAnywhere(BlockState state) {
+        int hot = bestTool(state);
+        float hotSpeed = hot >= 0 ? inv().getItem(hot).getDestroySpeed(state) : 1.0f;
+        int best = -1;
+        float bestSpeed = hotSpeed;
+        for (int i = 9; i < 36; i++) {
+            ItemStack s = inv().getItem(i);
+            if (s.isEmpty()) continue;
+            float sp = s.getDestroySpeed(state);
+            if (sp > bestSpeed + 0.01f) { bestSpeed = sp; best = i; }
+        }
+        if (best < 0 || mc.gui.screen() != null) return hot;
+        int target = -1;
+        for (int h = 0; h < 9; h++) if (inv().getItem(h).isEmpty()) { target = h; break; }
+        if (target < 0) {
+            // kein Platz frei: nur den aktuellen Slot nehmen, wenn dort kein Baublock liegt (AutoBuild & Co. nichts wegnehmen)
+            if (inv().getSelectedItem().getItem() instanceof net.minecraft.world.item.BlockItem) return hot;
+            target = selected();
+        }
+        swapToHotbar(best, target);
+        return target;
+    }
 }
