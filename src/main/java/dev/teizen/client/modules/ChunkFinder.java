@@ -26,6 +26,8 @@ import java.util.Set;
  * ChunkFinder: findet Chunks, in denen Spieler waren – z.B. Basen. Gezählt werden Dinge, die es so in der Natur (fast)
  * nicht gibt: Shulkerkisten, Endertruhen, Leuchtfeuer, Trichter, Schilder, Banner, Bienenstöcke, Rahmen,
  * Rüstungsständer usw. Verdächtige Chunks bekommen einen Rahmen und eine Meldung im Chat.
+ * Natürliche Bauwerke (Trial Chambers, Ancient Cities, Dungeons, Ruinen) werden erkannt: dort zählen nur noch Dinge,
+ * die nie natürlich spawnen (Shulker, Leuchtfeuer, Rüstungsständer ...). Kisten, Öfen, Betten usw. zählen nur halb.
  */
 public final class ChunkFinder extends Module {
     private final Setting minScore = add(Setting.number("empfindlich", "Ab wie vielen Punkten ein Chunk verdächtig ist (weniger = mehr Treffer)", 6, 1, 40));
@@ -49,7 +51,7 @@ public final class ChunkFinder extends Module {
         WEIGHTS.put("hopper", 3.0);
         WEIGHTS.put("sign", 3.0);
         WEIGHTS.put("hanging_sign", 3.0);
-        WEIGHTS.put("beehive", 3.0);
+        WEIGHTS.put("beehive", 0.0); // wächst natürlich an Bäumen
         WEIGHTS.put("jukebox", 3.0);
         WEIGHTS.put("enchanting_table", 3.0);
         WEIGHTS.put("comparator", 3.0);
@@ -75,6 +77,20 @@ public final class ChunkFinder extends Module {
         WEIGHTS.put("e:armor_stand", 3.0);
         WEIGHTS.put("e:painting", 2.0);
     }
+
+    /**
+     * Zeichen für natürliche Bauwerke (Trial Chambers, Ancient Cities, Dungeons, Ruinen, Wüstentempel ...).
+     * Liegt so etwas im Chunk oder direkt daneben, zählen nur noch Dinge, die NIE natürlich entstehen.
+     */
+    private static final Set<String> STRUCTURE_MARKERS = Set.of(
+            "trial_spawner", "vault", "mob_spawner", "sculk_shrieker", "sculk_catalyst", "brushable_block");
+    /** Dinge, die es in keinem natürlichen Bauwerk gibt – die zählen auch neben Bauwerken voll. */
+    private static final Set<String> NEVER_NATURAL = Set.of(
+            "shulker_box", "beacon", "conduit", "jukebox", "daylight_detector", "hanging_sign", "e:armor_stand", "e:glow_item_frame");
+    /** Gegenstände/Blöcke, die in natürlichen Bauwerken oft vorkommen (Dörfer, Iglus, Villen, Endstädte ...): nur halb zählen. */
+    private static final Set<String> OFTEN_NATURAL = Set.of(
+            "chest", "barrel", "furnace", "smoker", "blast_furnace", "bed", "lectern", "campfire", "brewing_stand", "banner",
+            "dispenser", "dropper", "hopper", "crafter", "skull", "trapped_chest", "enchanting_table", "chiseled_bookshelf", "e:item_frame");
 
     private int cursor;
 
@@ -110,15 +126,42 @@ public final class ChunkFinder extends Module {
     }
 
     /** Einen Chunk bewerten. */
-    private Found rate(LevelChunk chunk, int cx, int cz, Map<Long, List<Entity>> entities) {
+    private static boolean hasMarker(LevelChunk chunk) {
+        for (BlockEntity be : chunk.getBlockEntities().values()) {
+            var id = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+            if (id != null && STRUCTURE_MARKERS.contains(id.getPath())) return true;
+        }
+        return false;
+    }
+
+    /** Liegt im Chunk oder in einem Nachbar-Chunk ein natürliches Bauwerk? (Bauwerke sind oft größer als ein Chunk) */
+    private boolean nearStructure(int cx, int cz, Map<Long, Boolean> markers) {
+        for (int dx = -2; dx <= 2; dx++) for (int dz = -2; dz <= 2; dz++)
+            if (markers.getOrDefault(key(cx + dx, cz + dz), false)) return true;
+        return false;
+    }
+
+    /** Wie viel ein Ding zählt (neben Bauwerken nur noch die nie-natürlichen). */
+    private static double weight(String k, boolean structure) {
+        Double w = WEIGHTS.get(k);
+        if (w == null || w <= 0) return 0;
+        if (NEVER_NATURAL.contains(k)) return w;
+        if (structure) return 0;
+        return OFTEN_NATURAL.contains(k) ? w * 0.5 : w;
+    }
+
+    /** Für den Selbsttest: Chunks, die wegen eines Bauwerks ignoriert wurden. */
+    public int skippedStructures;
+
+    private Found rate(LevelChunk chunk, int cx, int cz, Map<Long, List<Entity>> entities, boolean structure) {
         double score = 0;
         int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
         Map<String, Integer> count = new LinkedHashMap<>();
         for (BlockEntity be : chunk.getBlockEntities().values()) {
             var id = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
             if (id == null) continue;
-            Double w = WEIGHTS.get(id.getPath());
-            if (w == null) continue;
+            double w = weight(id.getPath(), structure);
+            if (w <= 0) continue;
             score += w;
             count.merge(id.getPath(), 1, Integer::sum);
             BlockPos p = be.getBlockPos();
@@ -127,8 +170,8 @@ public final class ChunkFinder extends Module {
         }
         for (Entity e : entities.getOrDefault(key(cx, cz), List.of())) {
             var id = BuiltInRegistries.ENTITY_TYPE.getKey(e.getType());
-            Double w = WEIGHTS.get("e:" + id.getPath());
-            if (w == null) continue;
+            double w = weight("e:" + id.getPath(), structure);
+            if (w <= 0) continue;
             score += w;
             count.merge("e:" + id.getPath(), 1, Integer::sum);
             minY = Math.min(minY, e.blockPosition().getY());
@@ -138,7 +181,7 @@ public final class ChunkFinder extends Module {
         StringBuilder what = new StringBuilder();
         count.entrySet().stream().sorted((a, b) -> Double.compare(WEIGHTS.get(b.getKey()) * b.getValue(), WEIGHTS.get(a.getKey()) * a.getValue()))
                 .limit(4).forEach(en -> what.append(what.isEmpty() ? "" : ", ").append(en.getValue()).append("x ").append(label(en.getKey())));
-        return new Found(cx, cz, score, minY, maxY, what.toString());
+        return new Found(cx, cz, score, minY, maxY, what.toString() + (structure ? " (neben Bauwerk)" : ""));
     }
 
     @Override
@@ -149,19 +192,30 @@ public final class ChunkFinder extends Module {
         // Wesen nach Chunk sortieren
         Map<Long, List<Entity>> entities = new HashMap<>();
         for (Entity e : mc.level.entitiesForRendering()) entities.computeIfAbsent(key(e.blockPosition().getX() >> 4, e.blockPosition().getZ() >> 4), k -> new ArrayList<>()).add(e);
+        // erst: wo liegen natürliche Bauwerke (Trial Chamber, Ancient City, Dungeon ...)?
+        Map<Long, Boolean> markers = new HashMap<>();
+        for (int dx = -r - 2; dx <= r + 2; dx++)
+            for (int dz = -r - 2; dz <= r + 2; dz++) {
+                int cx = mx + dx, cz = mz + dz;
+                if (mc.level.hasChunk(cx, cz) && hasMarker(mc.level.getChunk(cx, cz))) markers.put(key(cx, cz), true);
+            }
+        int skipped = 0;
         for (int dx = -r; dx <= r; dx++) {
             for (int dz = -r; dz <= r; dz++) {
                 int cx = mx + dx, cz = mz + dz;
                 if (!mc.level.hasChunk(cx, cz)) continue;
                 LevelChunk lc = mc.level.getChunk(cx, cz);
                 long key = key(cx, cz);
-                Found f = rate(lc, cx, cz, entities);
+                boolean structure = nearStructure(cx, cz, markers);
+                Found f = rate(lc, cx, cz, entities, structure);
+                if (f == null && structure) skipped++;
                 if (f == null) { found.remove(key); continue; }
                 found.put(key, f);
                 if (reported.add(key) && chat.on())
                     Chat.info("§6ChunkFinder: §fChunk bei " + (cx * 16 + 8) + " " + (cz * 16 + 8) + " §7– " + f.what());
             }
         }
+        skippedStructures = skipped;
         // weit weg -> vergessen
         found.values().removeIf(f -> Math.abs(f.cx() - mx) > r + 2 || Math.abs(f.cz() - mz) > r + 2);
     }

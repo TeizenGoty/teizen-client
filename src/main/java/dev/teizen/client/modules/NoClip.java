@@ -11,27 +11,45 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * NoClip: durch Wände.
- * - Modus "abbauen" (ohne OP): du fliegst (Fly) und alles, was dir im Weg ist, wird automatisch abgebaut – du gräbst dich
+ * - Modus "fliegen" (Standard, ohne OP): du fliegst frei durch alle Blöcke – wie eine bessere Freecam (weich, ohne
+ *   Abstands-Grenze, du siehst auch in Wänden alles). Es wird nichts abgebaut. Dein echter Spieler bleibt stehen
+ *   (ohne OP lässt der Server den Spieler selbst nicht durch Wände).
+ * - Modus "abbauen" (ohne OP) (ohne OP): du fliegst (Fly) und alles, was dir im Weg ist, wird automatisch abgebaut – du gräbst dich
  *   in jede Richtung durch, in die du fliegst (auch hoch/runter mit Leertaste/Shift).
  * - Modus "zuschauer" (braucht OP): echter Zuschauer-Modus, durch alles hindurch.
  */
 public final class NoClip extends Module {
-    private final Setting mode = add(Setting.choice("modus", "abbauen = ohne OP: alles im Weg wird abgebaut, zuschauer = echter Zuschauer-Modus (OP)",
-            "abbauen", "abbauen", "zuschauer"));
-    private final Setting speed = add(Setting.number("tempo", "Flug-Tempo im Zuschauer-Modus (1 = normal)", 1, 0.1, 10));
+    private final Setting mode = add(Setting.choice("modus", "fliegen = frei durch Wände fliegen (Kamera, nichts abbauen), abbauen = alles im Weg wird abgebaut, zuschauer = echter Zuschauer-Modus (OP)",
+            "fliegen", "fliegen", "abbauen", "zuschauer"));
+    private final Setting speed = add(Setting.number("tempo", "Flug-Tempo (Blöcke pro Tick beim Fliegen, im Zuschauer-Modus 1 = normal)", 1, 0.1, 10));
     private GameType previous;
     private int enabledTick;
-    private boolean warned, flyByUs;
+    private boolean warned, flyByUs, camByUs;
     private BlockPos digging;
     private int digTicks;
     /** Für den Selbsttest: so viele Blöcke im Weg abgebaut. */
     public int dug;
 
     public NoClip() {
-        super("NoClip", Category.BEWEGUNG, "Durch Wände: ohne OP gräbt es sich durch (alles im Weg wird abgebaut), mit OP Zuschauer-Modus.");
+        super("NoClip", Category.BEWEGUNG, "Durch Wände fliegen (wie eine bessere Freecam, nichts wird abgebaut). Andere Modi: abbauen, zuschauer (OP).");
     }
 
     private boolean spectatorMode() { return mode.is("zuschauer"); }
+
+    private boolean flyMode() { return mode.is("fliegen"); }
+
+    private Freecam cam() { return dev.teizen.client.TeizenClient.modules().get(Freecam.class); }
+
+    /** Fliegt NoClip gerade (Kamera unterwegs)? */
+    public boolean flying() { Freecam f = cam(); return f != null && f.active() && f.byNoClip; }
+
+    private void startFly() {
+        Freecam f = cam();
+        if (f == null) return;
+        if (!f.isEnabled()) { f.setEnabled(true); camByUs = true; }
+        f.byNoClip = true;
+        f.speedOverride = speed.num();
+    }
 
     @Override
     protected void onEnable() {
@@ -39,8 +57,10 @@ public final class NoClip extends Module {
         previous = null;
         digging = null;
         flyByUs = false;
+        camByUs = false;
         if (!inGame()) return;
         if (spectatorMode()) startSpectator();
+        else if (flyMode()) startFly();
         else startDig();
     }
 
@@ -59,6 +79,13 @@ public final class NoClip extends Module {
     protected void onDisable() {
         if (digging != null) Breaker.stop();
         digging = null;
+        Freecam f = cam();
+        if (f != null) {
+            if (camByUs && f.isEnabled()) f.setEnabled(false);
+            f.byNoClip = false;
+            f.speedOverride = 0;
+        }
+        camByUs = false;
         if (!inGame()) return;
         if (flyByUs) {
             Fly fly = dev.teizen.client.TeizenClient.modules().get(Fly.class);
@@ -105,6 +132,14 @@ public final class NoClip extends Module {
             }
             return;
         }
+        if (flyMode()) {
+            Freecam f = cam();
+            if (f == null) return;
+            if (!f.isEnabled()) { setEnabled(false); return; } // Kamera wurde ausgemacht -> NoClip auch aus
+            f.byNoClip = true;
+            f.speedOverride = speed.num();
+            return;
+        }
         if (mc.gui.screen() != null) return;
         Vec3 dir = wish();
         if (digging != null) {
@@ -140,5 +175,5 @@ public final class NoClip extends Module {
     }
 
     @Override
-    public String info() { return spectatorMode() ? "Zuschauer" : "gräbt"; }
+    public String info() { return spectatorMode() ? "Zuschauer" : flyMode() ? "fliegt" : "gräbt"; }
 }

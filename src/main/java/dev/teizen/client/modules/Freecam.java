@@ -25,6 +25,14 @@ public final class Freecam extends Module {
     /** Wie oft der eigene Spieler extra gezeichnet wurde (Selbsttest). */
     public int playerDrawn;
     private ClientInput savedInput;
+    /** Aktuelle Geschwindigkeit der Kamera (weich anfahren und abbremsen). */
+    private Vec3 vel = Vec3.ZERO;
+    private boolean savedSmartCull;
+    public final Setting smooth = add(Setting.bool("weich", "Weich anfahren und abbremsen statt ruckartig", true));
+    /** Von NoClip eingeschaltet (dann ohne Abstands-Grenze). */
+    public boolean byNoClip;
+    /** Tempo von NoClip (0 = eigenes Tempo). */
+    public double speedOverride;
 
     public Freecam() {
         super("Freecam", Category.BEWEGUNG, "Kamera fliegt frei herum, du bleibst stehen.");
@@ -75,6 +83,10 @@ public final class Freecam extends Module {
         savedInput = mc.player.input;
         mc.player.input = new ClientInput();
         mc.setCameraEntity(cam);
+        vel = Vec3.ZERO;
+        // in Wänden nicht alles schwarz/unsichtbar: Sicht-Verdeckung (Culling) aus, solange die Kamera frei ist
+        savedSmartCull = mc.smartCull;
+        mc.smartCull = false;
     }
 
     @Override
@@ -84,8 +96,11 @@ public final class Freecam extends Module {
             if (!(mc.player.input instanceof KeyboardInput))
                 mc.player.input = savedInput instanceof KeyboardInput ? savedInput : new KeyboardInput(mc.options);
         }
+        if (cam != null) mc.smartCull = savedSmartCull;
         cam = null;
         savedInput = null;
+        vel = Vec3.ZERO;
+        byNoClip = false;
     }
 
     /** Mausbewegung dreht die Kamera statt den Spieler (aus dem Entity-Mixin). */
@@ -115,15 +130,18 @@ public final class Freecam extends Module {
         double f = (mc.options.keyUp.isDown() ? 1 : 0) - (mc.options.keyDown.isDown() ? 1 : 0);
         double s = (mc.options.keyLeft.isDown() ? 1 : 0) - (mc.options.keyRight.isDown() ? 1 : 0);
         double u = (mc.options.keyJump.isDown() ? 1 : 0) - (mc.options.keyShift.isDown() ? 1 : 0);
-        if (f == 0 && s == 0 && u == 0) return;
         double yaw = Math.toRadians(cam.getYRot()), pitch = Math.toRadians(cam.getXRot());
         Vec3 look = new Vec3(-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
         Vec3 left = new Vec3(Math.cos(yaw), 0, Math.sin(yaw));
         Vec3 move = look.scale(f).add(left.scale(s)).add(0, u, 0);
-        if (move.lengthSqr() < 1e-6) return;
-        double sp = speed.num() * (mc.options.keySprint.isDown() ? 2 : 1);
-        Vec3 next = cam.position().add(move.normalize().scale(sp));
-        double max = maxDist.num();
+        double sp = (speedOverride > 0 ? speedOverride : speed.num()) * (mc.options.keySprint.isDown() ? 2 : 1);
+        Vec3 want = move.lengthSqr() < 1e-6 ? Vec3.ZERO : move.normalize().scale(sp);
+        // weich: in ~4 Ticks auf Tempo, in ~3 Ticks wieder stehen
+        if (smooth.on()) vel = vel.add(want.subtract(vel).scale(want == Vec3.ZERO ? 0.35 : 0.3));
+        else vel = want;
+        if (vel.lengthSqr() < 1e-5) { vel = Vec3.ZERO; return; }
+        Vec3 next = cam.position().add(vel);
+        double max = byNoClip ? 0 : maxDist.num();
         if (max > 0) {
             Vec3 eye = mc.player.getEyePosition();
             Vec3 camEye = next.add(0, cam.getEyeHeight(), 0);
@@ -140,7 +158,7 @@ public final class Freecam extends Module {
         var bb = mc.player.getBoundingBox();
         double[] r = Draw.worldBox(g, bb, 0xFF55FFFF, false);
         if (r != null) g.text(mc.font, "Du", (int) ((r[0] + r[2]) / 2) - mc.font.width("Du") / 2, (int) r[1] - 10, 0xFF55FFFF, true);
-        String t = "Freecam: " + Math.round(distance()) + " m" + (maxDist.num() > 0 ? " / " + Setting.fmt(maxDist.num()) + " m" : " §7(unbegrenzt)");
+        String t = (byNoClip ? "NoClip: " : "Freecam: ") + Math.round(distance()) + " m" + (!byNoClip && maxDist.num() > 0 ? " / " + Setting.fmt(maxDist.num()) + " m" : " §7(unbegrenzt)");
         g.text(mc.font, t, g.guiWidth() / 2 - mc.font.width(t) / 2, 4, 0xFF55FFFF, true);
     }
 
