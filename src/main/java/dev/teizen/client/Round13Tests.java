@@ -544,6 +544,33 @@ final class Round13Tests {
                 t("///set godpvp crystal aus");
                 boolean crystalOff = !get(AutoCrystal.class).isEnabled();
                 result("GodPvP+Crystal: AutoCrystal mit an=" + yes(crystalOn) + ", nach aus wieder aus=" + yes(crystalOff) + " " + ok(crystalOn && crystalOff));
+                SelfTest.jump(766);
+            }
+            // ------------------------------------------------ TreeBot: kleiner Baum wird gefällt
+            case 766 -> {
+                if (!after(10)) return true;
+                cmd("gamemode survival");
+                cmd("clear @s");
+                cmd("item replace entity @s hotbar.0 with minecraft:diamond_axe");
+                cmd("fill " + blk(b.offset(5, 0, 5)) + " " + blk(b.offset(5, 3, 5)) + " minecraft:air");
+                cmd("setblock " + blk(b.offset(5, -1, 5)) + " minecraft:dirt");
+                cmd("setblock " + blk(b.offset(5, 0, 5)) + " minecraft:oak_log");
+                cmd("setblock " + blk(b.offset(5, 1, 5)) + " minecraft:oak_log");
+                cmd("setblock " + blk(b.offset(5, 2, 5)) + " minecraft:oak_log");
+                cmd("effect give @s minecraft:instant_health 1 10 true");
+                tp(b.getX() + 5.5, b.getY(), b.getZ() + 3.5);
+                next();
+            }
+            case 767 -> {
+                if (!after(20)) return true;
+                if (local() == 20) { dev.teizen.client.util.Inv.select(0); t("///tree"); return true; }
+                int logs = 0;
+                for (int y = 0; y <= 2; y++) if (mc.level.getBlockState(b.offset(5, y, 5)).is(net.minecraft.world.level.block.Blocks.OAK_LOG)) logs++;
+                if (logs > 0 && !after(900)) return true;
+                boolean farm = get(AutoMine.class).farmMode;
+                t("///tree stop");
+                result("TreeBot: 3 Stämme, noch übrig " + logs + ", Farm-Modus aktiv war=" + yes(farm) + " " + ok(logs == 0));
+                cmd("fill " + blk(b.offset(5, -1, 5)) + " " + blk(b.offset(5, 3, 5)) + " minecraft:air");
                 SelfTest.jump(709);
             }
             case 709 -> {

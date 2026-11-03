@@ -101,6 +101,9 @@ public final class AutoMine extends Module {
     private BlockPos areaMin, areaMax;
     private long areaCursor, areaTotal;
     public int areaMined;
+    /** Farm-Modus (///farm, ///tree): beliebige Blöcke abbauen, JEDES Drop einsammeln, optional nachpflanzen. */
+    public boolean farmMode;
+    private boolean replantByUs;
     /** Bereich-Modus aktiv? */
     public boolean areaMode() { return areaMin != null; }
 
@@ -113,6 +116,18 @@ public final class AutoMine extends Module {
         areaCursor = 0;
         areaMined = 0;
         setEnabled(true);
+    }
+
+    /** Farm/Tree starten: diese Blöcke abbauen, alles einsammeln, optional AutoReplant dazu. */
+    public void startFarm(String blocks, boolean replant) {
+        if (isEnabled()) setEnabled(false);
+        ores.setText(blocks);
+        farmMode = true;
+        setEnabled(true);
+        if (replant) {
+            AutoReplant ar = dev.teizen.client.TeizenClient.modules().get(AutoReplant.class);
+            if (ar != null && !ar.isEnabled()) { ar.setEnabled(true); replantByUs = true; }
+        }
     }
 
     /** Der i-te Block in Abbau-Reihenfolge: oberste Schicht zuerst, dann Reihen entlang X, Schlangenlinie. */
@@ -204,6 +219,12 @@ public final class AutoMine extends Module {
         Breaker.stop();
         reset();
         areaMin = areaMax = null;
+        farmMode = false;
+        if (replantByUs) {
+            AutoReplant ar = dev.teizen.client.TeizenClient.modules().get(AutoReplant.class);
+            if (ar != null && ar.isEnabled()) ar.setEnabled(false);
+            replantByUs = false;
+        }
         for (Module m : helpersOn) if (m.isEnabled()) m.setEnabled(false);
         helpersOn.clear();
         dev.teizen.client.TeizenClient.modules().get(AutoEat.class).stopEating();
@@ -732,6 +753,7 @@ public final class AutoMine extends Module {
 
     /** Erz-Drop, das gerade eingesammelt werden soll (je nach Einstellung alle oder nur die gewählten). */
     private boolean wantDrop(net.minecraft.world.item.ItemStack st) {
+        if (farmMode) return !st.isEmpty(); // Farm-Modus: alles einsammeln
         return collectAll.on() ? isAnyOreDrop(st) : isOreDrop(st);
     }
 

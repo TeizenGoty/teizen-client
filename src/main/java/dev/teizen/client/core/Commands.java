@@ -148,6 +148,28 @@ public final class Commands {
                 if (size > 2_000_000) { Chat.error("Bereich zu groß (" + size + " Blöcke, max. 2 Millionen)."); return; }
                 m.startArea(p1, p2);
             }
+            case "tree", "baum", "trees", "baeume" -> {
+                AutoMine m = mm.get(AutoMine.class);
+                if (a.length >= 2 && (a[1].equalsIgnoreCase("stop") || a[1].equalsIgnoreCase("aus"))) { m.setEnabled(false); Chat.info("TreeBot §caus"); return; }
+                m.startFarm("oak_log,spruce_log,birch_log,jungle_log,acacia_log,dark_oak_log,mangrove_log,cherry_log,pale_oak_log", false);
+                Chat.ok("TreeBot: fällt Bäume in der Nähe. Stop: §f///tree stop");
+                Config.save();
+            }
+            case "farm" -> {
+                AutoMine m = mm.get(AutoMine.class);
+                if (a.length >= 2 && (a[1].equalsIgnoreCase("stop") || a[1].equalsIgnoreCase("aus"))) { m.setEnabled(false); Chat.info("Farm §caus"); return; }
+                if (a.length < 2) { Chat.error("///farm <bloecke...> [nachpflanzen]  z.B. ///farm wheat carrots nachpflanzen"); return; }
+                boolean replant = false;
+                java.util.List<String> parts = new java.util.ArrayList<>();
+                for (int i = 1; i < a.length; i++) {
+                    if (a[i].equalsIgnoreCase("nachpflanzen") || a[i].equalsIgnoreCase("replant")) replant = true;
+                    else parts.add(a[i]);
+                }
+                if (parts.isEmpty()) { Chat.error("Welche Blöcke? z.B. ///farm wheat carrots"); return; }
+                m.startFarm(String.join(",", parts), replant);
+                Chat.ok("Farm: baut §f" + String.join(", ", parts) + "§a ab" + (replant ? " und pflanzt nach" : "") + ". Stop: §f///farm stop");
+                Config.save();
+            }
             case "mine" -> {
                 AutoMine m = mm.get(AutoMine.class);
                 if (a.length >= 2 && (a[1].equalsIgnoreCase("stop") || a[1].equalsIgnoreCase("aus"))) {
@@ -606,6 +628,8 @@ public final class Commands {
         Chat.raw("§d///fly <Tempo> §7· §d///speed <Tempo> §7· §d///highjump <Blöcke> §7– z.B. §f///speed 0.5§7, §f///highjump 5");
         Chat.raw("§d///mine <Erze...> §7– Auto-Miner, z.B. §f///mine diamond iron §7| §f///mine stop");
         Chat.raw("§d///miner x1 y1 z1 x2 y2 z2 §7– baut den Bereich in Reihen ab (Schicht für Schicht von oben), §f~ §7= deine Position | §f///miner stop");
+        Chat.raw("§d///tree §7– fällt Bäume in der Nähe (TreeBot) | §f///tree stop");
+        Chat.raw("§d///farm <bloecke...> [nachpflanzen] §7– baut beliebige Blöcke ab & sammelt ein, z.B. §f///farm wheat carrots nachpflanzen");
         Chat.raw("§d///xray §7– an/aus, §f///xray nur diamond §7(nur Dias), §f///xray alle§7, §f///xray add/remove <Erz>");
         Chat.raw("§d///xray lava §7· §d///xray wasser §7· §d///xray hoehlen §7– zusätzlich anzeigen (an/aus)");
         Chat.raw("§d///fav <Funktion> §7– Favorit an/aus (steht oben) · §d///fav §7– alle Favoriten");
