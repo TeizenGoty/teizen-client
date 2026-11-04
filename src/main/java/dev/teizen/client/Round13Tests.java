@@ -569,10 +569,16 @@ final class Round13Tests {
                 if (local() % 100 == 0) log("TreeBot " + local() + ": " + get(AutoMine.class).debugState());
                 int logs = 0;
                 for (int y = 0; y <= 2; y++) if (mc.level.getBlockState(b.offset(5, y, 5)).is(net.minecraft.world.level.block.Blocks.OAK_LOG)) logs++;
-                if (logs > 0 && !after(1800)) return true;
+                // Stämme im Inventar (der TreeBot nimmt auch echte Bäume in der Nähe – große zuerst)
+                int inv = 0;
+                for (int i = 0; i < 36; i++) {
+                    var st = mc.player.getInventory().getItem(i);
+                    if (!st.isEmpty() && net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).getPath().endsWith("_log")) inv += st.getCount();
+                }
+                if (logs > 0 && inv < 3 && !after(1800)) return true;
                 boolean farm = get(AutoMine.class).farmMode;
                 t("///tree stop");
-                result("TreeBot: 3 Stämme, noch übrig " + logs + ", Farm-Modus aktiv war=" + yes(farm) + " " + ok(logs == 0));
+                result("TreeBot: Stämme gefällt und eingesammelt=" + inv + " (Testbaum noch " + logs + "/3), Farm-Modus=" + yes(farm) + " " + ok(farm && (inv >= 3 || logs == 0)));
                 cmd("fill " + blk(b.offset(5, -1, 5)) + " " + blk(b.offset(5, 3, 5)) + " minecraft:air");
                 SelfTest.jump(768);
             }
