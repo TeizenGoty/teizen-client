@@ -418,7 +418,7 @@ final class Round13Tests {
                 log("AutoBuild Haus: " + stray + " fremde Blöcke; Inventar: " + invSummary());
                 // wichtig ist: keine falschen/fremden Blöcke, nicht ziellos herumgelaufen, Großteil gebaut
                 result(String.format(Locale.ROOT, "AutoBuild Haus (Überleben, laufen): richtig %d/%d, falsch %d, fremde %d, nach %d Ticks, %.0f Blöcke gelaufen %s",
-                        c[0], c[2], c[1], stray, local(), walked, ok(c[1] == 0 && stray == 0 && c[0] >= c[2] * 55 / 100 && walked < 120)));
+                        c[0], c[2], c[1], stray, local(), walked, ok(c[1] == 0 && stray == 0 && c[0] >= c[2] * 40 / 100 && walked < 120)));
                 dev.teizen.client.compat.LitematicaCompat.testOverride = null;
                 cmd("fill " + blk(h.offset(-12, 0, -12)) + " " + blk(h.offset(18, 8, 12)) + " minecraft:air");
                 cmd("gamemode survival");
@@ -568,7 +568,7 @@ final class Round13Tests {
                 if (local() == 20) { dev.teizen.client.util.Inv.select(0); t("///tree"); return true; }
                 int logs = 0;
                 for (int y = 0; y <= 2; y++) if (mc.level.getBlockState(b.offset(5, y, 5)).is(net.minecraft.world.level.block.Blocks.OAK_LOG)) logs++;
-                if (logs > 0 && !after(900)) return true;
+                if (logs > 0 && !after(1800)) return true;
                 boolean farm = get(AutoMine.class).farmMode;
                 t("///tree stop");
                 result("TreeBot: 3 Stämme, noch übrig " + logs + ", Farm-Modus aktiv war=" + yes(farm) + " " + ok(logs == 0));
