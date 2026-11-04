@@ -434,6 +434,13 @@ public final class Commands {
                 if (a.length >= 2) { Chat.info(dev.teizen.client.modules.Swarm.send(String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length)))); return; }
                 mm.get(dev.teizen.client.modules.Swarm.class).toggle();
             }
+            case "sound", "ton", "klang" -> {
+                if (a.length >= 2) Module.sound = a[1].equalsIgnoreCase("an") || a[1].equalsIgnoreCase("on");
+                else Module.sound = !Module.sound;
+                Config.save();
+                if (Module.sound && mc.player != null) mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(), 0.6f, 1.7f);
+                Chat.ok("Umschalt-Sound: " + (Module.sound ? "§aan" : "§caus"));
+            }
             case "menuschrift", "menufont" -> {
                 // weiche Schrift im Menü an/aus (aus = normale Minecraft-Schrift)
                 if (a.length >= 2) dev.teizen.client.gui.MenuFont.enabled = a[1].equalsIgnoreCase("an") || a[1].equalsIgnoreCase("on");

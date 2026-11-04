@@ -68,10 +68,17 @@ public abstract class Module {
         }
     }
 
+    /** Umschalt-Sound beim Ein-/Ausschalten im Spiel (///sound an|aus). Standard an. Eigener Minecraft-Klang. */
+    public static boolean sound = true;
+
     public void toggle() {
         if (!enabled && !Lock.ok()) { Lock.complain(); return; }
         setEnabled(!enabled);
         Chat.info(name + (enabled ? " §aan" : " §caus"));
+        if (sound && mc.player != null) {
+            // kurzer Klick: an = höher, aus = tiefer
+            mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(), 0.6f, enabled ? 1.7f : 1.1f);
+        }
     }
 
     public boolean inGame() {
