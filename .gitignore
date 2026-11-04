@@ -8,3 +8,4 @@ out/
 out-keys/
 keys/
 *.pem
+dist-out/
