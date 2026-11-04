@@ -54,6 +54,20 @@ public final class SchematicsScreen extends Screen {
     @Override
     protected void init() { refresh(); }
 
+    private int pmX, pmW, cbX, cbW;
+    private long lastRefresh;
+
+    /** Liste neu lesen, ohne Suche/Scroll zu verlieren (nur wenn sich etwas geändert hat). */
+    private void softRefresh() {
+        if (!FabricLoader.getInstance().isModLoaded("litematica")) return;
+        List<String> now = LitematicaCompat.listSchematics();
+        if (now.equals(all)) return;
+        int keep = scroll;
+        all = now;
+        filter();
+        scroll = Math.max(0, Math.min(keep, Math.max(0, shown.size() - 1)));
+    }
+
     private void refresh() {
         all = FabricLoader.getInstance().isModLoaded("litematica") ? LitematicaCompat.listSchematics() : List.of();
         filter();
@@ -81,6 +95,21 @@ public final class SchematicsScreen extends Screen {
         // Kopf
         g.fill(0, 0, width, 40, 0xF01A0E30);
         g.text(font, "§5§lTeizen §7Schematics", 8, 8, 0xFFFFFFFF, true);
+        // Knöpfe: PhantomMarket (Marktplatz) und Chunkbase (Seed-Karte) im Browser
+        pmW = font.width("PhantomMarket") + 12; cbW = font.width("Chunkbase") + 12;
+        cbX = width - 8 - cbW; pmX = cbX - 6 - pmW;
+        boolean hpm = in(mouseX, mouseY, pmX, 5, pmW, 14), hcb = in(mouseX, mouseY, cbX, 5, cbW, 14);
+        g.fill(pmX, 5, pmX + pmW, 19, hpm ? 0xFF2E7AD8 : 0xD0204A80);
+        g.centeredText(font, "§fPhantomMarket", pmX + pmW / 2, 8, 0xFFFFFFFF);
+        g.fill(cbX, 5, cbX + cbW, 19, hcb ? 0xFF2E9A50 : 0xD0245038);
+        g.centeredText(font, "§fChunkbase", cbX + cbW / 2, 8, 0xFFFFFFFF);
+        if (hpm) g.setTooltipForNextFrame(font, Component.literal(dev.teizen.client.util.ExternalLinks.phantomLinkInstalled()
+                ? "Marktplatz öffnen – \"Send to Minecraft\" landet hier in der Liste"
+                : "Marktplatz öffnen – mit dem Mod \"PhantomMarket Link\" kommt \"Send to Minecraft\" direkt hier an"), mouseX, mouseY);
+        if (hcb) g.setTooltipForNextFrame(font, Component.literal("Seed-Karte auf Chunkbase mit deinem Seed und deiner Position öffnen"), mouseX, mouseY);
+        // neu gelieferte Dateien (z.B. von PhantomMarket Link) von selbst anzeigen
+        long now = System.currentTimeMillis();
+        if (now - lastRefresh > 2000) { lastRefresh = now; softRefresh(); }
         if (!FabricLoader.getInstance().isModLoaded("litematica"))
             g.text(font, "§cBrauchst Litematica, um Schematics zu bauen/einzufügen.", 8, 24, 0xFFFFFFFF, true);
         else
@@ -142,6 +171,8 @@ public final class SchematicsScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         double mx = e.x(), my = e.y();
+        if (in(mx, my, pmX, 5, pmW, 14)) { dev.teizen.client.util.ExternalLinks.openPhantomMarket(); return true; }
+        if (in(mx, my, cbX, 5, cbW, 14)) { dev.teizen.client.util.ExternalLinks.openChunkbase(); return true; }
         if (in(mx, my, urlX, urlY, urlW, 13)) { urlFocused = true; search.focused = false; return true; }
         if (in(mx, my, loadX, urlY, loadW, 13)) { startDownload(); return true; }
         if (search.click(mx, my)) { urlFocused = false; filter(); return true; }

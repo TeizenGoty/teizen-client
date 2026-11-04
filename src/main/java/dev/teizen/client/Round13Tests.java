@@ -610,6 +610,31 @@ final class Round13Tests {
                 result("NoClip-Freecam: Interagieren frei + fliegt=" + yes(f1) + ", per ///camtp zur Kamera (Δz " + f((float) movedZ) + ")=" + yes(tped)
                         + ", danach interagieren zurück=" + yes(restored) + ", Kamera weg=" + yes(camGone) + " " + ok(f1 && tped && restored && camGone));
                 cmd("gamemode survival");
+                SelfTest.jump(771);
+            }
+            // ------------------------------------------------ Chunkbase + PhantomMarket (nur Links, im Test nicht geöffnet)
+            case 771 -> {
+                if (!after(5)) return true;
+                dev.teizen.client.util.ExternalLinks.lastUrl = null;
+                t("///chunkbase");
+                String cb = dev.teizen.client.util.ExternalLinks.lastUrl;
+                Long seed = dev.teizen.client.core.Seed.known();
+                if (seed == null) seed = dev.teizen.client.core.Seed.manual();
+                boolean cbOk = cb != null && cb.startsWith("https://www.chunkbase.com/apps/seed-map") && (seed == null || cb.contains("seed=" + seed));
+                t("///phantom");
+                String pm = dev.teizen.client.util.ExternalLinks.lastUrl;
+                boolean pmOk = "https://market.phantom-node.com".equals(pm);
+                // Schematic-Fenster öffnen (Knöpfe werden gezeichnet)
+                mc.gui.setScreen(new dev.teizen.client.gui.SchematicsScreen(null));
+                result("Links: Chunkbase mit Seed=" + yes(cbOk) + " (" + cb + "), PhantomMarket=" + yes(pmOk) + " " + ok(cbOk && pmOk));
+                next();
+            }
+            case 772 -> {
+                if (!after(10)) return true;
+                boolean open = mc.gui.screen() instanceof dev.teizen.client.gui.SchematicsScreen;
+                SelfTest.shot2("96-schematics-knoepfe");
+                mc.gui.setScreen(null);
+                result("Schematic-Fenster mit PhantomMarket/Chunkbase-Knöpfen offen=" + yes(open) + " " + ok(open));
                 SelfTest.jump(709);
             }
             case 709 -> {
