@@ -177,6 +177,38 @@ public final class ClickGui extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {
         if (!textOn) { textOn = true; TextFocus.on(); } // 26.3: sonst kommen keine Buchstaben an
+        // Eigene Größe: bei großer GUI-Skalierung kleiner zeichnen, damit immer alles reinpasst
+        int realW = width, realH = height;
+        uiScale = Math.min(1f, Math.min(realW / (float) VIRTUAL_W, realH / (float) VIRTUAL_H));
+        width = Math.round(realW / uiScale);
+        height = Math.round(realH / uiScale);
+        g.pose().pushMatrix();
+        g.pose().scale(uiScale, uiScale);
+        tipScale = uiScale;
+        try {
+            draw(g, (int) (mouseX / uiScale), (int) (mouseY / uiScale));
+        } finally {
+            tipScale = 1f;
+            g.pose().popMatrix();
+            width = realW;
+            height = realH;
+        }
+    }
+
+    /** Menü wird mindestens so groß (in GUI-Pixeln) gezeichnet, sonst verkleinert. */
+    private static final int VIRTUAL_W = 720, VIRTUAL_H = 400;
+    /** Aktuelle Verkleinerung (für Tooltips + Maus). */
+    private float uiScale = 1f;
+    private static float tipScale = 1f;
+
+    /** Tooltip an der echten Mausposition. */
+    static void tip(GuiGraphicsExtractor g, Font font, net.minecraft.network.chat.Component c, int mx, int my) {
+        g.setTooltipForNextFrame(font, c, Math.round(mx * tipScale), Math.round(my * tipScale));
+    }
+
+    private int vw() { return Math.round(width / uiScale); }
+
+    private void draw(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         Font font = getFont();
         hits.clear();
         int side = sideW(), right = rightW();
@@ -339,7 +371,7 @@ public final class ClickGui extends Screen {
             if (cy + 28 >= top && cy + 38 <= bottom) hits.add(new Hit(Kind.KEY, cx + 6, cy + 28, cx + 10 + MenuFont.width(font, key), cy + 38, m, null));
             String st = m.isEnabled() ? "an" : "aus";
             MenuFont.text(g, font, st, cx + cw - 6 - MenuFont.width(font, st), cy + 29, m.isEnabled() ? ON_TEXT : DIM, false);
-            if (h) g.setTooltipForNextFrame(font, MenuFont.comp(m.description + (m.favorite ? " (★ Favorit)" : "")), mx, my); // normale Schrift
+            if (h) tip(g, font, MenuFont.comp(m.description + (m.favorite ? " (★ Favorit)" : "")), mx, my); // normale Schrift
             if (cy + ch > top && cy < bottom) hits.add(new Hit(Kind.CARD, cx, Math.max(cy, top), cx + cw, Math.min(cy + ch, bottom), m, null));
         }
         g.disableScissor();
@@ -408,7 +440,7 @@ public final class ClickGui extends Screen {
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         // Klick woanders hin = Eingabe übernehmen
         if (rows.isEditing() && !rows.finish(true)) return true;
-        double mx = e.x(), my = e.y();
+        double mx = e.x() / uiScale, my = e.y() / uiScale;
         if (search.click(mx, my)) return true;
         int button = dev.teizen.client.compat.V.mouse(e.button());
         boolean shift = (e.modifiers() & K.MOD_SHIFT) != 0;
@@ -493,8 +525,13 @@ public final class ClickGui extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
+        mx /= uiScale;
+        int realW = width;
+        width = vw();
         int side = sideW(), right = rightW();
-        if (right > 0 && mx >= width - right) scrollRight = Math.max(0, scrollRight - (int) (sy * 16));
+        boolean inRight = right > 0 && mx >= width - right;
+        width = realW;
+        if (inRight) scrollRight = Math.max(0, scrollRight - (int) (sy * 16));
         else if (mx >= side) scrollMid = Math.max(0, scrollMid - (int) (sy * 16));
         return true;
     }

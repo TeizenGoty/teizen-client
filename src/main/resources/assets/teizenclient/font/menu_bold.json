@@ -1,1 +1,1 @@
-{"providers":[{"type":"ttf","file":"teizenclient:inter-bold.ttf","size":8.5,"oversample":4.0,"shift":[0.0,1.0],"skip":""},{"type":"reference","id":"minecraft:include/default"},{"type":"reference","id":"minecraft:include/unifont"}]}
+{"providers":[{"type":"ttf","file":"teizenclient:inter-bold.ttf","size":8.5,"oversample":8.0,"shift":[0.0,1.0],"skip":""},{"type":"reference","id":"minecraft:include/default"},{"type":"reference","id":"minecraft:include/unifont"}]}
