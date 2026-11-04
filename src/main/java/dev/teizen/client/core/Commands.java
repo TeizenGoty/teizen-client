@@ -409,6 +409,10 @@ public final class Commands {
                         dev.teizen.client.util.SchematicPaste.start();
                         return;
                     }
+                    if (sub.equals("weg") || sub.equals("entfernen") || sub.equals("remove") || sub.equals("löschen")) {
+                        dev.teizen.client.util.SchematicPaste.remove(a.length >= 3 ? a[2].replaceAll("\\.(litematic|schem|schematic|nbt)$", "") : null);
+                        return;
+                    }
                     if (sub.equals("stop") || sub.equals("abbrechen") || sub.equals("aus")) {
                         dev.teizen.client.util.SchematicPaste.cancel();
                         Chat.info("Einfügen abgebrochen.");
@@ -672,7 +676,7 @@ public final class Commands {
         Chat.raw("§d///swarm <Befehl> §7– Swarm-Chef: alle Helfer führen den Befehl aus (///swarm komm = alle zu dir)");
         Chat.raw("§d///autobuild abbauen §7– im Bereich der platzierten Schematic Erde & Co. abbauen (Platz machen)");
         Chat.raw("§d///schematics §7– Fenster: alle Schematics durchsuchen, per Link laden, mit einem Klick §fBauen§7 (AutoBuild) oder §fEinfügen§7 (sofort, mit OP)");
-        Chat.raw("§d///schematic <Link> §7– Schematic direkt herunterladen · §d///schematic einfügen §7– geladene sofort einfügen (OP)");
+        Chat.raw("§d///schematic <Link> §7– Schematic direkt herunterladen · §d///schematic einfügen §7– geladene sofort einfügen (OP) · §d///schematic weg §7– wieder entfernen");
         Chat.raw("§d///find block <Name> [Chunks] §7– z.B. §f///find block diamond 10");
         Chat.raw("§d///find chest [Chunks] §7| §d///find biome <Name> §7| §d///find structure <Name> §7| §d///find clear");
         Chat.raw("§d///friend add <Name> §7– wird nicht angegriffen");

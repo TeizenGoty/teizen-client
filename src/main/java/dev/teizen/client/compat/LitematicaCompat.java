@@ -57,6 +57,47 @@ public final class LitematicaCompat {
         return false;
     }
 
+    /**
+     * Platzierung(en) entfernen (Name ohne Endung, null = alle).
+     * @param blocks gefüllt mit allen Positionen, an denen schon echt der Schematic-Block steht (oder null)
+     * @return Anzahl entfernter Platzierungen
+     */
+    public static int removePlacement(String name, java.util.List<BlockPos> blocks) {
+        var mgr = DataManager.getSchematicPlacementManager();
+        java.util.List<SchematicPlacement> hit = new java.util.ArrayList<>();
+        for (SchematicPlacement pl : mgr.getAllSchematicsPlacements())
+            if (name == null || pl.getName().equalsIgnoreCase(name)) hit.add(pl);
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (blocks != null && mc.level != null) {
+            for (SchematicPlacement pl : hit)
+                for (fi.dy.masa.litematica.selection.Box b : pl.getSubRegionBoxes(fi.dy.masa.litematica.schematic.placement.SubRegionPlacement.RequiredEnabled.PLACEMENT_ENABLED).values()) {
+                    BlockPos a = b.getPos1(), c = b.getPos2();
+                    if (a == null || c == null) continue;
+                    for (BlockPos p : BlockPos.betweenClosed(a, c)) {
+                        BlockState want = schematicState(p);
+                        if (want == null || want.isAir()) continue;
+                        if (mc.level.getBlockState(p) == want) blocks.add(p.immutable());
+                    }
+                }
+        }
+        int n = 0;
+        for (SchematicPlacement pl : hit) {
+            try {
+                boolean done = false;
+                for (java.lang.reflect.Method m : mgr.getClass().getMethods()) {
+                    if (!m.getName().equals("removeSchematicPlacement")) continue;
+                    Class<?>[] t = m.getParameterTypes();
+                    if (t.length == 1 && t[0].isInstance(pl)) { m.invoke(mgr, pl); done = true; break; }
+                    if (t.length == 2 && t[0].isInstance(pl) && t[1] == boolean.class) { m.invoke(mgr, pl, true); done = true; break; }
+                }
+                if (done) n++;
+            } catch (Throwable e) {
+                dev.teizen.client.TeizenClient.LOG.warn("Platzierung entfernen: " + e);
+            }
+        }
+        return n;
+    }
+
     public static int placementCount() {
         return DataManager.getSchematicPlacementManager().getAllSchematicsPlacements().size();
     }

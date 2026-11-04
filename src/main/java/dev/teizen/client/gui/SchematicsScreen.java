@@ -133,8 +133,11 @@ public final class SchematicsScreen extends Screen {
             String name = shown.get(i);
             boolean hover = in(mouseX, mouseY, 8, y, width - 16, ROW_H - 1);
             g.fill(8, y, width - 8, y + ROW_H - 1, hover ? 0xE0362060 : 0xC0201038);
-            g.text(font, "§f" + fit(font, name, width - 16 - 220), 12, y + 4, 0xFFFFFFFF, false);
-            int bEin = width - 8 - 78, bBau = bEin - 62, bAb = bBau - 66;
+            g.text(font, "§f" + fit(font, name, width - 16 - 270), 12, y + 4, 0xFFFFFFFF, false);
+            int bEin = width - 8 - 78, bBau = bEin - 62, bAb = bBau - 66, bWeg = bAb - 50;
+            boolean hw = in(mouseX, mouseY, bWeg, y + 1, 46, ROW_H - 3);
+            g.fill(bWeg, y + 1, bWeg + 46, y + ROW_H - 2, hw ? 0xFF606070 : 0xD0303040);
+            g.centeredText(font, "§fWeg", bWeg + 23, y + 4, 0xFFFFFFFF);
             boolean hb = in(mouseX, mouseY, bBau, y + 1, 58, ROW_H - 3), he = in(mouseX, mouseY, bEin, y + 1, 74, ROW_H - 3);
             boolean ha = in(mouseX, mouseY, bAb, y + 1, 62, ROW_H - 3);
             g.fill(bAb, y + 1, bAb + 62, y + ROW_H - 2, ha ? 0xFFC03030 : 0xD0602020);
@@ -149,7 +152,7 @@ public final class SchematicsScreen extends Screen {
 
         // Fuß
         g.fill(0, height - 14, width, height, 0xC0000000);
-        String foot = SchematicPaste.running() ? "§aFüge ein … noch " + SchematicPaste.remaining() + " Blöcke" : "§8Esc schließen · Mausrad scrollen · Abbauen = Erde im Bereich weg · Bauen = AutoBuild · Einfügen = sofort (OP)";
+        String foot = SchematicPaste.running() ? "§aFüge ein … noch " + SchematicPaste.remaining() + " Blöcke" : "§8Esc schließen · Weg = Schematic entfernen · Abbauen = Erde im Bereich weg · Bauen = AutoBuild · Einfügen = sofort (OP)";
         g.centeredText(font, foot, width / 2, height - 11, 0xFFFFFFFF);
     }
 
@@ -175,7 +178,8 @@ public final class SchematicsScreen extends Screen {
         urlFocused = false;
         int y = TOP;
         for (int i = scroll; i < shown.size() && y + ROW_H <= listBottom; i++) {
-            int bEin = width - 8 - 78, bBau = bEin - 62, bAb = bBau - 66;
+            int bEin = width - 8 - 78, bBau = bEin - 62, bAb = bBau - 66, bWeg = bAb - 50;
+            if (in(mx, my, bWeg, y + 1, 46, ROW_H - 3)) { dev.teizen.client.util.SchematicPaste.remove(shown.get(i).replaceAll("\\.(litematic|schem|schematic|nbt)$", "")); return true; }
             if (in(mx, my, bAb, y + 1, 62, ROW_H - 3)) { demolish(shown.get(i)); return true; }
             if (in(mx, my, bBau, y + 1, 58, ROW_H - 3)) { build(shown.get(i), false); return true; }
             if (in(mx, my, bEin, y + 1, 74, ROW_H - 3)) { build(shown.get(i), true); return true; }

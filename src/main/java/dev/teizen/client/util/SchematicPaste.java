@@ -42,11 +42,36 @@ public final class SchematicPaste {
         return total;
     }
 
-    public static void cancel() { queue.clear(); }
+    public static void cancel() { queue.clear(); clear.clear(); }
+
+    private static final Deque<BlockPos> clear = new ArrayDeque<>();
+
+    /** Schematic wieder weg: Vorschau entfernen, mit OP auch die schon gebauten Blöcke. */
+    public static void remove(String name) {
+        boolean op = Op.available();
+        java.util.List<BlockPos> blocks = op ? new java.util.ArrayList<>() : null;
+        int n = dev.teizen.client.compat.LitematicaCompat.removePlacement(name, blocks);
+        if (n == 0) { Chat.error(name == null ? "Keine Schematic platziert." : "§f" + name + "§c ist nicht platziert."); return; }
+        queue.clear();
+        if (blocks != null && !blocks.isEmpty()) {
+            clear.addAll(blocks);
+            Chat.ok("Schematic weg. Lösche " + blocks.size() + " gebaute Blöcke ...");
+        } else if (op) Chat.ok("Schematic-Vorschau weg.");
+        else Chat.ok("Schematic-Vorschau weg. §7(Schon gebaute Blöcke bleiben – zum Löschen brauchst du OP, sonst abbauen.)");
+    }
 
     /** Jeden Tick aufrufen. */
     public static void tick() {
-        if (queue.isEmpty() || mc.level == null) return;
+        if (mc.level == null) return;
+        if (!clear.isEmpty()) {
+            int cb = mc.getSingleplayerServer() != null ? 4000 : 48;
+            for (int i = 0; i < cb && !clear.isEmpty(); i++) {
+                BlockPos p = clear.poll();
+                Op.run("setblock " + p.getX() + " " + p.getY() + " " + p.getZ() + " minecraft:air");
+            }
+            if (clear.isEmpty()) Chat.ok("Gebaute Schematic-Blöcke gelöscht.");
+        }
+        if (queue.isEmpty()) return;
         int batch = mc.getSingleplayerServer() != null ? 4000 : 48; // eigene Welt: schnell; Server: vorsichtig
         for (int i = 0; i < batch && !queue.isEmpty(); i++) {
             BlockPos p = queue.poll();
