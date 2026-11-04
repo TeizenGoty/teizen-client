@@ -1,11 +1,10 @@
 package dev.teizen.client.util;
 
-import dev.teizen.client.core.Seed;
 import net.fabricmc.loader.api.FabricLoader;
 
 /**
- * Links zu Chunkbase (Seed-Karte im Browser, mit deinem Seed und deiner Position) und PhantomMarket
- * (Schematic-Marktplatz). Es wird nichts von diesen Seiten ausgelesen – Teizen öffnet sie nur im Browser.
+ * Link zu PhantomMarket (Schematic-Marktplatz). Es wird nichts von der Seite ausgelesen – Teizen öffnet sie nur
+ * im Browser.
  * Für "Send to Minecraft" von PhantomMarket gibt es deren offizielles Mod "PhantomMarket Link": die Datei landet
  * dann im schematics-Ordner und erscheint im Teizen-Schematic-Fenster (Bauen / Einfügen).
  */
@@ -25,13 +24,6 @@ public final class ExternalLinks {
         return false;
     }
 
-    /** Chunkbase-Adresse mit Seed, Dimension und Position (oder null, wenn kein Seed bekannt ist). */
-    public static String chunkbaseUrl() {
-        Long seed = Seed.known();
-        if (seed == null) seed = Seed.manual();
-        return seed == null ? null : dev.teizen.client.compat.SeedMapCompat.chunkbaseUrl(seed);
-    }
-
     /** Im Browser öffnen (im Selbsttest nur merken). @return true wenn geöffnet */
     public static boolean open(String url) {
         lastUrl = url;
@@ -43,17 +35,6 @@ public final class ExternalLinks {
             Chat.error("Browser ließ sich nicht öffnen: " + e.getMessage() + " – Adresse: " + url);
             return false;
         }
-    }
-
-    /** Chunkbase mit deinem Seed öffnen. */
-    public static void openChunkbase() {
-        String url = chunkbaseUrl();
-        if (url == null) {
-            Chat.info("Kein Seed bekannt – Chunkbase wird ohne Seed geöffnet. Seed setzen mit §f///seed <zahl>§7 (oder warten, bis SeedCrackerX ihn findet).");
-            open("https://www.chunkbase.com/apps/seed-map");
-            return;
-        }
-        if (open(url)) Chat.ok("Chunkbase im Browser geöffnet (Seed + deine Position). §7Hinweis: Chunkbase kennt nur bis ~1.21 – für 26.x können Strukturen abweichen (genauer: ///seedmap mit SeedMapper/Seed Atlas).");
     }
 
     /** PhantomMarket im Browser öffnen. */

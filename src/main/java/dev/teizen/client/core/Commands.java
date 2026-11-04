@@ -434,7 +434,6 @@ public final class Commands {
                 if (a.length >= 2) { Chat.info(dev.teizen.client.modules.Swarm.send(String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length)))); return; }
                 mm.get(dev.teizen.client.modules.Swarm.class).toggle();
             }
-            case "chunkbase", "cb" -> dev.teizen.client.util.ExternalLinks.openChunkbase();
             case "phantom", "phantommarket", "market", "markt" -> dev.teizen.client.util.ExternalLinks.openPhantomMarket();
             case "sound", "ton", "klang" -> {
                 if (a.length >= 2) {
@@ -651,7 +650,7 @@ public final class Commands {
         Chat.raw("§d///tree §7– fällt Bäume in der Nähe (TreeBot) | §f///tree stop");
         Chat.raw("§d///farm <bloecke...> [nachpflanzen] §7– baut beliebige Blöcke ab & sammelt ein, z.B. §f///farm wheat carrots nachpflanzen");
         Chat.raw("§d///camtp §7– teleportiert dich zur Freecam/NoClip-Kamera (braucht OP)");
-        Chat.raw("§d///chunkbase §7– Seed-Karte im Browser (mit deinem Seed + Position) | §d///phantom §7– Schematic-Marktplatz öffnen");
+        Chat.raw("§d///phantom §7– Schematic-Marktplatz PhantomMarket öffnen (mit Mod \"PhantomMarket Link\": Send to Minecraft -> Schematic-Fenster)");
         Chat.raw("§d///xray §7– an/aus, §f///xray nur diamond §7(nur Dias), §f///xray alle§7, §f///xray add/remove <Erz>");
         Chat.raw("§d///xray lava §7· §d///xray wasser §7· §d///xray hoehlen §7– zusätzlich anzeigen (an/aus)");
         Chat.raw("§d///fav <Funktion> §7– Favorit an/aus (steht oben) · §d///fav §7– alle Favoriten");
