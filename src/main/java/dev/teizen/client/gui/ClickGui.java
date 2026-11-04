@@ -49,7 +49,7 @@ public final class ClickGui extends Screen {
     private int scrollMid, scrollRight, midContent, rightContent;
 
     /** Klickbare Flächen aus dem letzten Bild. */
-    private enum Kind { CAT, FAV_TAB, FILTER, CARD, SWITCH, SETTING, PANIC, OP, MERKEN, DETAIL_SWITCH, PROFILE, HUD, SCHEM, KEY }
+    private enum Kind { CAT, FAV_TAB, FILTER, CARD, SWITCH, SETTING, PANIC, OP, MERKEN, DETAIL_SWITCH, PROFILE, HUD, SCHEM, KEY, STAR }
     private record Hit(Kind kind, int x1, int y1, int x2, int y2, Object a, Object b) {
         boolean in(double mx, double my) { return mx >= x1 && mx < x2 && my >= y1 && my < y2; }
     }
@@ -241,9 +241,7 @@ public final class ClickGui extends Screen {
         MenuFont.text(g, font, "§lKATEGORIEN", 8, y, DIM, false);
         y += 11;
         List<Module> fl = favs();
-        if (!fl.isEmpty()) {
-            y = catRow(g, font, w, y, "★ Favoriten", FAV, fl, favTab && !search.active(), mx, my, Kind.FAV_TAB, null);
-        }
+        y = catRow(g, font, w, y, "★ Favoriten", FAV, fl, favTab && !search.active(), mx, my, Kind.FAV_TAB, null); // immer da
         for (Module.Category c : Module.Category.values()) {
             List<Module> l = inCat(c);
             if (l.isEmpty()) continue;
@@ -358,12 +356,16 @@ public final class ClickGui extends Screen {
             if (cy + ch < top || cy > bottom) continue;
             boolean sel = m == selected, h = mx >= cx && mx < cx + cw && my >= cy && my < cy + ch && my >= top && my < bottom;
             box(g, cx, cy, cx + cw, cy + ch, sel ? CARD_SEL : (h ? CARD_HOVER : CARD), sel ? ACCENT : LINE);
-            String name = (m.favorite ? "§6★ §r" : "") + m.name + (m.needsOp() ? " §6OP" : "");
-            MenuFont.text(g, font, cut(font, "§l" + name, cw - 32), cx + 6, cy + 5, TEXT, false);
+            String name = m.name + (m.needsOp() ? " §6OP" : "");
+            MenuFont.text(g, font, cut(font, "§l" + name, cw - 44), cx + 6, cy + 5, TEXT, false);
             MenuFont.text(g, font, cut(font, m.description, cw - 12), cx + 6, cy + 16, MUTED, false);
             // Schalter
             toggle(g, cx + cw - 24, cy + 5, m.isEnabled());
             hits.add(new Hit(Kind.SWITCH, cx + cw - 26, cy + 3, cx + cw - 3, cy + 17, m, null));
+            // Stern = Favorit (anklickbar)
+            boolean hs = mx >= cx + cw - 38 && mx < cx + cw - 27 && my >= cy + 3 && my < cy + 15;
+            g.text(font, "★", cx + cw - 36, cy + 5, m.favorite ? 0xFFFBBF24 : (hs ? 0xFFBBBBCC : 0xFF555566), false);
+            hits.add(new Hit(Kind.STAR, cx + cw - 38, cy + 3, cx + cw - 27, cy + 15, m, null));
             // Taste + Status
             String key = m == binding ? "§eTaste drücken…" : (m.key >= 0 ? "Taste " + Keys.name(m.key) : "keine Taste");
             round(g, cx + 6, cy + 28, cx + 10 + MenuFont.width(font, key), cy + 38, ACCENT_SOFT);
@@ -382,7 +384,7 @@ public final class ClickGui extends Screen {
         String foot;
         if (binding != null) foot = "§eDrück eine Taste für " + binding.name + " (Entf = keine)";
         else if (rows.hint() != null) foot = rows.hint();
-        else foot = "§fKlick§7 an/aus · §fRechtsklick§7 Einstellungen · §fTaste anklicken§7 = ändern · §fShift§7 Favorit · Übersicht: §f" + KeyBinds.overviewName();
+        else foot = "§fKlick§7 an/aus · §fRechtsklick§7 Einstellungen · §fTaste anklicken§7 = ändern · §f★§7 Favorit · Übersicht: §f" + KeyBinds.overviewName();
         if (MenuFont.width(font, foot) > iw) foot = "§fKlick§7 an/aus · §fRechts§7 Einst. · §fTaste§7 anklicken";
         if (MenuFont.width(font, foot) > iw) foot = cut(font, foot, iw);
         MenuFont.text(g, font, foot, x, bottom + 4, MUTED, false);
@@ -446,7 +448,7 @@ public final class ClickGui extends Screen {
         boolean shift = (e.modifiers() & K.MOD_SHIFT) != 0;
         // von oben nach unten: Schalter liegen auf den Karten -> zuerst prüfen
         Hit hit = null;
-        for (Hit h : hits) if (h.in(mx, my) && (hit == null || h.kind == Kind.SWITCH || h.kind == Kind.KEY)) hit = h;
+        for (Hit h : hits) if (h.in(mx, my) && (hit == null || h.kind == Kind.SWITCH || h.kind == Kind.KEY || h.kind == Kind.STAR)) hit = h;
         if (hit == null) return super.mouseClicked(e, doubleClick);
         switch (hit.kind) {
             case PANIC -> {
@@ -474,6 +476,11 @@ public final class ClickGui extends Screen {
                 else return moduleClick(m, button, shift);
             }
             case CARD -> { return moduleClick((Module) hit.a, button, shift); }
+            case STAR -> {
+                Module m = (Module) hit.a;
+                m.favorite = !m.favorite;
+                Config.save();
+            }
             case KEY -> {
                 Module m = (Module) hit.a;
                 if (button == 1) { m.key = -1; binding = null; Config.save(); } // Rechtsklick = Taste löschen
