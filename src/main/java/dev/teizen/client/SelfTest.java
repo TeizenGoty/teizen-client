@@ -109,7 +109,7 @@ public final class SelfTest {
         if (!ACTIVE) return;
         ticks++;
         if (ticks % 200 == 0) log("tick " + ticks + " step " + step + " screen=" + (mc.gui.screen() == null ? "-" : mc.gui.screen().getClass().getSimpleName()));
-        if (ticks > 20 * 60 * 20) { log("ZEITÜBERSCHREITUNG – beende"); finish(); return; }
+        if (ticks > 20 * 60 * 28) { log("ZEITÜBERSCHREITUNG – beende"); finish(); return; } // 28 Min (viele Tests)
         if (step == RECONNECT_STEP) { reconnectTick(); return; }
         if (step == COMBATLOG_STEP) { combatLogTick(); return; }
         // Fly-AntiKick-Test: wurde man rausgeworfen, gleich melden und beenden (sonst hängt der Test ohne Welt)

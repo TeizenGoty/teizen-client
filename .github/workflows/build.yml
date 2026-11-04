@@ -84,7 +84,7 @@ jobs:
           ls -la dist
       - name: Smoke test (echter Server + Client)
         if: success()
-        timeout-minutes: 40
+        timeout-minutes: 50
         env:
           TEIZEN_SELFTEST: "1"
         run: |
@@ -135,7 +135,7 @@ jobs:
           export LIBGL_ALWAYS_SOFTWARE=1
           if [ -s ci/selftest-from.txt ]; then export TEIZEN_SELFTEST_FROM=$(cat ci/selftest-from.txt); echo "Selbsttest ab Schritt $TEIZEN_SELFTEST_FROM"; fi
           # ci/typer.sh tippt im selben virtuellen Bildschirm wie eine echte Tastatur, wenn der Selbsttest das anfordert
-          timeout 1800 xvfb-run -a -s "-screen 0 1280x720x24" bash -c 'bash ci/typer.sh & T=$!; ./gradlew runClient -Pminecraft_version=$MCV -PuseJar=$PWD/dist/teizen-client-1.0.0.jar --no-daemon; R=$?; kill $T; exit $R' > client-log.txt 2>&1
+          timeout 2400 xvfb-run -a -s "-screen 0 1280x720x24" bash -c 'bash ci/typer.sh & T=$!; ./gradlew runClient -Pminecraft_version=$MCV -PuseJar=$PWD/dist/teizen-client-1.0.0.jar --no-daemon; R=$?; kill $T; exit $R' > client-log.txt 2>&1
           echo "Client beendet mit $?"
           echo "stop" >&3
           sleep 5
