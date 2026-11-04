@@ -360,6 +360,33 @@ final class Round13Tests {
                 result("Neues Menü: offen=" + yes(open) + ", AutoMine rechts gewählt=" + yes(sel) + ", Abbau-Liste zeigt AutoMine+XRay=" + yes(listed)
                         + ", Einstellung per Klick umgeschaltet=" + yes(flipped) + " " + ok(open && sel && listed && flipped));
                 mc.gui.setScreen(null);
+                mc.options.guiScale().set(2); // große GUI wie beim Spieler -> Menü wird verkleinert
+                mc.resizeGui();
+                SelfTest.jump(732);
+            }
+            case 732 -> {
+                if (!after(20)) return true;
+                dev.teizen.client.gui.ClickGui gui = new dev.teizen.client.gui.ClickGui();
+                mc.gui.setScreen(gui);
+                gui.expand(get(AutoMine.class));
+                next();
+            }
+            case 733 -> {
+                if (!after(10)) return true;
+                if (mc.gui.screen() instanceof dev.teizen.client.gui.ClickGui gui) {
+                    int w = gui.width, h = gui.height;
+                    for (int i = 0; i < 60; i++) gui.mouseScrolled(w / 2.0, h / 2.0, 0, -1); // Mitte ganz runter
+                    for (int i = 0; i < 60; i++) gui.mouseScrolled(w - 5.0, h / 2.0, 0, -1); // rechts ganz runter
+                }
+                next();
+            }
+            case 734 -> {
+                if (!after(10)) return true;
+                SelfTest.shot2("94b-menue-skaliert-unten");
+                result("Menü skaliert + ganz runtergescrollt: Bild 94b");
+                mc.gui.setScreen(null);
+                mc.options.guiScale().set(0);
+                mc.resizeGui();
                 SelfTest.jump(740);
             }
             // ------------------------------------------------ AutoBuild realistisch: Haus (Überleben, laufen, Treppen/Stämme/Stufen/Tür/Fackel)
