@@ -70,15 +70,43 @@ public abstract class Module {
 
     /** Umschalt-Sound beim Ein-/Ausschalten im Spiel (///sound an|aus). Standard an. Eigener Minecraft-Klang. */
     public static boolean sound = true;
+    /** Welcher Klang (///sound <name>): freundlicher Name oder roher Sound-Name. */
+    public static String soundName = "klick";
+
+    /** Freundliche Namen -> Minecraft-Sound. */
+    private static final Map<String, String> SOUNDS = new LinkedHashMap<>();
+    static {
+        SOUNDS.put("klick", "ui.button.click");
+        SOUNDS.put("pling", "block.note_block.pling");
+        SOUNDS.put("glocke", "block.note_block.bell");
+        SOUNDS.put("amethyst", "block.amethyst_block.chime");
+        SOUNDS.put("pop", "block.note_block.hat");
+        SOUNDS.put("hebel", "block.lever.click");
+        SOUNDS.put("ding", "block.note_block.chime");
+        SOUNDS.put("exp", "entity.experience_orb.pickup");
+    }
+
+    /** Liste der auswählbaren Klänge (freundliche Namen). */
+    public static java.util.Set<String> soundChoices() { return SOUNDS.keySet(); }
+
+    /** Den eingestellten Klang abspielen (an = höher, aus = tiefer). */
+    public static void playToggle(boolean on) {
+        if (!sound || mc.player == null) return;
+        String id = SOUNDS.getOrDefault(soundName, soundName);
+        net.minecraft.sounds.SoundEvent ev = null;
+        try {
+            var rl = net.minecraft.resources.Identifier.tryParse(id.contains(":") ? id : "minecraft:" + id);
+            if (rl != null) ev = net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT.getValue(rl);
+        } catch (Throwable ignored) {}
+        if (ev == null) ev = net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(); // Rückfall
+        mc.player.playSound(ev, 0.6f, on ? 1.7f : 1.1f);
+    }
 
     public void toggle() {
         if (!enabled && !Lock.ok()) { Lock.complain(); return; }
         setEnabled(!enabled);
         Chat.info(name + (enabled ? " §aan" : " §caus"));
-        if (sound && mc.player != null) {
-            // kurzer Klick: an = höher, aus = tiefer
-            mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(), 0.6f, enabled ? 1.7f : 1.1f);
-        }
+        playToggle(enabled);
     }
 
     public boolean inGame() {

@@ -435,11 +435,16 @@ public final class Commands {
                 mm.get(dev.teizen.client.modules.Swarm.class).toggle();
             }
             case "sound", "ton", "klang" -> {
-                if (a.length >= 2) Module.sound = a[1].equalsIgnoreCase("an") || a[1].equalsIgnoreCase("on");
-                else Module.sound = !Module.sound;
+                if (a.length >= 2) {
+                    String v = a[1].toLowerCase(Locale.ROOT);
+                    if (v.equals("an") || v.equals("on")) Module.sound = true;
+                    else if (v.equals("aus") || v.equals("off")) Module.sound = false;
+                    else if (v.equals("liste") || v.equals("list")) { Chat.info("Klänge: §f" + String.join(", ", Module.soundChoices()) + "§7 (oder ein eigener Sound-Name)"); return; }
+                    else { Module.soundName = a.length >= 2 ? String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length)) : v; Module.sound = true; }
+                } else Module.sound = !Module.sound;
                 Config.save();
-                if (Module.sound && mc.player != null) mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(), 0.6f, 1.7f);
-                Chat.ok("Umschalt-Sound: " + (Module.sound ? "§aan" : "§caus"));
+                Module.playToggle(true);
+                Chat.ok("Umschalt-Sound: " + (Module.sound ? "§aan §7(" + Module.soundName + ")" : "§caus") + " §7– Auswahl: ///sound liste");
             }
             case "menuschrift", "menufont" -> {
                 // weiche Schrift im Menü an/aus (aus = normale Minecraft-Schrift)
