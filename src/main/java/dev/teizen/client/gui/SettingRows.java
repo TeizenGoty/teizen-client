@@ -97,7 +97,7 @@ public final class SettingRows {
             String l = "§f▶ " + s.str();
             if (MenuFont.width(font, l) > w - 10) l = MenuFont.cut(font, l, w - 10);
             MenuFont.text(g, font, l, x + 8, ty, 0xFFFFFFFF, false);
-            if (hover) g.setTooltipForNextFrame(font, Component.literal(s.description), mouseX, mouseY);
+            if (hover) g.setTooltipForNextFrame(font, MenuFont.comp(s.description), mouseX, mouseY);
             return;
         }
         boolean isEditing = s == editing;
@@ -132,7 +132,7 @@ public final class SettingRows {
                 case CHOICE -> " (" + String.join(" / ", s.choices) + ")";
                 default -> "";
             };
-            g.setTooltipForNextFrame(font, Component.literal(s.description + extra), mouseX, mouseY);
+            g.setTooltipForNextFrame(font, MenuFont.comp(s.description + extra), mouseX, mouseY);
         }
     }
 

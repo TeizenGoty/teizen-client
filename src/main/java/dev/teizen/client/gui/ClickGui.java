@@ -307,7 +307,7 @@ public final class ClickGui extends Screen {
         }
         // Karten
         int top = 36, bottom = height - 16;
-        int cols = Math.max(1, Math.min(3, iw / 120)); // bis zu 3 Karten nebeneinander
+        int cols = iw >= 300 ? 3 : Math.max(1, iw / 100); // immer 3 Karten nebeneinander (nur bei winzigem Fenster weniger)
         int gap = 6;
         int cw = (iw - gap * (cols - 1)) / cols, ch = 42;
         int rowsN = (list.size() + cols - 1) / cols;
@@ -332,7 +332,7 @@ public final class ClickGui extends Screen {
             MenuFont.text(g, font, key, cx + 8, cy + 29, 0xFFC4B5FD, false);
             String st = m.isEnabled() ? "an" : "aus";
             MenuFont.text(g, font, st, cx + cw - 6 - MenuFont.width(font, st), cy + 29, m.isEnabled() ? ON_TEXT : DIM, false);
-            if (h) g.setTooltipForNextFrame(font, Component.literal(m.description + (m.favorite ? " (★ Favorit)" : "")), mx, my);
+            if (h) g.setTooltipForNextFrame(font, MenuFont.comp(m.description + (m.favorite ? " (★ Favorit)" : "")), mx, my); // normale Schrift
             if (cy + ch > top && cy < bottom) hits.add(new Hit(Kind.CARD, cx, Math.max(cy, top), cx + cw, Math.min(cy + ch, bottom), m, null));
         }
         g.disableScissor();
