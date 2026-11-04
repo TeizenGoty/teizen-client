@@ -48,6 +48,7 @@ jobs:
           set +e
           mkdir -p /tmp/jarout && cd /tmp/jarout
           cp "$GITHUB_WORKSPACE/build-log.txt" . 2>/dev/null
+          cp "$GITHUB_WORKSPACE"/dist/*.jar . 2>/dev/null   # fertige Jars sofort abholbar (ohne auf den Selbsttest zu warten)
           echo "${GITHUB_SHA}" > commit.txt
           git init -q -b jar-out
           git config user.name ci; git config user.email ci@users.noreply.github.com
