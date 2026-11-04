@@ -566,6 +566,7 @@ final class Round13Tests {
             case 767 -> {
                 if (!after(20)) return true;
                 if (local() == 20) { dev.teizen.client.util.Inv.select(0); t("///tree"); return true; }
+                if (local() % 100 == 0) log("TreeBot " + local() + ": " + get(AutoMine.class).debugState());
                 int logs = 0;
                 for (int y = 0; y <= 2; y++) if (mc.level.getBlockState(b.offset(5, y, 5)).is(net.minecraft.world.level.block.Blocks.OAK_LOG)) logs++;
                 if (logs > 0 && !after(1800)) return true;
