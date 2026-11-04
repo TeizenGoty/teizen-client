@@ -49,7 +49,7 @@ public final class ClickGui extends Screen {
     private int scrollMid, scrollRight, midContent, rightContent;
 
     /** Klickbare Flächen aus dem letzten Bild. */
-    private enum Kind { CAT, FAV_TAB, FILTER, CARD, SWITCH, SETTING, PANIC, OP, MERKEN, DETAIL_SWITCH, PROFILE, HUD }
+    private enum Kind { CAT, FAV_TAB, FILTER, CARD, SWITCH, SETTING, PANIC, OP, MERKEN, DETAIL_SWITCH, PROFILE, HUD, SCHEM }
     private record Hit(Kind kind, int x1, int y1, int x2, int y2, Object a, Object b) {
         boolean in(double mx, double my) { return mx >= x1 && mx < x2 && my >= y1 && my < y2; }
     }
@@ -200,7 +200,8 @@ public final class ClickGui extends Screen {
         round(g, 6, 6, 20, 20, ACCENT);
         MenuFont.centered(g, font, "§lT", 13, 9, 0xFFFFFFFF);
         MenuFont.text(g, font, "§lTEIZEN", 24, 6, TEXT, false);
-        MenuFont.text(g, font, cut(font, "26.2 / 26.3", w - 28), 24, 15, MUTED, false);
+        String sub = "Build " + dev.teizen.client.TeizenClient.BUILD + (!MenuFont.enabled ? " §c(Schrift aus)" : !MenuFont.loaded() ? " §c(Schrift fehlt)" : "");
+        MenuFont.text(g, font, cut(font, sub, w - 28), 24, 15, MUTED, false);
         // Suche
         search.render(g, font, 6, 26, w - 12, mx, my);
         // Kategorien
@@ -236,6 +237,11 @@ public final class ClickGui extends Screen {
         round(g, 6, by, w - 6, by + 12, hh ? ACCENT : ACCENT_SOFT);
         MenuFont.centered(g, font, "HUD verschieben", w / 2, by + 2, 0xFFFFFFFF);
         hits.add(new Hit(Kind.HUD, 6, by, w - 6, by + 12, null, null));
+        by -= 14;
+        boolean hs = mx >= 6 && mx < w - 6 && my >= by && my < by + 12;
+        round(g, 6, by, w - 6, by + 12, hs ? 0xFF2E7AD8 : 0xFF1E3A66);
+        MenuFont.centered(g, font, "Schematics", w / 2, by + 2, 0xFFFFFFFF);
+        hits.add(new Hit(Kind.SCHEM, 6, by, w - 6, by + 12, null, null));
         // Profile (ein Klick = mehrere Cheats an/aus), nur wenn Platz ist
         int py = catEnd + 4, room = by - 4;
         var profs = dev.teizen.client.core.Profiles.all();
@@ -307,7 +313,7 @@ public final class ClickGui extends Screen {
         }
         // Karten
         int top = 36, bottom = height - 16;
-        int cols = iw >= 300 ? 3 : Math.max(1, iw / 100); // immer 3 Karten nebeneinander (nur bei winzigem Fenster weniger)
+        int cols = iw >= 200 ? 3 : Math.max(1, iw / 80); // immer 3 Karten nebeneinander (nur bei winzigem Fenster weniger)
         int gap = 6;
         int cw = (iw - gap * (cols - 1)) / cols, ch = 42;
         int rowsN = (list.size() + cols - 1) / cols;
@@ -424,6 +430,7 @@ public final class ClickGui extends Screen {
             case FILTER -> { filter = (Integer) hit.a; scrollMid = 0; }
             case PROFILE -> dev.teizen.client.core.Profiles.toggle((String) hit.a);
             case HUD -> net.minecraft.client.Minecraft.getInstance().gui.setScreen(new HudEditorScreen(this));
+            case SCHEM -> net.minecraft.client.Minecraft.getInstance().gui.setScreen(new SchematicsScreen(this));
             case SWITCH, DETAIL_SWITCH -> {
                 Module m = (Module) hit.a;
                 if (button == 0) { m.toggle(); selected = m; Config.save(); }

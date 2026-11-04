@@ -28,6 +28,8 @@ public final class TeizenClient implements ClientModInitializer {
     private static ModuleManager modules;
     /** Taste fürs Menü (Standard: rechte Shift-Taste). */
     public static int menuKey = K.RIGHT_SHIFT;
+    /** Build-Kennung (steht oben links im Menü) – so sieht man, welche Jar läuft. */
+    public static final String BUILD = "04.11-C";
 
     private final Map<Integer, Boolean> wasDown = new HashMap<>();
     private boolean greeted;

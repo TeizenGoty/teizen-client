@@ -42,9 +42,13 @@ public final class MenuFont {
         tried = true;
         regular = description("menu");
         bold = description("menu_bold");
+        if (regular == null) dev.teizen.client.util.Chat.error("Normale Menü-Schrift konnte nicht geladen werden – nehme Minecraft-Schrift. Schick mir latest.log!");
     }
 
     private static boolean on() { return active && enabled; }
+
+    /** Normale Schrift verfügbar? (für die Anzeige im Menü) */
+    public static boolean loaded() { init(); return regular != null; }
 
     /** Text als Component, im Menü mit weicher Schrift. "§l" am Anfang = fette Schrift. */
     public static Component comp(String s) {
