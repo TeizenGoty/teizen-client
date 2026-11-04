@@ -118,11 +118,30 @@ public final class AutoMine extends Module {
         setEnabled(true);
     }
 
+    /** Farm-Modus: wo zuletzt selbst abgebaut wurde (Position, Tick) – nur dort liegende Drops werden eingesammelt. */
+    private final java.util.ArrayDeque<long[]> recentBreaks = new java.util.ArrayDeque<>();
+
+    private void rememberBreak(BlockPos p) {
+        recentBreaks.addLast(new long[]{p.asLong(), mc.player.tickCount});
+        while (recentBreaks.size() > 64) recentBreaks.removeFirst();
+    }
+
+    /** Liegt das Item nah an einer Stelle, die wir in den letzten ~30 s abgebaut haben? */
+    private boolean nearOwnBreak(Vec3 at) {
+        int now = mc.player.tickCount;
+        recentBreaks.removeIf(r -> now - r[1] > 600);
+        for (long[] r : recentBreaks) {
+            if (Vec3.atCenterOf(BlockPos.of(r[0])).distanceToSqr(at) <= 4.0 * 4.0) return true;
+        }
+        return false;
+    }
+
     /** Farm/Tree starten: diese Blöcke abbauen, alles einsammeln, optional AutoReplant dazu. */
     public void startFarm(String blocks, boolean replant) {
         if (isEnabled()) setEnabled(false);
         ores.setText(blocks);
         farmMode = true;
+        recentBreaks.clear();
         setEnabled(true);
         if (replant) {
             AutoReplant ar = dev.teizen.client.TeizenClient.modules().get(AutoReplant.class);
@@ -280,6 +299,7 @@ public final class AutoMine extends Module {
         // Ziel prüfen / neues Ziel wählen
         if (target != null && !isTarget(target)) {
             boolean wasMined = mc.level.getBlockState(target).isAir();
+            if (farmMode && wasMined) rememberBreak(target);
             Breaker.stop();
             if (areaMode() && wasMined) areaMined++;
             reset();
@@ -806,6 +826,7 @@ public final class AutoMine extends Module {
             double best = 12 * 12;
             for (var e : mc.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, mc.player.getBoundingBox().inflate(10, 6, 10))) {
                 if (!wantDrop(e.getItem()) || ignoredItems.contains(e.getId()) || retryLater.containsKey(e.getId())) continue;
+                if (farmMode && !nearOwnBreak(e.position())) continue; // Farm: nur eigene Drops, keinen fremden Kram
                 double d = e.distanceToSqr(mc.player);
                 if (d < best) { best = d; pickup = e; }
             }

@@ -684,6 +684,8 @@ final class Round9Tests {
             // ---------------------------------------------- Surround (AutoCrystal)
             case 365 -> {
                 area = o.offset(130, 0, 60);
+                // erst Chunks fest laden, sonst "That position is not loaded" und keine Testfläche
+                cmd("forceload add " + (area.getX() - 16) + " " + (area.getZ() - 16) + " " + (area.getX() + 16) + " " + (area.getZ() + 16));
                 tp(area, 0.5, 1, 0.5, -90, 0);
                 next();
             }
@@ -721,6 +723,7 @@ final class Round9Tests {
                 result("Surround (AutoCrystal): Obsidian um die Füße " + n + "/4, danach wieder Schwert in der Hand=" + yes(back) + " " + ok(n == 4 && back));
                 mod(AutoCrystal.class).setEnabled(false);
                 t("///set autocrystal surround aus");
+                cmd("forceload remove " + (area.getX() - 16) + " " + (area.getZ() - 16) + " " + (area.getX() + 16) + " " + (area.getZ() + 16));
                 next();
             }
             // ---------------------------------------------- AutoTrap (AutoCrystal)
