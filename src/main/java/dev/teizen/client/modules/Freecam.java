@@ -20,6 +20,7 @@ public final class Freecam extends Module {
     public final Setting showPlayer = add(Setting.bool("spielerzeigen", "Dich selbst sehen, während die Kamera weg ist", true));
     public final Setting hideHand = add(Setting.bool("handweg", "Hand und Item in der Hand ausblenden", true));
     public final Setting interact = add(Setting.bool("interagieren", "Mit der Kamera abbauen/benutzen erlauben (sonst gesperrt)", false));
+    public final Setting seeWalls = add(Setting.bool("durchwaende", "In Wänden alles sichtbar machen (AUS lassen, wenn du Sodium/Iris nutzt – kann abstürzen)", false));
 
     public ArmorStand cam;
     /** Wie oft der eigene Spieler extra gezeichnet wurde (Selbsttest). */
@@ -27,7 +28,7 @@ public final class Freecam extends Module {
     private ClientInput savedInput;
     /** Aktuelle Geschwindigkeit der Kamera (weich anfahren und abbremsen). */
     private Vec3 vel = Vec3.ZERO;
-    private boolean savedSmartCull;
+    private boolean savedSmartCull, smartCullTouched;
     public final Setting smooth = add(Setting.bool("weich", "Weich anfahren und abbremsen statt ruckartig", true));
     /** Von NoClip eingeschaltet (dann ohne Abstands-Grenze). */
     public boolean byNoClip;
@@ -85,8 +86,7 @@ public final class Freecam extends Module {
         mc.setCameraEntity(cam);
         vel = Vec3.ZERO;
         // in Wänden nicht alles schwarz/unsichtbar: Sicht-Verdeckung (Culling) aus, solange die Kamera frei ist
-        savedSmartCull = mc.smartCull;
-        mc.smartCull = false;
+        if (seeWalls.on()) { try { savedSmartCull = mc.smartCull; mc.smartCull = false; smartCullTouched = true; } catch (Throwable ignored) {} }
     }
 
     @Override
@@ -96,7 +96,7 @@ public final class Freecam extends Module {
             if (!(mc.player.input instanceof KeyboardInput))
                 mc.player.input = savedInput instanceof KeyboardInput ? savedInput : new KeyboardInput(mc.options);
         }
-        if (cam != null) mc.smartCull = savedSmartCull;
+        if (smartCullTouched) { try { mc.smartCull = savedSmartCull; } catch (Throwable ignored) {} smartCullTouched = false; }
         cam = null;
         savedInput = null;
         vel = Vec3.ZERO;

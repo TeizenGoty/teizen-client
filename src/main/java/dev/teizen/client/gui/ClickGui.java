@@ -169,10 +169,10 @@ public final class ClickGui extends Screen {
 
     // ------------------------------------------------------------------ Zeichnen
 
-    private int sideW() { return Math.max(112, Math.min(140, width * 22 / 100)); }
+    private int sideW() { return Math.max(100, Math.min(124, width * 19 / 100)); }
 
-    /** Rechte Spalte (bei sehr schmalem Fenster weg). */
-    private int rightW() { return width < 360 ? 0 : Math.max(118, Math.min(190, width * 27 / 100)); }
+    /** Rechte Spalte – immer da (3 Spalten), nur etwas schmaler. */
+    private int rightW() { return Math.max(104, Math.min(168, width * 23 / 100)); }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partial) {

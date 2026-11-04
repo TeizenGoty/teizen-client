@@ -20,7 +20,7 @@ public final class Restore {
     public static final Set<String> PENDING = new LinkedHashSet<>();
     /** Aufgaben, die man nicht einfach wieder starten will (laufen los / bauen / räumen aus). */
     private static final Set<String> SKIP = Set.of("panicbutton", "autobuild", "automine", "highwaybuilder", "bookbot",
-            "shulkerunpacker", "villagerroller", "clicktp", "veinminer", "liquidfiller", "autobrewer", "fakeplayer", "swarm");
+            "shulkerunpacker", "villagerroller", "clicktp", "veinminer", "liquidfiller", "autobrewer", "fakeplayer", "swarm", "noclip", "freecam");
 
     private static boolean done;
     private static String lastState = "";

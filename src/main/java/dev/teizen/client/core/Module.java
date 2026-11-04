@@ -63,7 +63,8 @@ public abstract class Module {
         try {
             if (on) onEnable(); else onDisable();
         } catch (Throwable t) {
-            Chat.error(name + ": " + t);
+            Chat.error(name + " konnte nicht " + (on ? "eingeschaltet" : "ausgeschaltet") + " werden: " + t);
+            if (on) { enabled = false; try { onDisable(); } catch (Throwable ignored) {} } // sauber zurück, kein halb-an Zustand
         }
     }
 
