@@ -49,7 +49,7 @@ public final class ClickGui extends Screen {
     private int scrollMid, scrollRight, midContent, rightContent;
 
     /** Klickbare Flächen aus dem letzten Bild. */
-    private enum Kind { CAT, FAV_TAB, FILTER, CARD, SWITCH, SETTING, PANIC, OP, MERKEN, DETAIL_SWITCH }
+    private enum Kind { CAT, FAV_TAB, FILTER, CARD, SWITCH, SETTING, PANIC, OP, MERKEN, DETAIL_SWITCH, PROFILE, HUD }
     private record Hit(Kind kind, int x1, int y1, int x2, int y2, Object a, Object b) {
         boolean in(double mx, double my) { return mx >= x1 && mx < x2 && my >= y1 && my < y2; }
     }
@@ -216,7 +216,8 @@ public final class ClickGui extends Screen {
             if (l.isEmpty()) continue;
             y = catRow(g, font, w, y, c.title, catColor(c), l, !favTab && category == c && !search.active(), mx, my, Kind.CAT, c);
         }
-        // unten: OP, Merken, PANIK
+        int catEnd = y;
+        // unten: HUD verschieben, OP, Merken, PANIK
         int by = height - 16;
         boolean ph = mx >= 6 && mx < w - 6 && my >= by && my < by + 12;
         round(g, 6, by, w - 6, by + 12, ph ? PANIC_HOVER : PANIC);
@@ -230,6 +231,30 @@ public final class ClickGui extends Screen {
         by -= 14;
         drawChipRow(g, font, 6, by, w - 12, "OP", ModuleManager.hideOp ? "§cversteckt" : "§asichtbar", mx, my);
         hits.add(new Hit(Kind.OP, 6, by, w - 6, by + 12, null, null));
+        by -= 14;
+        boolean hh = mx >= 6 && mx < w - 6 && my >= by && my < by + 12;
+        round(g, 6, by, w - 6, by + 12, hh ? ACCENT : ACCENT_SOFT);
+        MenuFont.centered(g, font, "HUD verschieben", w / 2, by + 2, 0xFFFFFFFF);
+        hits.add(new Hit(Kind.HUD, 6, by, w - 6, by + 12, null, null));
+        // Profile (ein Klick = mehrere Cheats an/aus), nur wenn Platz ist
+        int py = catEnd + 4, room = by - 4;
+        var profs = dev.teizen.client.core.Profiles.all();
+        if (!profs.isEmpty() && py + 11 + 15 <= room) {
+            MenuFont.text(g, font, "§lPROFILE", 8, py, DIM, false);
+            py += 11;
+            for (var pr : profs) {
+                if (py + 14 > room) break;
+                boolean act = dev.teizen.client.core.Profiles.isActive(pr);
+                boolean ph2 = mx >= 4 && mx < w - 4 && my >= py && my < py + 14;
+                if (act || ph2) round(g, 4, py, w - 4, py + 14, act ? ON_BG : CARD_HOVER);
+                round(g, 8, py + 4, 14, py + 10, pr.builtIn() ? 0xFF50E080 : 0xFFE080FF);
+                String st = act ? "an" : "aus";
+                MenuFont.text(g, font, cut(font, pr.name(), w - 30 - MenuFont.width(font, st)), 17, py + 3, act ? 0xFFFFFFFF : 0xFFC9BFE6, false);
+                MenuFont.text(g, font, st, w - 8 - MenuFont.width(font, st), py + 3, act ? ON_TEXT : DIM, false);
+                hits.add(new Hit(Kind.PROFILE, 4, py, w - 4, py + 14, pr.name(), null));
+                py += 15;
+            }
+        }
     }
 
     private void drawChipRow(GuiGraphicsExtractor g, Font font, int x, int y, int w, String label, String value, int mx, int my) {
@@ -282,7 +307,7 @@ public final class ClickGui extends Screen {
         }
         // Karten
         int top = 36, bottom = height - 16;
-        int cols = Math.max(1, iw / 150);
+        int cols = Math.max(1, Math.min(3, iw / 120)); // bis zu 3 Karten nebeneinander
         int gap = 6;
         int cw = (iw - gap * (cols - 1)) / cols, ch = 42;
         int rowsN = (list.size() + cols - 1) / cols;
@@ -397,6 +422,8 @@ public final class ClickGui extends Screen {
             case CAT -> { category = (Module.Category) hit.a; favTab = false; scrollMid = 0; search.query = ""; search.focused = false; }
             case FAV_TAB -> { favTab = true; scrollMid = 0; search.query = ""; search.focused = false; }
             case FILTER -> { filter = (Integer) hit.a; scrollMid = 0; }
+            case PROFILE -> dev.teizen.client.core.Profiles.toggle((String) hit.a);
+            case HUD -> net.minecraft.client.Minecraft.getInstance().gui.setScreen(new HudEditorScreen(this));
             case SWITCH, DETAIL_SWITCH -> {
                 Module m = (Module) hit.a;
                 if (button == 0) { m.toggle(); selected = m; Config.save(); }
@@ -478,7 +505,7 @@ public final class ClickGui extends Screen {
             return true;
         }
         if (KeyBinds.overview() != null && KeyBinds.overview().matches(e)) {
-            net.minecraft.client.Minecraft.getInstance().gui.setScreen(new Overview());
+            onClose(); // Taste O öffnet und schließt das Menü
             return true;
         }
         return super.keyPressed(e);

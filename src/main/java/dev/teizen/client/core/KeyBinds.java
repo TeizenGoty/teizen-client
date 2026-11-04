@@ -179,7 +179,7 @@ public final class KeyBinds {
         if (save) Config.save();
 
         while (overview.consumeClick()) {
-            if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(Lock.menu(Overview::new));
+            if (mc.player != null && mc.gui.screen() == null) mc.gui.setScreen(Lock.menu(ClickGui::new)); // gleiches Menü wie Rechte Shift (neues Design)
         }
     }
 

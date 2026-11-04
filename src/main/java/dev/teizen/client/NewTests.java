@@ -1231,10 +1231,11 @@ final class NewTests {
                 flag1 = mc.gui.screen() instanceof ClickGui;
                 int ovKey = net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper.getBoundKeyOf(dev.teizen.client.core.KeyBinds.overview()).getValue();
                 if (mc.gui.screen() != null) mc.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(ovKey, 0, 0));
-                flag2 = mc.gui.screen() instanceof Overview;
+                flag2 = mc.gui.screen() == null; // Taste O schließt das Menü jetzt (O öffnet dasselbe neue Menü)
+                mc.gui.setScreen(new Overview());
                 if (mc.gui.screen() != null) mc.gui.screen().keyPressed(new net.minecraft.client.input.KeyEvent(TeizenClient.menuKey, 0, 0));
                 boolean back = mc.gui.screen() instanceof ClickGui;
-                result("Tasten zwischen den Menüs: Menü-Taste -> großes Menü=" + yes(flag1) + ", Übersichts-Taste -> Übersicht=" + yes(flag2)
+                result("Tasten zwischen den Menüs: Menü-Taste -> großes Menü=" + yes(flag1) + ", Übersichts-Taste im Menü -> schließt=" + yes(flag2)
                         + ", Menü-Taste in der Übersicht -> großes Menü=" + yes(back) + " " + ok(flag1 && flag2 && back));
                 mc.gui.setScreen(null);
                 next();
