@@ -398,6 +398,14 @@ public final class Commands {
                 }
             }
             case "hudedit", "hudeditor" -> mc.execute(() -> mc.gui.setScreen(new dev.teizen.client.gui.HudEditorScreen(null)));
+            case "textur", "texturen", "texturpaket", "texturpakete", "pack", "packs", "resourcepack" -> {
+                if (a.length >= 2) {
+                    String n = String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length));
+                    if (!dev.teizen.client.util.TexturePacks.toggleByName(n)) Chat.error("Kein Texturpaket mit \"" + n + "\" gefunden. ///textur öffnet die Liste.");
+                    return;
+                }
+                mc.execute(() -> mc.gui.setScreen(new dev.teizen.client.gui.TexturePackScreen(null)));
+            }
             case "schematic", "schematics", "schematik", "bauplan", "baupläne", "schems" -> {
                 if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica")) {
                     Chat.error("Dafür brauchst du Litematica. Hol dir die Mods mit ///mods oder aus dem Menü.");

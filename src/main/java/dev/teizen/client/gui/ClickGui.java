@@ -37,6 +37,8 @@ public final class ClickGui extends Screen {
     /** Gewählte Kategorie (null = Favoriten) und Funktion – bleiben beim nächsten Öffnen. */
     private static Module.Category category = Module.Category.KAMPF;
     private static boolean favTab;
+    /** "Alle": alle Funktionen auf einen Blick (Standard). */
+    private static boolean allTab = true;
     private static Module selected;
     /** Filter in der Mitte: 0 = alle, 1 = an, 2 = aus. */
     private static int filter;
@@ -47,9 +49,13 @@ public final class ClickGui extends Screen {
     private final SearchBox search = new SearchBox();
     private Module binding;
     private int scrollMid, scrollRight, midContent, rightContent;
+    /** Rest vom Mausrad (Touchpads/feine Mausräder schicken kleine Schritte). */
+    private double restMid, restRight;
+    /** Scrollleisten: Bereich der Spur + gerade gezogen (0 = nichts, 1 = Mitte, 2 = rechts). */
+    private int barMidX, barMidY1, barMidY2, barRightX, barRightY1, barRightY2, dragBar;
 
     /** Klickbare Flächen aus dem letzten Bild. */
-    private enum Kind { CAT, FAV_TAB, FILTER, CARD, SWITCH, SETTING, PANIC, OP, MERKEN, DETAIL_SWITCH, PROFILE, HUD, SCHEM, KEY, STAR }
+    private enum Kind { CAT, FAV_TAB, FILTER, CARD, SWITCH, SETTING, PANIC, OP, MERKEN, DETAIL_SWITCH, PROFILE, HUD, SCHEM, KEY, STAR, ALL_TAB, BAR_MID, BAR_RIGHT, PACKS }
     private record Hit(Kind kind, int x1, int y1, int x2, int y2, Object a, Object b) {
         boolean in(double mx, double my) { return mx >= x1 && mx < x2 && my >= y1 && my < y2; }
     }
@@ -89,6 +95,12 @@ public final class ClickGui extends Screen {
         return l;
     }
 
+    private static List<Module> all() {
+        List<Module> l = new ArrayList<>();
+        for (Module.Category c : Module.Category.values()) l.addAll(inCat(c));
+        return l;
+    }
+
     private static List<Module> favs() {
         List<Module> l = new ArrayList<>();
         for (Module m : TeizenClient.modules().favorites()) if (ModuleManager.shown(m)) l.add(m);
@@ -98,7 +110,7 @@ public final class ClickGui extends Screen {
     /** Was in der Mitte steht (Suche, Favoriten oder Kategorie, mit Filter). */
     private List<Module> middle() {
         if (search.active()) return SearchBox.search(search.query);
-        List<Module> base = favTab ? favs() : inCat(category);
+        List<Module> base = favTab ? favs() : allTab ? all() : inCat(category);
         if (filter == 0) return base;
         List<Module> out = new ArrayList<>();
         for (Module m : base) if (m.isEnabled() == (filter == 1)) out.add(m);
@@ -214,7 +226,7 @@ public final class ClickGui extends Screen {
         int side = sideW(), right = rightW();
         int midX = side, midW = width - side - right;
 
-        g.fill(0, 0, width, height, GROUND);
+        g.fillGradient(0, 0, width, height, 0xF0140D26, 0xF6070410); // sanfter Verlauf
         MenuFont.active = true;
         try {
             drawSide(g, font, side, mouseX, mouseY);
@@ -240,12 +252,13 @@ public final class ClickGui extends Screen {
         int y = 46;
         MenuFont.text(g, font, "§lKATEGORIEN", 8, y, DIM, false);
         y += 11;
+        y = catRow(g, font, w, y, "Alle", 0xFFC4B5FD, all(), allTab && !favTab && !search.active(), mx, my, Kind.ALL_TAB, null);
         List<Module> fl = favs();
         y = catRow(g, font, w, y, "★ Favoriten", FAV, fl, favTab && !search.active(), mx, my, Kind.FAV_TAB, null); // immer da
         for (Module.Category c : Module.Category.values()) {
             List<Module> l = inCat(c);
             if (l.isEmpty()) continue;
-            y = catRow(g, font, w, y, c.title, catColor(c), l, !favTab && category == c && !search.active(), mx, my, Kind.CAT, c);
+            y = catRow(g, font, w, y, c.title, catColor(c), l, !favTab && !allTab && category == c && !search.active(), mx, my, Kind.CAT, c);
         }
         int catEnd = y;
         // unten: HUD verschieben, OP, Merken, PANIK
@@ -272,6 +285,11 @@ public final class ClickGui extends Screen {
         round(g, 6, by, w - 6, by + 12, hs ? 0xFF2E7AD8 : 0xFF1E3A66);
         MenuFont.centered(g, font, "Schematics", w / 2, by + 2, 0xFFFFFFFF);
         hits.add(new Hit(Kind.SCHEM, 6, by, w - 6, by + 12, null, null));
+        by -= 14;
+        boolean hp = mx >= 6 && mx < w - 6 && my >= by && my < by + 12;
+        round(g, 6, by, w - 6, by + 12, hp ? 0xFF1F9D6B : 0xFF16503A);
+        MenuFont.centered(g, font, "Texturpakete", w / 2, by + 2, 0xFFFFFFFF);
+        hits.add(new Hit(Kind.PACKS, 6, by, w - 6, by + 12, null, null));
         // Profile (ein Klick = mehrere Cheats an/aus), nur wenn Platz ist
         int py = catEnd + 4, room = by - 4;
         var profs = dev.teizen.client.core.Profiles.all();
@@ -322,6 +340,7 @@ public final class ClickGui extends Screen {
         List<Module> base;
         if (search.active()) { title = "Suche"; base = list; }
         else if (favTab) { title = "★ Favoriten"; base = favs(); }
+        else if (allTab) { title = "Alle Funktionen"; base = all(); }
         else { title = category.title; base = inCat(category); }
         big(g, font, "§l" + title, x, 6, TEXT);
         String sub = search.active() ? list.size() + " Treffer für \"" + search.query + "\""
@@ -341,8 +360,9 @@ public final class ClickGui extends Screen {
                 fx -= 2;
             }
         }
-        // Karten
         int top = 36, bottom = height - 16;
+        if (allTab && !favTab && !search.active()) { drawAll(g, font, x0, w, x, iw, top, bottom, list, mx, my); drawFoot(g, font, x0, w, x, iw, bottom); return; }
+        // Karten
         int cols = iw >= 200 ? 3 : Math.max(1, iw / 80); // immer 3 Karten nebeneinander (nur bei winzigem Fenster weniger)
         int gap = 6;
         int cw = (iw - gap * (cols - 1)) / cols, ch = 42;
@@ -355,7 +375,9 @@ public final class ClickGui extends Screen {
             int cx = x + (i % cols) * (cw + gap), cy = top + (i / cols) * (ch + gap) - scrollMid;
             if (cy + ch < top || cy > bottom) continue;
             boolean sel = m == selected, h = mx >= cx && mx < cx + cw && my >= cy && my < cy + ch && my >= top && my < bottom;
-            box(g, cx, cy, cx + cw, cy + ch, sel ? CARD_SEL : (h ? CARD_HOVER : CARD), sel ? ACCENT : LINE);
+            round(g, cx + 1, cy + 2, cx + cw + 1, cy + ch + 2, 0x70000000); // Schatten
+            box(g, cx, cy, cx + cw, cy + ch, sel ? CARD_SEL : (h ? CARD_HOVER : CARD), sel ? ACCENT : (h ? LINE2 : LINE));
+            g.fill(cx + 1, cy + 4, cx + 3, cy + ch - 4, m.isEnabled() ? 0xFF4ADE80 : catColor(m.category)); // farbiger Streifen
             String name = m.name + (m.needsOp() ? " §6OP" : "");
             MenuFont.text(g, font, cut(font, "§l" + name, cw - 44), cx + 6, cy + 5, TEXT, false);
             MenuFont.text(g, font, cut(font, m.description, cw - 12), cx + 6, cy + 16, MUTED, false);
@@ -377,8 +399,95 @@ public final class ClickGui extends Screen {
             if (cy + ch > top && cy < bottom) hits.add(new Hit(Kind.CARD, cx, Math.max(cy, top), cx + cw, Math.min(cy + ch, bottom), m, null));
         }
         g.disableScissor();
+        scrollBar(g, x0 + w - 4, top, bottom, midContent, scrollMid, mx, my, Kind.BAR_MID);
         if (list.isEmpty())
             MenuFont.centered(g, font, search.active() ? "§7Kein Cheat gefunden für \"" + search.query + "\"" : "§7Hier ist gerade nichts.", x0 + w / 2, top + 20, 0xFFFFFFFF);
+        drawFoot(g, font, x0, w, x, iw, bottom);
+    }
+
+    /** Alle Funktionen kompakt in Spalten (nach Kategorie, mit farbiger Überschrift). */
+    private void drawAll(GuiGraphicsExtractor g, Font font, int x0, int w, int x, int iw, int top, int bottom, List<Module> list, int mx, int my) {
+        // Einträge: Überschrift (Module.Category) oder Funktion (Module)
+        List<Object> items = new ArrayList<>();
+        Module.Category last = null;
+        for (Module m : list) {
+            if (m.category != last) { last = m.category; items.add(last); }
+            items.add(m);
+        }
+        int rh = 12, cols = Math.max(1, Math.min(5, iw / 92)), gap = 6;
+        int cw = (iw - gap * (cols - 1)) / cols;
+        int perCol = (items.size() + cols - 1) / cols;
+        midContent = perCol * rh + 4;
+        scrollMid = Math.max(0, Math.min(scrollMid, Math.max(0, midContent - (bottom - top))));
+        g.enableScissor(x0, top, x0 + w, bottom);
+        for (int i = 0; i < items.size(); i++) {
+            int col = i / perCol, row = i % perCol;
+            int cx = x + col * (cw + gap), cy = top + row * rh - scrollMid;
+            if (cy + rh < top || cy > bottom) continue;
+            Object o = items.get(i);
+            if (o instanceof Module.Category c) {
+                int cc = catColor(c);
+                g.fill(cx, cy + rh - 2, cx + cw, cy + rh - 1, (cc & 0x00FFFFFF) | 0x66000000);
+                MenuFont.text(g, font, "§l" + cut(font, c.title.toUpperCase(java.util.Locale.ROOT), cw - 4), cx + 1, cy + 2, cc, false);
+                continue;
+            }
+            Module m = (Module) o;
+            boolean on = m.isEnabled(), sel = m == selected;
+            boolean h = mx >= cx && mx < cx + cw && my >= cy && my < cy + rh && my >= top && my < bottom;
+            if (on || sel || h) round(g, cx, cy, cx + cw, cy + rh - 1, on ? (h ? 0xFF1E4A30 : ON_BG) : sel ? CARD_SEL : CARD_HOVER);
+            round(g, cx + 3, cy + 3, cx + 8, cy + 8, on ? 0xFF4ADE80 : TRACK_OFF);
+            String nm = (m.favorite ? "§6★§r " : "") + m.name + (m.key >= 0 ? " §8[" + Keys.name(m.key) + "]" : "");
+            MenuFont.text(g, font, cut(font, nm, cw - 12), cx + 11, cy + 2, on ? 0xFFFFFFFF : 0xFFC9BFE6, false);
+            if (h) tip(g, font, MenuFont.comp(m.description), mx, my);
+            hits.add(new Hit(Kind.CARD, cx, Math.max(cy, top), cx + cw, Math.min(cy + rh, bottom), m, null));
+        }
+        g.disableScissor();
+        scrollBar(g, x0 + w - 4, top, bottom, midContent, scrollMid, mx, my, Kind.BAR_MID);
+    }
+
+    /** Dünne Scrollleiste (anklick- und ziehbar), nur wenn nötig. */
+    private void scrollBar(GuiGraphicsExtractor g, int x, int top, int bottom, int content, int scroll, int mx, int my, Kind kind) {
+        int view = bottom - top;
+        if (content <= view) {
+            if (kind == Kind.BAR_MID) barMidY2 = barMidY1; else barRightY2 = barRightY1;
+            return;
+        }
+        int th = Math.max(16, view * view / content);
+        int ty = top + (int) ((long) (view - th) * scroll / Math.max(1, content - view));
+        boolean h = mx >= x - 2 && mx < x + 5 && my >= top && my < bottom;
+        round(g, x, top, x + 3, bottom, 0xFF1C1535);
+        round(g, x, ty, x + 3, ty + th, h || dragBar != 0 ? 0xFFA78BFA : 0xFF6D5BA8);
+        hits.add(new Hit(kind, x - 2, top, x + 5, bottom, null, null));
+        if (kind == Kind.BAR_MID) { barMidX = x; barMidY1 = top; barMidY2 = bottom; }
+        else { barRightX = x; barRightY1 = top; barRightY2 = bottom; }
+    }
+
+    /** Scrollleiste ziehen: Position der Maus = Position in der Liste. */
+    private void dragTo(double my) {
+        if (dragBar == 1 && barMidY2 > barMidY1) {
+            int view = barMidY2 - barMidY1;
+            double f = Math.max(0, Math.min(1, (my - barMidY1) / view));
+            scrollMid = (int) (f * Math.max(0, midContent - view));
+        } else if (dragBar == 2 && barRightY2 > barRightY1) {
+            int view = barRightY2 - barRightY1;
+            double f = Math.max(0, Math.min(1, (my - barRightY1) / view));
+            scrollRight = (int) (f * Math.max(0, rightContent - view));
+        }
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent e, double dx, double dy) {
+        if (dragBar != 0) { dragTo(e.y() / uiScale); return true; }
+        return super.mouseDragged(e, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent e) {
+        dragBar = 0;
+        return super.mouseReleased(e);
+    }
+
+    private void drawFoot(GuiGraphicsExtractor g, Font font, int x0, int w, int x, int iw, int bottom) {
         // Fuß
         g.fill(x0, bottom + 1, x0 + w, bottom + 2, LINE);
         String foot;
@@ -434,6 +543,7 @@ public final class ClickGui extends Screen {
             ry += rh + 1;
         }
         g.disableScissor();
+        scrollBar(g, x0 + w - 4, top, bottom, rightContent, scrollRight, mx, my, Kind.BAR_RIGHT);
     }
 
     // ------------------------------------------------------------------ Bedienung
@@ -448,7 +558,7 @@ public final class ClickGui extends Screen {
         boolean shift = (e.modifiers() & K.MOD_SHIFT) != 0;
         // von oben nach unten: Schalter liegen auf den Karten -> zuerst prüfen
         Hit hit = null;
-        for (Hit h : hits) if (h.in(mx, my) && (hit == null || h.kind == Kind.SWITCH || h.kind == Kind.KEY || h.kind == Kind.STAR)) hit = h;
+        for (Hit h : hits) if (h.in(mx, my) && (hit == null || h.kind == Kind.SWITCH || h.kind == Kind.KEY || h.kind == Kind.STAR || h.kind == Kind.BAR_MID || h.kind == Kind.BAR_RIGHT)) hit = h;
         if (hit == null) return super.mouseClicked(e, doubleClick);
         switch (hit.kind) {
             case PANIC -> {
@@ -464,12 +574,16 @@ public final class ClickGui extends Screen {
             case MERKEN -> {
                 dev.teizen.client.core.Commands.handle("///merken " + (dev.teizen.client.core.Restore.enabled ? "aus" : "an"));
             }
-            case CAT -> { category = (Module.Category) hit.a; favTab = false; scrollMid = 0; search.query = ""; search.focused = false; }
-            case FAV_TAB -> { favTab = true; scrollMid = 0; search.query = ""; search.focused = false; }
+            case ALL_TAB -> { allTab = true; favTab = false; scrollMid = 0; search.query = ""; search.focused = false; }
+            case BAR_MID -> { dragBar = 1; dragTo(my); }
+            case BAR_RIGHT -> { dragBar = 2; dragTo(my); }
+            case CAT -> { category = (Module.Category) hit.a; favTab = false; allTab = false; scrollMid = 0; search.query = ""; search.focused = false; }
+            case FAV_TAB -> { favTab = true; allTab = false; scrollMid = 0; search.query = ""; search.focused = false; }
             case FILTER -> { filter = (Integer) hit.a; scrollMid = 0; }
             case PROFILE -> dev.teizen.client.core.Profiles.toggle((String) hit.a);
             case HUD -> net.minecraft.client.Minecraft.getInstance().gui.setScreen(new HudEditorScreen(this));
             case SCHEM -> net.minecraft.client.Minecraft.getInstance().gui.setScreen(new SchematicsScreen(this));
+            case PACKS -> net.minecraft.client.Minecraft.getInstance().gui.setScreen(new TexturePackScreen(this));
             case SWITCH, DETAIL_SWITCH -> {
                 Module m = (Module) hit.a;
                 if (button == 0) { m.toggle(); selected = m; Config.save(); }
@@ -538,8 +652,17 @@ public final class ClickGui extends Screen {
         int side = sideW(), right = rightW();
         boolean inRight = right > 0 && mx >= width - right;
         width = realW;
-        if (inRight) scrollRight = Math.max(0, scrollRight - (int) (sy * 16));
-        else if (mx >= side) scrollMid = Math.max(0, scrollMid - (int) (sy * 16));
+        if (inRight) {
+            double d = restRight - sy * 18;
+            int step = (int) d;
+            restRight = d - step;
+            scrollRight = Math.max(0, scrollRight + step);
+        } else if (mx >= side) {
+            double d = restMid - sy * 18;
+            int step = (int) d;
+            restMid = d - step;
+            scrollMid = Math.max(0, scrollMid + step);
+        }
         return true;
     }
 
