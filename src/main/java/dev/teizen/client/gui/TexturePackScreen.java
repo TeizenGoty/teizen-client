@@ -54,7 +54,8 @@ public final class TexturePackScreen extends Screen {
                 boolean on = TexturePacks.on(id), h = mx >= x && mx < x + w && my >= y && my < y + ROW - 2;
                 ClickGui.round(g, x, y, x + w, y + ROW - 2, on ? (h ? 0xFF1E4A30 : 0xFF14301F) : (h ? 0xFF1C1535 : 0xFF17112A));
                 ClickGui.round(g, x + 6, y + 5, x + 12, y + 11, on ? 0xFF4ADE80 : 0xFF3A2F63);
-                MenuFont.text(g, font, MenuFont.cut(font, TexturePacks.title(id), w - 60), x + 18, y + 4, on ? 0xFFFFFFFF : 0xFFC9BFE6, false);
+                String t = (TexturePacks.isTeizen(id) ? "§d§l★ " : "") + TexturePacks.title(id);
+                MenuFont.text(g, font, MenuFont.cut(font, t, w - 60), x + 18, y + 4, on ? 0xFFFFFFFF : 0xFFC9BFE6, false);
                 String st = on ? "§aan" : "§7aus";
                 MenuFont.text(g, font, st, x + w - 8 - MenuFont.width(font, st), y + 4, 0xFFFFFFFF, false);
                 y += ROW;

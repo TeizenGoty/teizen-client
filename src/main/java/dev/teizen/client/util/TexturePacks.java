@@ -19,8 +19,24 @@ public final class TexturePacks {
         repo.reload();
         List<String> out = new ArrayList<>();
         for (String id : repo.getAvailableIds()) if (id.startsWith("file/")) out.add(id);
-        out.sort(String.CASE_INSENSITIVE_ORDER);
+        out.sort((x, y) -> {
+            boolean tx = isTeizen(x), ty = isTeizen(y);
+            if (tx != ty) return tx ? -1 : 1; // Teizens Pack immer ganz oben
+            return x.compareToIgnoreCase(y);
+        });
         return out;
+    }
+
+    /** Teizens eigenes Texturpaket? */
+    public static boolean isTeizen(String id) {
+        return id.toLowerCase(java.util.Locale.ROOT).contains("teizen");
+    }
+
+    /** Teizens Texture Pack an/aus. @return false wenn es nicht im Ordner liegt */
+    public static boolean toggleTeizen() {
+        for (String id : list()) if (isTeizen(id)) { toggle(id); return true; }
+        Chat.error("Teizens Texture Pack liegt nicht im resourcepacks-Ordner. ///textur → \"Ordner öffnen\" und die .zip reinlegen.");
+        return false;
     }
 
     public static String title(String id) {

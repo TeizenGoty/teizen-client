@@ -401,6 +401,7 @@ public final class Commands {
             case "textur", "texturen", "texturpaket", "texturpakete", "pack", "packs", "resourcepack" -> {
                 if (a.length >= 2) {
                     String n = String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length));
+                    if (n.equalsIgnoreCase("teizen")) { dev.teizen.client.util.TexturePacks.toggleTeizen(); return; }
                     if (!dev.teizen.client.util.TexturePacks.toggleByName(n)) Chat.error("Kein Texturpaket mit \"" + n + "\" gefunden. ///textur öffnet die Liste.");
                     return;
                 }
