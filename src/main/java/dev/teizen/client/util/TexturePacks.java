@@ -68,6 +68,43 @@ public final class TexturePacks {
         return false;
     }
 
+    /** Texturpaket per direktem Link (.zip) in den resourcepacks-Ordner laden und gleich anmachen. */
+    public static void download(String url) {
+        if (!url.startsWith("http://") && !url.startsWith("https://")) { Chat.error("Das ist kein Link (muss mit http anfangen)."); return; }
+        Chat.info("Lade Texturpaket …");
+        java.nio.file.Path dir = mc.getResourcePackDirectory();
+        new Thread(() -> {
+            try {
+                java.nio.file.Files.createDirectories(dir);
+                var client = java.net.http.HttpClient.newBuilder().followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
+                        .connectTimeout(java.time.Duration.ofSeconds(15)).build();
+                var req = java.net.http.HttpRequest.newBuilder(java.net.URI.create(url)).header("User-Agent", "TeizenClient")
+                        .timeout(java.time.Duration.ofSeconds(120)).GET().build();
+                var res = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofByteArray());
+                byte[] d = res.body();
+                if (res.statusCode() / 100 != 2) { mc.execute(() -> Chat.error("Download fehlgeschlagen (Code " + res.statusCode() + ").")); return; }
+                if (d.length < 4 || d[0] != 'P' || d[1] != 'K') { mc.execute(() -> Chat.error("Das ist keine .zip – nimm den direkten Download-Link.")); return; }
+                if (d.length > 300L * 1024 * 1024) { mc.execute(() -> Chat.error("Datei zu groß.")); return; }
+                String name = url.replaceAll("[?#].*$", "");
+                name = name.substring(name.lastIndexOf('/') + 1);
+                name = java.net.URLDecoder.decode(name, java.nio.charset.StandardCharsets.UTF_8).replaceAll("[\\\\/:*?\"<>|]", "_");
+                if (name.isBlank()) name = "texturpaket";
+                if (!name.toLowerCase(java.util.Locale.ROOT).endsWith(".zip")) name += ".zip";
+                java.nio.file.Path out = dir.resolve(name);
+                java.nio.file.Files.write(out, d);
+                String id = "file/" + out.getFileName();
+                mc.execute(() -> {
+                    Chat.ok("Texturpaket geladen: §f" + out.getFileName());
+                    if (list().contains(id) && !on(id)) toggle(id);
+                    if (mc.gui.screen() instanceof dev.teizen.client.gui.TexturePackScreen s) s.refresh();
+                });
+            } catch (Exception e) {
+                dev.teizen.client.TeizenClient.LOG.warn("Texturpaket-Download: " + url, e);
+                mc.execute(() -> Chat.error("Download ging nicht: " + e.getClass().getSimpleName()));
+            }
+        }, "teizen-pack-download").start();
+    }
+
     public static void openFolder() {
         try {
             Browser.open(mc.getResourcePackDirectory().toUri().toString());

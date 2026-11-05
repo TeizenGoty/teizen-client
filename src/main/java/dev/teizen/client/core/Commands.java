@@ -402,6 +402,11 @@ public final class Commands {
                 if (a.length >= 2) {
                     String n = String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length));
                     if (n.equalsIgnoreCase("teizen")) { dev.teizen.client.util.TexturePacks.toggleTeizen(); return; }
+                    if (a[1].equalsIgnoreCase("laden") || a[1].equalsIgnoreCase("download") || a[1].startsWith("http")) {
+                        String link = a[1].startsWith("http") ? a[1] : a.length >= 3 ? a[2] : "";
+                        dev.teizen.client.util.TexturePacks.download(link);
+                        return;
+                    }
                     if (!dev.teizen.client.util.TexturePacks.toggleByName(n)) Chat.error("Kein Texturpaket mit \"" + n + "\" gefunden. ///textur öffnet die Liste.");
                     return;
                 }

@@ -27,6 +27,8 @@ public final class TexturePackScreen extends Screen {
     @Override
     public boolean isPauseScreen() { return false; }
 
+    public void refresh() { packs = TexturePacks.list(); }
+
     @Override
     public void onClose() { Minecraft.getInstance().gui.setScreen(parent); }
 
@@ -40,7 +42,7 @@ public final class TexturePackScreen extends Screen {
         try {
             int x = bx(), w = 300;
             MenuFont.text(g, font, "§lTexturpakete", x, 10, 0xFFEDE9FE, false);
-            MenuFont.text(g, font, "Klick = an/aus · Pakete kommen aus dem resourcepacks-Ordner", x, 22, 0xFFA99BD1, false);
+            MenuFont.text(g, font, "Klick = an/aus · Laden per Link: ///textur laden <Link>", x, 22, 0xFFA99BD1, false);
             // Knopf: Ordner öffnen
             int ox = x + w - 80;
             boolean oh = mx >= ox && mx < ox + 80 && my >= 8 && my < 20;
