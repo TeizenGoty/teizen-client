@@ -20,6 +20,7 @@ public final class ModuleManager {
         add(new TriggerBot());
         add(new AimAssist());
         add(new AutoCrystal());
+        add(new AutoAnchor());
         add(new Reach());
         add(new Criticals());
         add(new AntiKnockback());

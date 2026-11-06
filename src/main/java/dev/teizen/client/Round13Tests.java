@@ -387,6 +387,34 @@ final class Round13Tests {
                 mc.gui.setScreen(null);
                 mc.options.guiScale().set(0);
                 mc.resizeGui();
+                SelfTest.jump(735);
+            }
+            case 735 -> {
+                // AutoAnchor (makro): Anker vor dir -> laden + zünden
+                if (local() == 1) {
+                    BlockPos b = mc.player.blockPosition();
+                    cmd("fill " + (b.getX() - 2) + " " + b.getY() + " " + (b.getZ() + 1) + " " + (b.getX() + 2) + " " + (b.getY() + 3) + " " + (b.getZ() + 5) + " air");
+                    cmd("setblock " + b.getX() + " " + (b.getY() + 1) + " " + (b.getZ() + 4) + " minecraft:respawn_anchor");
+                    cmd("item replace entity @s hotbar.0 with minecraft:respawn_anchor 4");
+                    cmd("item replace entity @s hotbar.1 with minecraft:glowstone 16");
+                    cmd("item replace entity @s hotbar.2 with minecraft:totem_of_undying");
+                    cmd("item replace entity @s weapon.offhand with minecraft:totem_of_undying");
+                    cmd("effect give @s minecraft:resistance 30 255 true");
+                    return true;
+                }
+                if (local() == 30) {
+                    mc.player.setYRot(0); mc.player.setXRot(0);
+                    mc.player.setPos(Math.floor(mc.player.getX()) + 0.5, mc.player.getY(), Math.floor(mc.player.getZ()) + 0.5);
+                    dev.teizen.client.util.Inv.select(0);
+                    on(get(AutoAnchor.class));
+                    return true;
+                }
+                if (local() < 90) return true;
+                AutoAnchor aa = get(AutoAnchor.class);
+                BlockPos b = mc.player.blockPosition();
+                boolean gone = !mc.level.getBlockState(new BlockPos(b.getX(), b.getY() + 1, b.getZ() + 4)).is(net.minecraft.world.level.block.Blocks.RESPAWN_ANCHOR);
+                result("AutoAnchor makro: geladen=" + aa.charged + " gezündet=" + aa.exploded + " Anker weg=" + yes(gone) + " " + ok(aa.charged >= 1 && aa.exploded >= 1 && gone));
+                off(aa);
                 SelfTest.jump(740);
             }
             // ------------------------------------------------ AutoBuild realistisch: Haus (Überleben, laufen, Treppen/Stämme/Stufen/Tür/Fackel)
