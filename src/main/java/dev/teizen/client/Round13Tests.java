@@ -392,6 +392,7 @@ final class Round13Tests {
             case 735 -> {
                 // AutoAnchor (makro): Anker vor dir -> laden + zünden
                 if (local() == 1) {
+                    if (Round13Tests.b == null) Round13Tests.b = mc.player.blockPosition(); // Kurztest ab 730
                     BlockPos b = mc.player.blockPosition();
                     cmd("fill " + (b.getX() - 2) + " " + b.getY() + " " + (b.getZ() + 1) + " " + (b.getX() + 2) + " " + (b.getY() + 3) + " " + (b.getZ() + 5) + " air");
                     cmd("setblock " + b.getX() + " " + (b.getY() + 1) + " " + (b.getZ() + 4) + " minecraft:respawn_anchor");
@@ -413,6 +414,7 @@ final class Round13Tests {
                 AutoAnchor aa = get(AutoAnchor.class);
                 BlockPos b = mc.player.blockPosition();
                 boolean gone = !mc.level.getBlockState(new BlockPos(b.getX(), b.getY() + 1, b.getZ() + 4)).is(net.minecraft.world.level.block.Blocks.RESPAWN_ANCHOR);
+                log("AutoAnchor: geladen=" + aa.charged + " gezündet=" + aa.exploded + " weg=" + gone);
                 result("AutoAnchor makro: geladen=" + aa.charged + " gezündet=" + aa.exploded + " Anker weg=" + yes(gone) + " " + ok(aa.charged >= 1 && aa.exploded >= 1 && gone));
                 off(aa);
                 SelfTest.jump(740);
