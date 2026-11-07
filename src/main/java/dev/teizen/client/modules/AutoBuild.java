@@ -305,6 +305,8 @@ public final class AutoBuild extends Module {
 
     /** Pro Tick schon gedreht? (26.3 nimmt nur ein Bewegungspaket pro Tick) */
     private boolean rotUsed, deferred;
+    private BlockPos lastDoor;
+    private int lastDoorTick;
     /** Block, der gerade gesetzt wird (für: braucht er eine Blickrichtung?). */
     private BlockState curWant;
 
@@ -406,6 +408,20 @@ public final class AutoBuild extends Module {
             }
         }
         var step = path.get(pathIdx);
+        // 0) Türen/Zauntore im Weg aufmachen
+        for (BlockPos c : step.clear()) {
+            BlockState ds = mc.level.getBlockState(c);
+            if (dev.teizen.client.util.MinePath.openable(ds) && ds.hasProperty(BlockStateProperties.OPEN) && !ds.getValue(BlockStateProperties.OPEN)) {
+                if (!c.equals(lastDoor) || mc.player.tickCount - lastDoorTick > 10) {
+                    lastDoor = c.immutable();
+                    lastDoorTick = mc.player.tickCount;
+                    releaseWalkKeys();
+                    mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(Vec3.atCenterOf(c), Direction.UP, c, false));
+                    mc.player.swing(InteractionHand.MAIN_HAND);
+                }
+                return;
+            }
+        }
         // 1) Blöcke im Weg abbauen
         for (BlockPos c : step.clear()) {
             if (dev.teizen.client.util.MinePath.passable(mc.level, c)) continue;

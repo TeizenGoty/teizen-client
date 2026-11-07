@@ -37,7 +37,15 @@ public final class MinePath {
     /** Kann der Spieler durch diesen Block (ohne abzubauen)? */
     public static boolean passable(ClientLevel l, BlockPos p) {
         BlockState s = l.getBlockState(p);
+        if (openable(s)) return true; // Holztür/Zauntor: aufmachen statt abbauen
         return s.getCollisionShape(l, p).isEmpty() && s.getFluidState().isEmpty();
+    }
+
+    /** Tür/Zauntor, das man mit der Hand öffnen kann. */
+    public static boolean openable(BlockState s) {
+        var b = s.getBlock();
+        if (b instanceof net.minecraft.world.level.block.DoorBlock) return !s.is(net.minecraft.world.level.block.Blocks.IRON_DOOR) && !s.is(net.minecraft.world.level.block.Blocks.COPPER_DOOR);
+        return b instanceof net.minecraft.world.level.block.FenceGateBlock;
     }
 
     private static boolean dangerousFluid(ClientLevel l, BlockPos p) {
@@ -51,6 +59,7 @@ public final class MinePath {
 
     private static double clearCost(ClientLevel l, BlockPos p) {
         BlockState s = l.getBlockState(p);
+        if (openable(s)) return 0.5;
         if (forbid != null && !s.getCollisionShape(l, p).isEmpty() && forbid.test(p)) return -1;
         if (!s.getFluidState().isEmpty()) return -1;
         if (s.getCollisionShape(l, p).isEmpty()) return 0;
