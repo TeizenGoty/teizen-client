@@ -365,7 +365,8 @@ public final class AutoBuild extends Module {
         if (path == null || !walkTarget.equals(pathFor) || pathIdx >= path.size()) {
             dev.teizen.client.util.MinePath.forbid = this::keepBlock;
             try {
-                path = dev.teizen.client.util.MinePath.find(me, walkTarget, Math.min(range.num(), mc.player.blockInteractionRange()), 6000, false);
+                // etwas Abstand zur Reichweite lassen (sonst "angekommen", aber 0,1 Block zu weit zum Bauen -> blieb stehen)
+                path = dev.teizen.client.util.MinePath.find(me, walkTarget, Math.max(2.0, Math.min(range.num(), mc.player.blockInteractionRange()) - 0.8), 6000, false);
             } finally {
                 dev.teizen.client.util.MinePath.forbid = null;
             }
@@ -373,7 +374,13 @@ public final class AutoBuild extends Module {
             pathFor = walkTarget;
             stuckTicks = 0;
             if (path == null) { unreachable.put(walkTarget, 400); walkTarget = null; releaseWalkKeys(); return; }
-            if (path.isEmpty()) { releaseWalkKeys(); return; } // schon in Reichweite
+            if (path.isEmpty()) {
+                // Weg sagt "da", aber zum Bauen noch zu weit -> ein Stück direkt hingehen
+                if (eye.distanceToSqr(Vec3.atCenterOf(walkTarget)) > range.num() * range.num() * 0.9) nudge(walkTarget);
+                else releaseWalkKeys();
+                path = null;
+                return;
+            }
         }
         var step = path.get(pathIdx);
         // 1) Blöcke im Weg abbauen
@@ -406,6 +413,16 @@ public final class AutoBuild extends Module {
         Vec3 now = mc.player.position();
         if (stuckPos == null || now.distanceToSqr(stuckPos) > 0.04) { stuckPos = now; stuckTicks = 0; }
         else if (++stuckTicks > 60) { unreachable.put(walkTarget, 200); path = null; walkTarget = null; stuckTicks = 0; releaseWalkKeys(); }
+    }
+
+    /** Direkt ein Stück auf eine Stelle zulaufen. */
+    private void nudge(BlockPos t) {
+        double dx = t.getX() + 0.5 - mc.player.getX(), dz = t.getZ() + 0.5 - mc.player.getZ();
+        float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
+        mc.player.setYRot(yaw);
+        mc.options.keyUp.setDown(true);
+        mc.options.keyJump.setDown(mc.player.horizontalCollision && mc.player.onGround());
+        if (++stuckTicks > 60) { unreachable.put(t, 200); walkTarget = null; stuckTicks = 0; releaseWalkKeys(); }
     }
 
     /** Ist an dieser Stelle noch etwas zu tun (bauen oder – wenn an – abbauen)? */
