@@ -23,6 +23,25 @@ public final class LitematicaCompat {
         return w.getBlockState(pos);
     }
 
+    /** Schild-Text (vorne, 4 Zeilen) aus der Schematic, oder null. */
+    public static String[] signLines(BlockPos pos) {
+        try {
+            if (testOverride != null) return null;
+            WorldSchematic w = SchematicWorldHandler.getSchematicWorld();
+            if (w == null) return null;
+            if (!(w.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SignBlockEntity s)) return null;
+            String[] l = new String[4];
+            boolean any = false;
+            for (int i = 0; i < 4; i++) {
+                l[i] = s.getFrontText().getMessage(i, false).getString();
+                if (!l[i].isEmpty()) any = true;
+            }
+            return any ? l : null;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     /** Ordner, in dem Litematica seine Schematics sucht (.minecraft/schematics). */
     public static java.nio.file.Path schematicsDir() {
         return DataManager.getSchematicsBaseDirectory();

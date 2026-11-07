@@ -56,6 +56,10 @@ final class Round13Tests {
         }
         // Fackel innen an der Nordwand
         m.put(o.offset(1, 2, 1), Blocks.WALL_TORCH.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, net.minecraft.core.Direction.SOUTH));
+        // Trichter (zeigt nach Osten), Beobachter (nach oben), stehendes Schild (Drehung 4) innen
+        m.put(o.offset(2, 1, 4), Blocks.HOPPER.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING_HOPPER, net.minecraft.core.Direction.EAST));
+        m.put(o.offset(4, 1, 4), Blocks.OBSERVER.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, net.minecraft.core.Direction.UP));
+        m.put(o.offset(4, 1, 2), Blocks.OAK_SIGN.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.ROTATION_16, 4));
         return m;
     }
 
@@ -68,7 +72,10 @@ final class Round13Tests {
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS,
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.HALF,
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.SLAB_TYPE,
-                net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF}) {
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF,
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING,
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING_HOPPER,
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.ROTATION_16}) {
             if (want.hasProperty(prop) && !java.util.Objects.equals(have.getValue(prop), want.getValue(prop))) return false;
         }
         return true;
@@ -439,6 +446,9 @@ final class Round13Tests {
                 cmd("give @s minecraft:glass 8");
                 cmd("give @s minecraft:oak_door 1");
                 cmd("give @s minecraft:torch 4");
+                cmd("give @s minecraft:hopper 1");
+                cmd("give @s minecraft:observer 1");
+                cmd("give @s minecraft:oak_sign 1");
                 cmd("effect give @s minecraft:instant_health 1 10 true");
                 tp(h.getX() + 3.5, h.getY(), h.getZ() - 9.5);
                 next();

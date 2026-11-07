@@ -29,7 +29,7 @@ public final class TeizenClient implements ClientModInitializer {
     /** Taste fürs Menü (Standard: rechte Shift-Taste). */
     public static int menuKey = K.RIGHT_SHIFT;
     /** Build-Kennung (steht oben links im Menü) – so sieht man, welche Jar läuft. */
-    public static final String BUILD = "07.11-A";
+    public static final String BUILD = "07.11-B";
 
     private final Map<Integer, Boolean> wasDown = new HashMap<>();
     private boolean greeted;

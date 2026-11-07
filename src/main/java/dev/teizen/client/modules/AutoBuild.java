@@ -198,6 +198,8 @@ public final class AutoBuild extends Module {
 
     @Override
     public void onTick() {
+        // Schild-Fenster nach dem Setzen sofort schließen (sonst hängt der Bau) – Text kommt aus der Schematic
+        if (inGame() && mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen se) { se.onClose(); wait = 1; return; }
         if (!inGame() || mc.gui.screen() != null) return;
         if (wait > 0) { wait--; return; }
         cooldown.replaceAll((k, v) -> v - 1);
@@ -205,6 +207,8 @@ public final class AutoBuild extends Module {
         skip.replaceAll((k, v) -> v - 1);
         skip.values().removeIf(v -> v <= 0);
         lastPlaced.clear();
+        rotUsed = false;
+        signTick();
 
         double r = range.num();
         BlockPos me = mc.player.blockPosition();
@@ -257,7 +261,9 @@ public final class AutoBuild extends Module {
             if (cooldown.containsKey(p)) { waiting = true; continue; } // gerade probiert -> gleich nochmal, nicht weglaufen
             BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
             if (!hasItem(want.getBlock().asItem())) continue;
+            deferred = false;
             boolean okPlace = tryPlace(p, want);
+            if (deferred) { waiting = true; break; } // Drehung erst nächsten Tick (26.3: nur 1 Drehung pro Tick)
             if (dev.teizen.client.SelfTest.ACTIVE && dbgPlace++ < 80)
                 dev.teizen.client.TeizenClient.LOG.info("AutoBuild setzt " + p.toShortString() + " " + want + " -> " + okPlace + " Hand=" + mc.player.getMainHandItem().getItem()
                         + " jetzt=" + mc.level.getBlockState(p).getBlock() + " ich=" + mc.player.blockPosition().toShortString());
@@ -265,6 +271,10 @@ public final class AutoBuild extends Module {
                 done++;
                 placedTotal++;
                 lastPlaced.add(p);
+                if (want.getBlock() instanceof net.minecraft.world.level.block.SignBlock) {
+                    String[] lines = dev.teizen.client.compat.LitematicaCompat.signLines(p);
+                    if (lines != null) signs.put(p.immutable(), lines);
+                }
                 cooldown.put(p, 10);
                 fails.remove(p);
             } else {
@@ -278,6 +288,25 @@ public final class AutoBuild extends Module {
         // nichts in Reichweite zu tun -> von selbst zur nächsten Baustelle laufen (aber nicht, solange hier noch probiert wird)
         if (autoWalk.on() && done == 0 && !waiting) walkToWork(me, eye);
         else releaseWalkKeys();
+    }
+
+    /** Pro Tick schon gedreht? (26.3 nimmt nur ein Bewegungspaket pro Tick) */
+    private boolean rotUsed, deferred;
+    /** Gesetzte Schilder, die noch beschriftet werden. */
+    private final Map<BlockPos, String[]> signs = new HashMap<>();
+
+    private void signTick() {
+        if (signs.isEmpty()) return;
+        var it = signs.entrySet().iterator();
+        while (it.hasNext()) {
+            var e = it.next();
+            if (mc.level.getBlockState(e.getKey()).getBlock() instanceof net.minecraft.world.level.block.SignBlock) {
+                String[] l = e.getValue();
+                mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundSignUpdatePacket(e.getKey(), true, l[0], l[1], l[2], l[3]));
+            }
+            it.remove();
+            return; // eins pro Tick
+        }
     }
 
     // ---- Weg zur Arbeit: echte Wegsuche, gräbt sich durch Wände (vorher lief er stur geradeaus gegen die Wand)
@@ -345,8 +374,10 @@ public final class AutoBuild extends Module {
         mc.player.setYRot(yaw);
         mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(yaw, mc.player.getXRot(), mc.player.onGround(), mc.player.horizontalCollision));
         mc.options.keyUp.setDown(horiz > 0.2);
-        boolean up = step.kind() == dev.teizen.client.util.MinePath.Kind.UP || c.y > mc.player.getY() + 0.6;
-        mc.options.keyJump.setDown(up && mc.player.onGround());
+        // nur springen, wenn es wirklich hochgeht und man davor steht (vorher sprang er dauernd)
+        boolean up = (step.kind() == dev.teizen.client.util.MinePath.Kind.UP || c.y > mc.player.getY() + 0.6)
+                && horiz < 1.3 && (mc.player.horizontalCollision || c.y > mc.player.getY() + 0.6);
+        mc.options.keyJump.setDown(up && mc.player.onGround() && !mc.player.isInWater());
         mc.player.setSprinting(false);
         // festgefahren? -> neuen Weg suchen, Ziel kurz meiden
         Vec3 now = mc.player.position();
@@ -376,7 +407,10 @@ public final class AutoBuild extends Module {
             double d = p.distSqr(me) + (demolish ? 0 : (p.getY() - me.getY() + R) * 40.0);
             if (d < bd) { bd = d; best = p.immutable(); }
         }
-        if (best != null || !demolish) return best;
+        if (best != null) return best;
+        if (!demolish) {
+            try { boxes = dev.teizen.client.compat.LitematicaCompat.regionBoxes(); } catch (Throwable t) { boxes = java.util.List.of(); }
+        }
         // großer Bereich: in der Nähe nichts mehr -> den ganzen Schematic-Bereich absuchen
         for (int[] b : boxes)
             for (BlockPos p : BlockPos.betweenClosed(b[0], b[1], b[2], b[3], b[4], b[5])) {
@@ -494,11 +528,26 @@ public final class AutoBuild extends Module {
             if (solid(pos.relative(sup))) return clickNeighbor(pos, sup, 0.5, mc.player.getYRot(), 0);
         }
         if (block instanceof HopperBlock && facing != null) {
+            // Trichter zeigt weg von der angeklickten Fläche: nach unten = oben/unten anklicken, zur Seite = Nachbar in diese Richtung
             if (facing == Direction.DOWN) {
-                Direction sup = supportAny(pos);
-                return sup != null && clickNeighbor(pos, sup, 0.5, mc.player.getYRot(), 0) ;
+                if (solid(pos.below())) return clickNeighbor(pos, Direction.DOWN, 0.5, mc.player.getYRot(), 90);
+                if (solid(pos.above())) return clickNeighbor(pos, Direction.UP, 0.5, mc.player.getYRot(), -90);
+                return airClick(pos, Direction.UP, 0.5, mc.player.getYRot(), 90);
             }
-            if (solid(pos.relative(facing))) return clickNeighbor(pos, facing, 0.5, mc.player.getYRot(), 0);
+            if (solid(pos.relative(facing))) return clickNeighbor(pos, facing, 0.5, facing.toYRot(), 0);
+            return airClick(pos, facing.getOpposite(), 0.5, facing.toYRot(), 0);
+        }
+        // Stehende Schilder/Banner/Köpfe (16 Richtungen): Drehung kommt von der Blickrichtung
+        if (want.hasProperty(BlockStateProperties.ROTATION_16)) {
+            int rot = want.getValue(BlockStateProperties.ROTATION_16);
+            boolean plus180 = !(block instanceof net.minecraft.world.level.block.AbstractSkullBlock);
+            float ryaw = rot * 22.5f - (plus180 ? 180f : 0f);
+            if (block instanceof net.minecraft.world.level.block.CeilingHangingSignBlock) {
+                if (!solid(pos.above())) return false;
+                return clickNeighbor(pos, Direction.UP, 0.5, ryaw, -60);
+            }
+            if (solid(pos.below())) return clickNeighbor(pos, Direction.DOWN, 0.5, ryaw, 60);
+            return airClick(pos, Direction.UP, 0.5, ryaw, 60);
         }
 
         // 2) Achse (Stämme, Säulen, Ketten, Heuballen): die Achse kommt von der angeklickten Seite
@@ -533,11 +582,13 @@ public final class AutoBuild extends Module {
         float yaw = mc.player.getYRot(), pitch = 0;
         if (facing != null) {
             if (facing.getAxis() == Direction.Axis.Y) {
-                // Kolben, Spender, Beobachter...: nach oben zeigen = nach unten schauen
-                pitch = facing == Direction.UP ? 90 : -90;
+                // Kolben, Spender...: nach oben zeigen = nach unten schauen (Beobachter umgekehrt)
+                boolean obs = block instanceof net.minecraft.world.level.block.ObserverBlock;
+                pitch = (facing == Direction.UP) != obs ? 90 : -90;
             } else {
                 Direction look;
-                if (block instanceof StairBlock || block instanceof DoorBlock || block instanceof FenceGateBlock || block instanceof BedBlock) look = facing;
+                if (block instanceof StairBlock || block instanceof DoorBlock || block instanceof FenceGateBlock || block instanceof BedBlock
+                        || block instanceof net.minecraft.world.level.block.ObserverBlock) look = facing;
                 else if (block instanceof AnvilBlock) look = facing.getCounterClockWise();
                 else look = facing.getOpposite();
                 yaw = look.toYRot();
@@ -579,11 +630,15 @@ public final class AutoBuild extends Module {
 
     private boolean click(BlockPos clicked, Direction face, Vec3 hit, float yaw, float pitch) {
         float oldYaw = mc.player.getYRot(), oldPitch = mc.player.getXRot();
+        boolean multi = dev.teizen.client.compat.V.MULTI_MOVE_PACKETS;
+        if (!multi && rotUsed) { deferred = true; return false; } // nächsten Tick mit eigener Drehung
+        rotUsed = true;
         mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(yaw, pitch, mc.player.onGround(), mc.player.horizontalCollision));
         Rot.look(yaw, pitch);
         InteractionResult res = mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(hit, face, clicked, false));
         Rot.look(oldYaw, oldPitch);
-        mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(oldYaw, oldPitch, mc.player.onGround(), mc.player.horizontalCollision));
+        if (multi) mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(oldYaw, oldPitch, mc.player.onGround(), mc.player.horizontalCollision));
+
         if (res.consumesAction()) {
             dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
             return true;
