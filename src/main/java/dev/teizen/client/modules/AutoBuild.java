@@ -302,11 +302,31 @@ public final class AutoBuild extends Module {
             var e = it.next();
             if (mc.level.getBlockState(e.getKey()).getBlock() instanceof net.minecraft.world.level.block.SignBlock) {
                 String[] l = e.getValue();
-                mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundSignUpdatePacket(e.getKey(), true, l[0], l[1], l[2], l[3]));
+                Object pk = signPacket(e.getKey(), l);
+                if (pk != null) mc.player.connection.send((net.minecraft.network.protocol.Packet<?>) pk);
             }
             it.remove();
             return; // eins pro Tick
         }
+    }
+
+    /** Schild-Paket bauen (Form je nach Version verschieden). */
+    private static Object signPacket(BlockPos pos, String[] l) {
+        try {
+            for (var k : net.minecraft.network.protocol.game.ServerboundSignUpdatePacket.class.getConstructors()) {
+                Class<?>[] t = k.getParameterTypes();
+                if (t.length == 6 && t[1] == boolean.class) return k.newInstance(pos, true, l[0], l[1], l[2], l[3]);
+                if (t.length == 3 && t[1] == java.util.List.class && t[2].isEnum()) {
+                    Object front = null;
+                    for (Object c : t[2].getEnumConstants()) if (c.toString().toLowerCase().contains("front")) front = c;
+                    if (front == null) front = t[2].getEnumConstants()[0];
+                    return k.newInstance(pos, java.util.List.of(l), front);
+                }
+            }
+        } catch (Throwable t) {
+            dev.teizen.client.TeizenClient.LOG.warn("Schild-Text: " + t);
+        }
+        return null;
     }
 
     // ---- Weg zur Arbeit: echte Wegsuche, gräbt sich durch Wände (vorher lief er stur geradeaus gegen die Wand)

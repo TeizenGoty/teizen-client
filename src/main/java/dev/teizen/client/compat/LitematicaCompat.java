@@ -30,10 +30,23 @@ public final class LitematicaCompat {
             WorldSchematic w = SchematicWorldHandler.getSchematicWorld();
             if (w == null) return null;
             if (!(w.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SignBlockEntity s)) return null;
+            // Vorderseite holen – Methode heißt je nach Version anders (per Reflection, gleiche Jar für 26.2 + 26.3)
+            Object text = null;
+            for (java.lang.reflect.Method m : s.getClass().getMethods()) {
+                if (!net.minecraft.world.level.block.entity.SignText.class.isAssignableFrom(m.getReturnType())) continue;
+                Class<?>[] t = m.getParameterTypes();
+                if (t.length == 0 && m.getName().toLowerCase().contains("front")) { text = m.invoke(s); break; }
+                if (t.length == 1 && t[0] == boolean.class) { text = m.invoke(s, true); break; }
+                if (t.length == 1 && t[0].isEnum()) {
+                    for (Object c : t[0].getEnumConstants()) if (c.toString().toLowerCase().contains("front")) { text = m.invoke(s, c); break; }
+                    if (text != null) break;
+                }
+            }
+            if (!(text instanceof net.minecraft.world.level.block.entity.SignText st)) return null;
             String[] l = new String[4];
             boolean any = false;
             for (int i = 0; i < 4; i++) {
-                l[i] = s.getFrontText().getMessage(i, false).getString();
+                l[i] = st.getMessage(i, false).getString();
                 if (!l[i].isEmpty()) any = true;
             }
             return any ? l : null;
