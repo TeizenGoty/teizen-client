@@ -118,6 +118,15 @@ public final class AutoBuild extends Module {
         releaseWalkKeys();
     }
 
+    /** Wo die Füße stehen – auf einer Stufe ist das der Block ÜBER der Stufe (blockPosition wäre die Stufe selbst). */
+    private BlockPos feet() {
+        return BlockPos.containing(mc.player.getX(), mc.player.getY() + 0.5, mc.player.getZ());
+    }
+
+    /** Für den Selbsttest: Sprünge und Richtungswechsel beim Laufen. */
+    public int jumps, turns;
+    private float lastWalkYaw = Float.NaN;
+
     private void releaseWalkKeys() {
         if (mc.options == null) return;
         mc.options.keyUp.setDown(false);
@@ -211,7 +220,7 @@ public final class AutoBuild extends Module {
         signTick();
 
         double r = range.num();
-        BlockPos me = mc.player.blockPosition();
+        BlockPos me = feet();
         int ri = (int) Math.ceil(r);
         Vec3 eye = mc.player.getEyePosition();
         if (demolish) {
@@ -396,18 +405,32 @@ public final class AutoBuild extends Module {
             return;
         }
         // 2) hinlaufen
+        BlockPos f = feet();
+        // schon weiter vorne auf dem Weg? -> dorthin springen (kein Zurücklaufen zu verpassten Punkten)
+        for (int k = Math.min(path.size() - 1, pathIdx + 3); k >= pathIdx; k--)
+            if (path.get(k).pos().equals(f)) { pathIdx = k + 1; stuckTicks = 0; break; }
+        if (pathIdx >= path.size()) { releaseWalkKeys(); path = null; return; }
+        step = path.get(pathIdx);
+        if (!step.clear().isEmpty() && step.clear().stream().anyMatch(q -> !dev.teizen.client.util.MinePath.passable(mc.level, q))) return; // nächsten Tick abbauen
         Vec3 c = Vec3.atBottomCenterOf(step.pos());
         double dx = c.x - mc.player.getX(), dz = c.z - mc.player.getZ();
         double horiz = Math.sqrt(dx * dx + dz * dz);
-        if (mc.player.blockPosition().equals(step.pos()) && horiz < 0.35) { pathIdx++; stuckTicks = 0; releaseWalkKeys(); return; }
+        boolean last = pathIdx == path.size() - 1;
+        // Mitte nur beim letzten Punkt genau treffen, sonst reicht "im Block" (vorher: stehen bleiben, drehen, zurück)
+        if (f.equals(step.pos()) && (!last || horiz < 0.35)) { pathIdx++; stuckTicks = 0; if (last) releaseWalkKeys(); return; }
         float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
+        if (!Float.isNaN(lastWalkYaw) && Math.abs(net.minecraft.util.Mth.wrapDegrees(yaw - lastWalkYaw)) > 120) turns++;
+        lastWalkYaw = yaw;
         mc.player.setYRot(yaw);
         mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(yaw, mc.player.getXRot(), mc.player.onGround(), mc.player.horizontalCollision));
-        mc.options.keyUp.setDown(horiz > 0.2);
-        // nur springen, wenn es wirklich hochgeht und man davor steht (vorher sprang er dauernd)
-        boolean up = (step.kind() == dev.teizen.client.util.MinePath.Kind.UP || c.y > mc.player.getY() + 0.6)
-                && horiz < 1.3 && (mc.player.horizontalCollision || c.y > mc.player.getY() + 0.6);
-        mc.options.keyJump.setDown(up && mc.player.onGround() && !mc.player.isInWater());
+        mc.options.keyUp.setDown(horiz > 0.15);
+        // Springen nur, wenn der Boden am Ziel wirklich höher ist als ein Schritt (Stufen/Teppich gehen ohne Sprung)
+        double floorTop = step.pos().getY() - 1 + Math.max(0, mc.level.getBlockState(step.pos().below()).getCollisionShape(mc.level, step.pos().below()).max(net.minecraft.core.Direction.Axis.Y));
+        if (mc.level.getBlockState(step.pos().below()).getCollisionShape(mc.level, step.pos().below()).isEmpty()) floorTop = step.pos().getY() - 1;
+        boolean up = floorTop - mc.player.getY() > 0.6 && horiz < 1.4;
+        boolean jump = up && mc.player.onGround() && !mc.player.isInWater();
+        if (jump && !mc.options.keyJump.isDown()) jumps++;
+        mc.options.keyJump.setDown(jump);
         mc.player.setSprinting(false);
         // festgefahren? -> neuen Weg suchen, Ziel kurz meiden
         Vec3 now = mc.player.position();
@@ -421,7 +444,9 @@ public final class AutoBuild extends Module {
         float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
         mc.player.setYRot(yaw);
         mc.options.keyUp.setDown(true);
-        mc.options.keyJump.setDown(mc.player.horizontalCollision && mc.player.onGround());
+        boolean j = mc.player.horizontalCollision && mc.player.onGround();
+        if (j && !mc.options.keyJump.isDown()) jumps++;
+        mc.options.keyJump.setDown(j);
         if (++stuckTicks > 60) { unreachable.put(t, 200); walkTarget = null; stuckTicks = 0; releaseWalkKeys(); }
     }
 

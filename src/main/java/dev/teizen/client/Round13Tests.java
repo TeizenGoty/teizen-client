@@ -63,6 +63,53 @@ final class Round13Tests {
         return m;
     }
 
+    /** Schwerer Testbau: 2 Stockwerke, Innentreppe, Fenster, Schild an der Wand, Trichter, Stufen-Dach. */
+    private static java.util.Map<BlockPos, net.minecraft.world.level.block.state.BlockState> buildTower(BlockPos o) {
+        java.util.Map<BlockPos, net.minecraft.world.level.block.state.BlockState> m = new java.util.HashMap<>();
+        var air = Blocks.AIR.defaultBlockState();
+        var planks = Blocks.SPRUCE_PLANKS.defaultBlockState();
+        var bricks = Blocks.STONE_BRICKS.defaultBlockState();
+        var log = Blocks.SPRUCE_LOG.defaultBlockState();
+        var glass = Blocks.GLASS.defaultBlockState();
+        var N = net.minecraft.core.Direction.NORTH;
+        var S = net.minecraft.core.Direction.SOUTH;
+        var E = net.minecraft.core.Direction.EAST;
+        for (int x = 0; x < 9; x++) for (int z = 0; z < 9; z++) for (int y = 0; y <= 7; y++) {
+            boolean ex = x == 0 || x == 8, ez = z == 0 || z == 8, edge = ex || ez, corner = ex && ez;
+            net.minecraft.world.level.block.state.BlockState st = air;
+            if (y == 0) st = planks;
+            else if (y <= 3 || (y >= 5 && y <= 6)) {
+                if (corner) st = log;
+                else if (edge) {
+                    boolean win = (y == 2 || y == 5) && ((ez && (x == 2 || x == 6)) || (ex && (z == 2 || z == 6)));
+                    st = win ? glass : bricks;
+                }
+            } else if (y == 4) {
+                // Zwischendecke mit Loch über der Treppe (x=7, z=2..4)
+                boolean hole = x == 7 && z >= 2 && z <= 4;
+                st = edge ? bricks : hole ? air : planks;
+            } else { // y == 7: Dach aus unteren Stufen
+                st = Blocks.SPRUCE_SLAB.defaultBlockState();
+            }
+            m.put(o.offset(x, y, z), st);
+        }
+        // Tür vorne (Nord)
+        m.put(o.offset(4, 1, 0), Blocks.SPRUCE_DOOR.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, N)
+                .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.LOWER));
+        m.put(o.offset(4, 2, 0), Blocks.SPRUCE_DOOR.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, N)
+                .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
+        // Innentreppe hoch zur Zwischendecke (läuft nach Süden)
+        var stair = Blocks.SPRUCE_STAIRS.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, S);
+        m.put(o.offset(7, 1, 2), stair);
+        m.put(o.offset(7, 1, 3), planks); m.put(o.offset(7, 2, 3), stair);
+        m.put(o.offset(7, 1, 4), planks); m.put(o.offset(7, 2, 4), planks); m.put(o.offset(7, 3, 4), stair);
+        // Schild an der Westwand innen, Trichter, Laterne-Ersatz (Fackel)
+        m.put(o.offset(1, 2, 4), Blocks.SPRUCE_WALL_SIGN.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, E));
+        m.put(o.offset(2, 1, 6), Blocks.HOPPER.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING_HOPPER, E));
+        m.put(o.offset(5, 1, 6), Blocks.BARREL.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.FACING, net.minecraft.core.Direction.UP));
+        return m;
+    }
+
     /** Gleicher Block und gleiche Ausrichtung (Scharnier/Treppenform/Verbindungen zählen nicht). */
     private static boolean same(net.minecraft.world.level.block.state.BlockState have, net.minecraft.world.level.block.state.BlockState want) {
         if (have.getBlock() != want.getBlock()) return false;
@@ -488,6 +535,72 @@ final class Round13Tests {
                         c[0], c[2], c[1], stray, local(), walked, ok(c[1] == 0 && stray == 0 && c[0] >= c[2] * 40 / 100 && walked < 120)));
                 dev.teizen.client.compat.LitematicaCompat.testOverride = null;
                 cmd("fill " + blk(h.offset(-12, 0, -12)) + " " + blk(h.offset(18, 8, 12)) + " minecraft:air");
+                cmd("gamemode survival");
+                SelfTest.jump(743);
+            }
+            // ------------------------------------------------ AutoBuild schwer: 2 Stockwerke, Innentreppe, Gelände mit Stufen/Treppen davor
+            case 743 -> {
+                if (!after(10)) return true;
+                h = b.offset(40, 0, 1);
+                house = buildTower(h);
+                dev.teizen.client.compat.LitematicaCompat.testOverride = house;
+                cmd("fill " + blk(h.offset(-14, 0, -16)) + " " + blk(h.offset(22, 12, 20)) + " minecraft:air");
+                cmd("fill " + blk(h.offset(-14, -1, -16)) + " " + blk(h.offset(22, -1, 20)) + " minecraft:grass_block");
+                // unebenes Gelände vor dem Haus: Stufen, Treppen, ein Absatz
+                for (int x = -6; x <= 14; x++) for (int z = -14; z <= -2; z++) {
+                    int v = Math.floorMod(x * 7 + z * 13, 9);
+                    BlockPos q = h.offset(x, 0, z);
+                    if (v == 0) cmd("setblock " + blk(q) + " minecraft:oak_slab[type=bottom]");
+                    else if (v == 3) cmd("setblock " + blk(q) + " minecraft:cobblestone_stairs[facing=" + (x % 2 == 0 ? "north" : "east") + "]");
+                    else if (v == 5 && z < -8) cmd("setblock " + blk(q) + " minecraft:dirt");
+                }
+                cmd("fill " + blk(h.offset(9, 0, -1)) + " " + blk(h.offset(14, 0, 9)) + " minecraft:stone_slab[type=bottom]");
+                t("///set autobuild laufen an");
+                t("///set autobuild abbauen an");
+                cmd("gamemode survival");
+                cmd("clear @s");
+                cmd("give @s minecraft:spruce_planks 256");
+                cmd("give @s minecraft:stone_bricks 256");
+                cmd("give @s minecraft:spruce_log 32");
+                cmd("give @s minecraft:glass 32");
+                cmd("give @s minecraft:spruce_slab 128");
+                cmd("give @s minecraft:spruce_stairs 8");
+                cmd("give @s minecraft:spruce_door 1");
+                cmd("give @s minecraft:spruce_sign 2");
+                cmd("give @s minecraft:hopper 1");
+                cmd("give @s minecraft:barrel 1");
+                cmd("effect give @s minecraft:instant_health 1 10 true");
+                cmd("effect give @s minecraft:resistance 600 4 true");
+                tp(h.getX() + 4.5, h.getY(), h.getZ() - 12.5);
+                next();
+            }
+            case 744 -> {
+                if (!after(20)) return true;
+                off(get(AutoBuild.class));
+                AutoBuild ab = get(AutoBuild.class);
+                ab.jumps = 0; ab.turns = 0;
+                on(ab);
+                p0 = mc.player.position();
+                walked = 0;
+                next();
+            }
+            case 745 -> {
+                Vec3 now = mc.player.position();
+                walked += now.distanceTo(p0);
+                p0 = now;
+                int[] c = houseCheck();
+                AutoBuild ab = get(AutoBuild.class);
+                if (local() % 300 == 0) log("AutoBuild Turm " + local() + ": richtig " + c[0] + "/" + c[2] + ", falsch " + c[1] + ", gesetzt " + ab.placedTotal
+                        + ", pos " + mc.player.position().subtract(h.getX(), h.getY(), h.getZ()) + ", gelaufen " + Math.round(walked) + ", Sprünge " + ab.jumps + ", Kehrtwenden " + ab.turns);
+                if (c[0] + c[1] < c[2] && !after(6000)) return true;
+                SelfTest.shot2("95b-autobuild-turm");
+                off(ab);
+                releaseKeys();
+                logWrong();
+                result(String.format(Locale.ROOT, "AutoBuild Turm (schwer): richtig %d/%d, falsch %d, %d Ticks, gelaufen %.0f, Sprünge %d, Kehrtwenden %d %s",
+                        c[0], c[2], c[1], local(), walked, ab.jumps, ab.turns, ok(c[1] == 0 && c[0] >= c[2] * 85 / 100)));
+                dev.teizen.client.compat.LitematicaCompat.testOverride = null;
+                cmd("fill " + blk(h.offset(-14, 0, -16)) + " " + blk(h.offset(22, 12, 20)) + " minecraft:air");
                 cmd("gamemode survival");
                 SelfTest.jump(750);
             }
