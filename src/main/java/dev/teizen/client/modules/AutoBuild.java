@@ -417,7 +417,7 @@ public final class AutoBuild extends Module {
                     lastDoorTick = mc.player.tickCount;
                     releaseWalkKeys();
                     mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(Vec3.atCenterOf(c), Direction.UP, c, false));
-                    mc.player.swing(InteractionHand.MAIN_HAND);
+                    dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
                 }
                 return;
             }

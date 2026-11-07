@@ -44,7 +44,10 @@ public final class MinePath {
     /** Tür/Zauntor, das man mit der Hand öffnen kann. */
     public static boolean openable(BlockState s) {
         var b = s.getBlock();
-        if (b instanceof net.minecraft.world.level.block.DoorBlock) return !s.is(net.minecraft.world.level.block.Blocks.IRON_DOOR) && !s.is(net.minecraft.world.level.block.Blocks.COPPER_DOOR);
+        if (b instanceof net.minecraft.world.level.block.DoorBlock) {
+            String id = b.getDescriptionId();
+            return !id.contains("iron") && !id.contains("copper"); // Eisen/Kupfer: nur mit Redstone
+        }
         return b instanceof net.minecraft.world.level.block.FenceGateBlock;
     }
 
