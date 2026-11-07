@@ -55,7 +55,7 @@ import java.util.Map;
  * Du brauchst nur die Blöcke im Inventar und läufst am Bau entlang.
  */
 public final class AutoBuild extends Module {
-    private final Setting speed = add(Setting.number("tempo", "Blöcke pro Tick", 2, 1, 10));
+    private final Setting speed = add(Setting.number("tempo", "Blöcke pro Tick", 4, 1, 10));
     private final Setting range = add(Setting.number("reichweite", "Wie weit um dich herum gebaut wird", 4.5, 2, 6));
     private final Setting delay = add(Setting.number("pause", "Ticks Pause zwischen Durchgängen", 0, 0, 10));
     private final Setting slot = add(Setting.number("slot", "Hotbar-Slot (1-9) für Blöcke aus dem Inventar", 9, 1, 9));
@@ -271,6 +271,7 @@ public final class AutoBuild extends Module {
             BlockState want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
             if (!hasItem(want.getBlock().asItem())) continue;
             deferred = false;
+            curWant = want;
             boolean okPlace = tryPlace(p, want);
             if (deferred) { waiting = true; break; } // Drehung erst nächsten Tick (26.3: nur 1 Drehung pro Tick)
             if (dev.teizen.client.SelfTest.ACTIVE && dbgPlace++ < 300)
@@ -304,6 +305,19 @@ public final class AutoBuild extends Module {
 
     /** Pro Tick schon gedreht? (26.3 nimmt nur ein Bewegungspaket pro Tick) */
     private boolean rotUsed, deferred;
+    /** Block, der gerade gesetzt wird (für: braucht er eine Blickrichtung?). */
+    private BlockState curWant;
+
+    /** Hängt die Ausrichtung des Blocks von der Blickrichtung ab? (normale Blöcke: nein -> kein Drehen nötig) */
+    private static boolean orientated(BlockState st) {
+        if (st == null) return true;
+        for (var prop : st.getProperties()) {
+            String n = prop.getName();
+            if (n.equals("facing") || n.equals("axis") || n.equals("rotation") || n.equals("half") || n.equals("type")
+                    || n.equals("hinge") || n.equals("face") || n.equals("attachment") || n.equals("orientation")) return true;
+        }
+        return false;
+    }
     /** Gesetzte Schilder, die noch beschriftet werden. */
     private final Map<BlockPos, String[]> signs = new HashMap<>();
 
@@ -431,7 +445,9 @@ public final class AutoBuild extends Module {
         boolean jump = up && mc.player.onGround() && !mc.player.isInWater();
         if (jump && !mc.options.keyJump.isDown()) jumps++;
         mc.options.keyJump.setDown(jump);
-        mc.player.setSprinting(false);
+        // auf längeren Wegen sprinten (nicht direkt vor Sprüngen/Kanten/am Ende)
+        boolean sprint = path.size() - pathIdx > 3 && !jump && mc.player.getFoodData().getFoodLevel() > 6;
+        mc.player.setSprinting(sprint);
         // festgefahren? -> neuen Weg suchen, Ziel kurz meiden
         Vec3 now = mc.player.position();
         if (stuckPos == null || now.distanceToSqr(stuckPos) > 0.04) { stuckPos = now; stuckTicks = 0; }
@@ -696,13 +712,17 @@ public final class AutoBuild extends Module {
     private boolean click(BlockPos clicked, Direction face, Vec3 hit, float yaw, float pitch) {
         float oldYaw = mc.player.getYRot(), oldPitch = mc.player.getXRot();
         boolean multi = dev.teizen.client.compat.V.MULTI_MOVE_PACKETS;
-        if (!multi && rotUsed) { deferred = true; return false; } // nächsten Tick mit eigener Drehung
-        rotUsed = true;
-        mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(yaw, pitch, mc.player.onGround(), mc.player.horizontalCollision));
+        // Gleiche Blickrichtung wie gerade? Dann kein Drehpaket nötig (normale Blöcke) -> mehrere pro Tick auch auf 26.3
+        boolean needRot = orientated(curWant);
+        if (needRot && !multi && rotUsed) { deferred = true; return false; } // nächsten Tick mit eigener Drehung
+        if (needRot) {
+            rotUsed = true;
+            mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(yaw, pitch, mc.player.onGround(), mc.player.horizontalCollision));
+        }
         Rot.look(yaw, pitch);
         InteractionResult res = mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(hit, face, clicked, false));
         Rot.look(oldYaw, oldPitch);
-        if (multi) mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(oldYaw, oldPitch, mc.player.onGround(), mc.player.horizontalCollision));
+        if (multi && needRot) mc.player.connection.send(new ServerboundMovePlayerPacket.Rot(oldYaw, oldPitch, mc.player.onGround(), mc.player.horizontalCollision));
 
         if (res.consumesAction()) {
             dev.teizen.client.compat.V.swing(InteractionHand.MAIN_HAND);
