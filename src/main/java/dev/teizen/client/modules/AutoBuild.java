@@ -79,7 +79,7 @@ public final class AutoBuild extends Module {
     private int wait;
     private int missingMsg;
     public int placedTotal;
-    private int dbgDig, dbgPlace;
+    private int dbgDig, dbgPlace, dbgTick;
     /** Abbau-Modus: im Schematic-Bereich alles abbauen, was nicht dazugehört (Erde usw.), ohne zu bauen. */
     public boolean demolish;
     private int idleTicks;
@@ -264,7 +264,7 @@ public final class AutoBuild extends Module {
             deferred = false;
             boolean okPlace = tryPlace(p, want);
             if (deferred) { waiting = true; break; } // Drehung erst nächsten Tick (26.3: nur 1 Drehung pro Tick)
-            if (dev.teizen.client.SelfTest.ACTIVE && dbgPlace++ < 80)
+            if (dev.teizen.client.SelfTest.ACTIVE && dbgPlace++ < 300)
                 dev.teizen.client.TeizenClient.LOG.info("AutoBuild setzt " + p.toShortString() + " " + want + " -> " + okPlace + " Hand=" + mc.player.getMainHandItem().getItem()
                         + " jetzt=" + mc.level.getBlockState(p).getBlock() + " ich=" + mc.player.blockPosition().toShortString());
             if (okPlace) {
@@ -285,6 +285,9 @@ public final class AutoBuild extends Module {
             }
         }
         if (done > 0) wait = delay.integer();
+        if (dev.teizen.client.SelfTest.ACTIVE && ++dbgTick % 40 == 0)
+            dev.teizen.client.TeizenClient.LOG.info("AutoBuild Stand: todo=" + todo.size() + " done=" + done + " waiting=" + waiting + " cooldown=" + cooldown.size()
+                    + " skip=" + skip.size() + " ziel=" + walkTarget + " weg=" + (path == null ? "-" : pathIdx + "/" + path.size()) + " unerreichbar=" + unreachable.size());
         // nichts in Reichweite zu tun -> von selbst zur nächsten Baustelle laufen (aber nicht, solange hier noch probiert wird)
         if (autoWalk.on() && done == 0 && !waiting) walkToWork(me, eye);
         else releaseWalkKeys();
