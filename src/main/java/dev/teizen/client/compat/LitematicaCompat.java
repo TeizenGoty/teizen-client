@@ -45,8 +45,16 @@ public final class LitematicaCompat {
             if (!(text instanceof net.minecraft.world.level.block.entity.SignText st)) return null;
             String[] l = new String[4];
             boolean any = false;
+            java.lang.reflect.Method get = null;
+            for (java.lang.reflect.Method m : st.getClass().getMethods()) {
+                if (!net.minecraft.network.chat.Component.class.isAssignableFrom(m.getReturnType())) continue;
+                Class<?>[] t = m.getParameterTypes();
+                if (t.length >= 1 && t[0] == int.class && (t.length == 1 || (t.length == 2 && t[1] == boolean.class))) { get = m; break; }
+            }
+            if (get == null) return null;
             for (int i = 0; i < 4; i++) {
-                l[i] = st.getMessage(i, false).getString();
+                Object c = get.getParameterCount() == 1 ? get.invoke(st, i) : get.invoke(st, i, false);
+                l[i] = c instanceof net.minecraft.network.chat.Component cc ? cc.getString() : "";
                 if (!l[i].isEmpty()) any = true;
             }
             return any ? l : null;
