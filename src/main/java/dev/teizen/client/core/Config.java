@@ -64,6 +64,7 @@ public final class Config {
             root.addProperty("menuFont", dev.teizen.client.gui.MenuFont.enabled);
             root.addProperty("toggleSound", Module.sound);
             root.addProperty("toggleSoundName", Module.soundName);
+            root.addProperty("toggleSoundV2", true);
             root.addProperty("merken", Restore.enabled);
             JsonObject ms = new JsonObject();
             for (var e : dev.teizen.client.core.Seed.MANUAL.entrySet()) ms.addProperty(e.getKey(), e.getValue());
@@ -91,6 +92,8 @@ public final class Config {
             if (root.has("menuFont")) dev.teizen.client.gui.MenuFont.enabled = root.get("menuFont").getAsBoolean();
             if (root.has("toggleSound")) Module.sound = root.get("toggleSound").getAsBoolean();
             if (root.has("toggleSoundName")) Module.soundName = root.get("toggleSoundName").getAsString();
+            // alter Standard "klick" (Minecraft-Knopf) -> einmalig auf den neuen Pop umstellen
+            if (!root.has("toggleSoundV2")) { if (Module.soundName.equals("klick")) Module.soundName = "teizen"; }
             if (root.has("eigeneSeeds")) for (var e : root.getAsJsonObject("eigeneSeeds").entrySet()) dev.teizen.client.core.Seed.MANUAL.put(e.getKey(), e.getValue().getAsLong());
             if (root.has("profile")) Profiles.fromJson(root.getAsJsonObject("profile"));
             if (root.has("hudPositionen")) dev.teizen.client.gui.HudLayout.fromJson(root.getAsJsonObject("hudPositionen"));
