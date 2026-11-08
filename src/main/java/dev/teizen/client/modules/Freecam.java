@@ -72,6 +72,9 @@ public final class Freecam extends Module {
             @Override
             public float getViewXRot(float partial) { return getXRot(); }
         };
+        // Eigene, negative ID: auf Servern vergibt der Server die IDs – eine Client-ID wie 123 kann mit einem
+        // echten Mob/Spieler kollidieren -> Server-Pakete treffen dann die Kamera -> Absturz. Negativ = nie belegt.
+        cam.setId(-1_337_420);
         cam.setNoGravity(true);
         cam.setInvisible(true);
         cam.noPhysics = true;
