@@ -79,6 +79,7 @@ public final class ModuleManager {
         add(new ItemESP());
         add(new StorageESP());
         add(new BlockESP());
+        add(new BarrierView());
         add(new PlayerFinder());
         add(new Radar());
         add(new PotionHUD());
