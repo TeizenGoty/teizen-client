@@ -101,7 +101,10 @@ public abstract class Module {
         if (ev == null) ev = net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(); // Rückfall
         // als Menü-Geräusch abspielen (hängt nicht an der Spieler-Position/Lautstärke "Spieler" – vorher oft stumm)
         try {
-            mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(ev, on ? 1.7f : 1.1f, 0.8f));
+            // Kategorie "Gesamtlautstärke" (Master), relativ zur Kamera -> immer hörbar, egal welche Regler es gibt
+            mc.getSoundManager().play(new net.minecraft.client.resources.sounds.SimpleSoundInstance(ev.location(), net.minecraft.sounds.SoundSource.MASTER,
+                    0.8f, on ? 1.7f : 1.1f, net.minecraft.util.RandomSource.create(), false, 0,
+                    net.minecraft.client.resources.sounds.SoundInstance.Attenuation.NONE, 0, 0, 0, true));
         } catch (Throwable t) {
             if (mc.player != null) mc.player.playSound(ev, 0.8f, on ? 1.7f : 1.1f);
         }
