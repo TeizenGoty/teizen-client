@@ -91,7 +91,7 @@ public abstract class Module {
 
     /** Den eingestellten Klang abspielen (an = höher, aus = tiefer). */
     public static void playToggle(boolean on) {
-        if (!sound || mc.player == null) return;
+        if (!sound) return;
         String id = SOUNDS.getOrDefault(soundName, soundName);
         net.minecraft.sounds.SoundEvent ev = null;
         try {
@@ -99,7 +99,12 @@ public abstract class Module {
             if (rl != null) ev = net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT.getValue(rl);
         } catch (Throwable ignored) {}
         if (ev == null) ev = net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(); // Rückfall
-        mc.player.playSound(ev, 0.6f, on ? 1.7f : 1.1f);
+        // als Menü-Geräusch abspielen (hängt nicht an der Spieler-Position/Lautstärke "Spieler" – vorher oft stumm)
+        try {
+            mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(ev, on ? 1.7f : 1.1f, 0.8f));
+        } catch (Throwable t) {
+            if (mc.player != null) mc.player.playSound(ev, 0.8f, on ? 1.7f : 1.1f);
+        }
     }
 
     public void toggle() {
