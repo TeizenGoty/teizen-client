@@ -199,6 +199,9 @@ public final class ClickGui extends Screen {
         tipScale = uiScale;
         try {
             draw(g, (int) (mouseX / uiScale), (int) (mouseY / uiScale));
+        } catch (RuntimeException e) {
+            // z.B. im Hauptmenü ohne Welt: lieber ein Teil leer als Absturz
+            if (!drawErr) { drawErr = true; dev.teizen.client.TeizenClient.LOG.warn("Menü zeichnen", e); }
         } finally {
             tipScale = 1f;
             g.pose().popMatrix();
@@ -211,6 +214,7 @@ public final class ClickGui extends Screen {
     private static final int VIRTUAL_W = 720, VIRTUAL_H = 400;
     /** Aktuelle Verkleinerung (für Tooltips + Maus). */
     private float uiScale = 1f;
+    private boolean drawErr;
     private static float tipScale = 1f;
 
     /** Tooltip an der echten Mausposition. */

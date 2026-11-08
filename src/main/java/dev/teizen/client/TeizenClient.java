@@ -81,6 +81,13 @@ public final class TeizenClient implements ClientModInitializer {
         dev.teizen.client.core.Locator.register();
         // Countdown auf dem "Verbindung getrennt"-Bildschirm
         dev.teizen.client.modules.AutoReconnect.register();
+        // Teizen-Knopf im Minecraft-Hauptmenü (Titelbildschirm): Menü auch ohne Welt öffnen
+        net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
+            if (!(screen instanceof net.minecraft.client.gui.screens.TitleScreen)) return;
+            net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(screen).add(
+                    net.minecraft.client.gui.components.Button.builder(net.minecraft.network.chat.Component.literal("§dTeizen"),
+                            b -> client.gui.setScreen(new dev.teizen.client.gui.ClickGui())).bounds(4, 4, 64, 20).build());
+        });
         dev.teizen.client.modules.ChatSpammer.register();
         dev.teizen.client.modules.EnchantPreview.register();
         // Antworten auf /data-Abfragen (PlayerFinder, Radar, PotionHUD, EnchantPreview) lesen und verstecken
