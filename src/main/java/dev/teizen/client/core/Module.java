@@ -71,11 +71,12 @@ public abstract class Module {
     /** Umschalt-Sound beim Ein-/Ausschalten im Spiel (///sound an|aus). Standard an. Eigener Minecraft-Klang. */
     public static boolean sound = true;
     /** Welcher Klang (///sound <name>): freundlicher Name oder roher Sound-Name. */
-    public static String soundName = "klick";
+    public static String soundName = "teizen";
 
     /** Freundliche Namen -> Minecraft-Sound. */
     private static final Map<String, String> SOUNDS = new LinkedHashMap<>();
     static {
+        SOUNDS.put("teizen", "teizen"); // eigener weicher Klick (an hoch, aus tief)
         SOUNDS.put("klick", "ui.button.click");
         SOUNDS.put("pling", "block.note_block.pling");
         SOUNDS.put("glocke", "block.note_block.bell");
@@ -93,20 +94,23 @@ public abstract class Module {
     public static void playToggle(boolean on) {
         if (!sound) return;
         String id = SOUNDS.getOrDefault(soundName, soundName);
+        float pitch = on ? 1.7f : 1.1f;
+        if (id.equals("teizen")) { id = on ? "teizenclient:toggle_on" : "teizenclient:toggle_off"; pitch = 1f; }
         net.minecraft.sounds.SoundEvent ev = null;
         try {
             var rl = net.minecraft.resources.Identifier.tryParse(id.contains(":") ? id : "minecraft:" + id);
             if (rl != null) ev = net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT.getValue(rl);
+            if (ev == null && rl != null && rl.getNamespace().equals("teizenclient")) ev = net.minecraft.sounds.SoundEvent.createVariableRangeEvent(rl);
         } catch (Throwable ignored) {}
         if (ev == null) ev = net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value(); // Rückfall
         // als Menü-Geräusch abspielen (hängt nicht an der Spieler-Position/Lautstärke "Spieler" – vorher oft stumm)
         try {
             // Kategorie "Gesamtlautstärke" (Master), relativ zur Kamera -> immer hörbar, egal welche Regler es gibt
             mc.getSoundManager().play(new net.minecraft.client.resources.sounds.SimpleSoundInstance(ev.location(), net.minecraft.sounds.SoundSource.MASTER,
-                    0.8f, on ? 1.7f : 1.1f, net.minecraft.util.RandomSource.create(), false, 0,
+                    0.8f, pitch, net.minecraft.util.RandomSource.create(), false, 0,
                     net.minecraft.client.resources.sounds.SoundInstance.Attenuation.NONE, 0, 0, 0, true));
         } catch (Throwable t) {
-            if (mc.player != null) mc.player.playSound(ev, 0.8f, on ? 1.7f : 1.1f);
+            if (mc.player != null) mc.player.playSound(ev, 0.8f, pitch);
         }
     }
 

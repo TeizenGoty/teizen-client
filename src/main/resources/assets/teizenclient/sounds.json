@@ -1,0 +1,4 @@
+{
+  "toggle_on": { "sounds": [ "teizenclient:toggle_on" ] },
+  "toggle_off": { "sounds": [ "teizenclient:toggle_off" ] }
+}
