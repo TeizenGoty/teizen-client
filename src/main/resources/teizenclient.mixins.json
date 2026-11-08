@@ -28,6 +28,7 @@
     "ChatComponentMixin",
     "PlayerTabOverlayMixin",
     "ScreenEffectRendererMixin",
+    "TitleScreenMixin",
     "WeatherEffectRendererMixin",
     "ParticleEngineMixin"
   ],
