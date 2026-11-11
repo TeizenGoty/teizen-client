@@ -29,7 +29,7 @@ import java.util.List;
 public final class ClickGui extends Screen {
     private static final int TEXT = 0xFFF4F4F8, SOFT = 0xFFD2D2DE, MUTED = 0xFFA3A3B5, DIM = 0xFF7C7C8E,
             ACCENT = 0xFF8B5CF6, ACCENT_HI = 0xFFA78BFA, SURF = 0x16FFFFFF, SURF_H = 0x2CFFFFFF, SEL = 0x408B5CF6, SEL_H = 0x598B5CF6,
-            FAV = 0xFFFBBF24, PANIC = 0xFFDC2626, PANIC_H = 0xFFEF4444, BODY = 0xC80B0B11, EDGE = 0x34FFFFFF, SIDE = 0x3A000000,
+            FAV = 0xFFFBBF24, PANIC = 0xFFDC2626, PANIC_H = 0xFFEF4444, BODY = 0xB00B0B11, EDGE = 0x34FFFFFF, SIDE = 0x3A000000,
             TRACK = 0x46FFFFFF, ON_TEXT = 0xFF6EE7B7;
 
     /** Gewählte Kategorie und Funktion – bleiben beim nächsten Öffnen. */
@@ -234,7 +234,7 @@ public final class ClickGui extends Screen {
         wh = Math.min(height - 20, 430);
         wx = (width - ww) / 2;
         wy = (height - wh) / 2;
-        g.fill(0, 0, width, height, 0x4A000000); // Welt bleibt sichtbar, nur leicht abgedunkelt
+        g.fill(0, 0, width, height, 0x30000000); // Welt bleibt sichtbar, nur leicht abgedunkelt
         rr(g, wx, wy, wx + ww, wy + wh, 9, BODY);
         outline(g, wx, wy, wx + ww, wy + wh, 5, EDGE);
         MenuFont.active = true;
