@@ -1,4 +1,62 @@
 {
-  "toggle_on": { "sounds": [ "teizenclient:toggle_on" ] },
-  "toggle_off": { "sounds": [ "teizenclient:toggle_off" ] }
+  "toggle_on": {
+    "sounds": [
+      "teizenclient:toggle_on"
+    ]
+  },
+  "toggle_off": {
+    "sounds": [
+      "teizenclient:toggle_off"
+    ]
+  },
+  "click_1": {
+    "sounds": [
+      "teizenclient:click_1"
+    ]
+  },
+  "click_2": {
+    "sounds": [
+      "teizenclient:click_2"
+    ]
+  },
+  "click_3": {
+    "sounds": [
+      "teizenclient:click_3"
+    ]
+  },
+  "click_4": {
+    "sounds": [
+      "teizenclient:click_4"
+    ]
+  },
+  "click_5": {
+    "sounds": [
+      "teizenclient:click_5"
+    ]
+  },
+  "click_6": {
+    "sounds": [
+      "teizenclient:click_6"
+    ]
+  },
+  "click_7": {
+    "sounds": [
+      "teizenclient:click_7"
+    ]
+  },
+  "click_8": {
+    "sounds": [
+      "teizenclient:click_8"
+    ]
+  },
+  "click_9": {
+    "sounds": [
+      "teizenclient:click_9"
+    ]
+  },
+  "click_10": {
+    "sounds": [
+      "teizenclient:click_10"
+    ]
+  }
 }

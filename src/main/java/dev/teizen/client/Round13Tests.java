@@ -251,7 +251,7 @@ final class Round13Tests {
                 if (!after(10)) return true;
                 cmd("fill " + blk(b.offset(-1, 0, 3)) + " " + blk(b.offset(1, 2, 5)) + " minecraft:stone");
                 tp(b.getX() + 0.5, b.getY(), b.getZ() + 0.5);
-                t("///set noclip modus fliegen");
+                t("///set noclip modus kamera");
                 t("///set noclip tempo 0.4");
                 next();
             }
@@ -388,6 +388,29 @@ final class Round13Tests {
                 result(String.format(Locale.ROOT, "GodPvP: Mace+Schildbrecher an=%s, beste Waffe genommen=%s (%dx), beim Fliegen Mace-Sturz gezeigt=%dx, Zombie 300 -> %.0f Leben %s",
                         yes(mace && sb), yes(best), picks, ff, hp, ok(mace && sb && best && ff > 0 && hp < 300 - 30)));
                 cmd("kill @e[type=minecraft:zombie,distance=..20]");
+                SelfTest.jump(726);
+            }
+            // ------------------------------------------------ Neues Glas-Menü: Ansicht "Alle" + Klick-Geräusch
+            case 726 -> {
+                if (!after(10)) return true;
+                dev.teizen.client.gui.ClickGui.showAll();
+                mc.gui.setScreen(new dev.teizen.client.gui.ClickGui());
+                next();
+            }
+            case 727 -> {
+                if (!after(20)) return true;
+                SelfTest.shot2("94a-menue-alle");
+                boolean open = mc.gui.screen() instanceof dev.teizen.client.gui.ClickGui;
+                int before = dev.teizen.client.gui.Clicks.played;
+                dev.teizen.client.gui.Clicks.cycle(1);
+                dev.teizen.client.gui.Clicks.cycle(-1);
+                // Tippen ohne Klick ins Suchfeld darf NICHT suchen
+                int shown = open ? ((dev.teizen.client.gui.ClickGui) mc.gui.screen()).shownModules().size() : 0;
+                if (open) ((dev.teizen.client.gui.ClickGui) mc.gui.screen()).charTyped(new net.minecraft.client.input.CharacterEvent('x'));
+                int after = open ? ((dev.teizen.client.gui.ClickGui) mc.gui.screen()).shownModules().size() : -1;
+                result("Glas-Menü: offen=" + yes(open) + ", Klick-Geräusch gespielt=" + (dev.teizen.client.gui.Clicks.played - before) + "x (" + dev.teizen.client.gui.Clicks.name()
+                        + "), Tippen startet keine Suche=" + yes(shown == after) + " " + ok(open && dev.teizen.client.gui.Clicks.played - before == 2 && shown == after && shown > 50));
+                mc.gui.setScreen(null);
                 SelfTest.jump(730);
             }
             // ------------------------------------------------ Neues Menü: AutoMine rechts, Kategorie Abbau, Schalter per Klick
@@ -768,7 +791,7 @@ final class Round13Tests {
                 cmd("gamemode creative");
                 cmd("fill " + blk(b.offset(-2, 0, -2)) + " " + blk(b.offset(2, 4, 12)) + " minecraft:air");
                 tp(b.getX() + 0.5, b.getY(), b.getZ() + 0.5);
-                t("///set noclip modus fliegen");
+                t("///set noclip modus kamera");
                 t("///set noclip tempo 0.6");
                 get(Freecam.class).interact.setBool(false); // Ausgangszustand
                 next();

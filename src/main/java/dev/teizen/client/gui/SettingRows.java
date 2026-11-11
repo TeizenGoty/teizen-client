@@ -63,9 +63,8 @@ public final class SettingRows {
     public Setting editing() { return editing; }
 
     private static void checkbox(GuiGraphicsExtractor g, int x, int y, boolean on) {
-        g.fill(x, y, x + 8, y + 8, 0xFF9C88C8);
-        g.fill(x + 1, y + 1, x + 7, y + 7, 0xFF140A26);
-        if (on) g.fill(x + 2, y + 2, x + 6, y + 6, 0xFF55FF55);
+        ClickGui.rr(g, x, y, x + 8, y + 8, 2, on ? 0xFF8B5CF6 : 0x40FFFFFF);
+        if (on) g.fill(x + 3, y + 3, x + 5, y + 5, 0xFFFFFFFF);
     }
 
     public void render(GuiGraphicsExtractor g, Font font, Module m, Row r, int x, int y, int w, int h, int mouseX, int mouseY) {
@@ -74,13 +73,13 @@ public final class SettingRows {
         int ty = y + (h - 8) / 2;
         switch (r.kind()) {
             case MULTI_ALL -> {
-                g.fill(x, y, x + w, y + h, hover ? 0xE0241440 : 0xD0120A20);
+                ClickGui.rr(g, x, y, x + w, y + h, 3, hover ? 0x2AFFFFFF : 0x10FFFFFF);
                 checkbox(g, x + 12, ty, s.allSelected());
                 MenuFont.text(g, font, "§falle " + (s.allSelected() ? "§7(alle aus)" : "§7(alle an)"), x + 24, ty, 0xFFFFFFFF, false);
                 return;
             }
             case MULTI_OPTION -> {
-                g.fill(x, y, x + w, y + h, hover ? 0xE0241440 : 0xD0120A20);
+                ClickGui.rr(g, x, y, x + w, y + h, 3, hover ? 0x2AFFFFFF : 0x10FFFFFF);
                 boolean on = s.isSelected(r.option());
                 checkbox(g, x + 18, ty, on);
                 String label = s.optionLabel(r.option());
@@ -92,16 +91,15 @@ public final class SettingRows {
         }
         if (s.type == Setting.Type.ACTION) {
             // Knopf
-            g.fill(x, y, x + w, y + h, hover ? 0xF05A2CB0 : 0xE03A1A70);
-            g.fill(x, y + h - 1, x + w, y + h, 0xFFB088F0);
-            String l = "§f▶ " + s.str();
+            ClickGui.rr(g, x, y, x + w, y + h, 3, hover ? 0xA08B5CF6 : 0x668B5CF6);
+                        String l = "§f▶ " + s.str();
             if (MenuFont.width(font, l) > w - 10) l = MenuFont.cut(font, l, w - 10);
             MenuFont.text(g, font, l, x + 8, ty, 0xFFFFFFFF, false);
             if (hover) ClickGui.tip(g, font, MenuFont.comp(s.description), mouseX, mouseY);
             return;
         }
         boolean isEditing = s == editing;
-        g.fill(x, y, x + w, y + h, isEditing ? 0xF0301060 : (hover ? 0xE0221238 : 0xD00E0718));
+        ClickGui.rr(g, x, y, x + w, y + h, 3, isEditing ? 0x508B5CF6 : (hover ? 0x2AFFFFFF : 0x14FFFFFF));
         String label;
         if (isEditing) {
             boolean blink = (System.currentTimeMillis() / 500) % 2 == 0;
@@ -112,8 +110,7 @@ public final class SettingRows {
                 cut = true;
             }
             label = "§7" + s.name + ": §e" + (cut ? "…" : "") + vis + (blink ? "_" : " ");
-            g.fill(x + 1, y, x + w - 1, y + 1, 0xFFFFD040);
-            g.fill(x + 1, y + h - 1, x + w - 1, y + h, 0xFFFFD040);
+            g.fill(x + 3, y + h - 1, x + w - 3, y + h, 0xFFA78BFA);
         } else {
             String value = switch (s.type) {
                 case BOOL -> s.on() ? "§aan" : "§caus";

@@ -91,8 +91,11 @@ public abstract class Module {
     public static java.util.Set<String> soundChoices() { return SOUNDS.keySet(); }
 
     /** Den eingestellten Klang abspielen (an = höher, aus = tiefer). */
+    /** Kurz stumm (das Menü spielt dann seinen eigenen Klick). */
+    public static boolean quiet;
+
     public static void playToggle(boolean on) {
-        if (!sound) return;
+        if (!sound || quiet) return;
         String id = SOUNDS.getOrDefault(soundName, soundName);
         float pitch = on ? 1.7f : 1.1f;
         if (id.equals("teizen")) { id = on ? "teizenclient:toggle_on" : "teizenclient:toggle_off"; pitch = 1f; }

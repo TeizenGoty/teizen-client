@@ -465,6 +465,13 @@ public final class Commands {
                 Module.playToggle(true);
                 Chat.ok("Umschalt-Sound: " + (Module.sound ? "§aan §7(" + Module.soundName + ")" : "§caus") + " §7– Auswahl: ///sound liste");
             }
+            case "klick", "klicks", "click", "menuklick" -> {
+                if (a.length >= 2) {
+                    if (!dev.teizen.client.gui.Clicks.set(a[1])) { Chat.error("Klick-Geräusche: " + String.join(", ", dev.teizen.client.gui.Clicks.NAMES)); return; }
+                } else dev.teizen.client.gui.Clicks.cycle(1);
+                Config.save();
+                Chat.ok("Klick im Menü: §f" + dev.teizen.client.gui.Clicks.name() + " §7– Auswahl: " + String.join(", ", dev.teizen.client.gui.Clicks.NAMES));
+            }
             case "menuschrift", "menufont" -> {
                 // weiche Schrift im Menü an/aus (aus = normale Minecraft-Schrift)
                 if (a.length >= 2) dev.teizen.client.gui.MenuFont.enabled = a[1].equalsIgnoreCase("an") || a[1].equalsIgnoreCase("on");

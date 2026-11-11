@@ -17,6 +17,10 @@ import java.util.Locale;
 public final class SearchBox {
     public String query = "";
     public boolean focused;
+    /** Tippen ohne Anklicken startet die Suche (Übersicht). Im Menü aus: erst anklicken. */
+    public boolean autoType = true;
+    /** Neues, schlichtes Aussehen (Menü). */
+    public boolean clean;
     private int x, y, w, h;
 
     public boolean active() { return !query.isBlank(); }
@@ -33,7 +37,8 @@ public final class SearchBox {
     }
 
     public void render(GuiGraphicsExtractor g, Font font, int x, int y, int w, int mouseX, int mouseY) {
-        this.x = x; this.y = y; this.w = w; this.h = 12;
+        this.x = x; this.y = y; this.w = w; this.h = clean ? 16 : 12;
+        if (clean) { renderClean(g, font, mouseX, mouseY); return; }
         boolean hover = inside(mouseX, mouseY);
         g.fill(x - 1, y - 1, x + w + 1, y + h + 1, focused ? 0xFFFFD040 : (hover ? 0xFF9C88C8 : 0xFF5B1FB8));
         g.fill(x, y, x + w, y + h, 0xF0100820);
@@ -44,6 +49,19 @@ public final class SearchBox {
         if (MenuFont.width(font, text) > w - 22) text = "§f…" + query.substring(Math.max(0, query.length() - 20));
         MenuFont.text(g, font, text, x + 16, y + 2, 0xFFFFFFFF, false);
         if (active()) MenuFont.text(g, font, "§7✕", x + w - 9, y + 2, 0xFFFFFFFF, false);
+    }
+
+    private void renderClean(GuiGraphicsExtractor g, Font font, int mouseX, int mouseY) {
+        boolean hover = inside(mouseX, mouseY);
+        ClickGui.rr(g, x, y, x + w, y + h, 5, focused ? 0x38FFFFFF : (hover ? 0x2AFFFFFF : 0x18FFFFFF));
+        if (focused) g.fill(x + 5, y + h - 1, x + w - 5, y + h, 0xFFA78BFA);
+        lens(g, x + 9, y + 7, focused || active() ? 0xFFA78BFA : 0xFFA3A3B5);
+        String text;
+        if (query.isEmpty() && !focused) text = "§7Suchen";
+        else text = "§f" + query + (focused && (System.currentTimeMillis() / 500) % 2 == 0 ? "§d_" : "");
+        if (MenuFont.width(font, text) > w - 30) text = "§f…" + query.substring(Math.max(0, query.length() - 14));
+        MenuFont.text(g, font, text, x + 19, y + 4, 0xFFFFFFFF, false);
+        if (active()) MenuFont.text(g, font, "§7x", x + w - 10, y + 4, 0xFFFFFFFF, false);
     }
 
     public boolean inside(double mx, double my) {
@@ -61,7 +79,7 @@ public final class SearchBox {
     /** Tippen: bei Fokus oder wenn ein Buchstabe ohne Fokus kommt (Suche startet von selbst). */
     public boolean charTyped(CharacterEvent e) {
         String c = e.codepointAsString();
-        if (!focused && !c.matches("[\\p{L}\\p{N}]")) return false;
+        if (!focused && (!autoType || !c.matches("[\\p{L}\\p{N}]"))) return false;
         if (!e.isAllowedChatCharacter() || query.length() > 40) return focused;
         focused = true;
         query += c;

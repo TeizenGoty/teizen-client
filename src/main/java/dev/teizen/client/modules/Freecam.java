@@ -20,7 +20,9 @@ public final class Freecam extends Module {
     public final Setting showPlayer = add(Setting.bool("spielerzeigen", "Dich selbst sehen, während die Kamera weg ist", true));
     public final Setting hideHand = add(Setting.bool("handweg", "Hand und Item in der Hand ausblenden", true));
     public final Setting interact = add(Setting.bool("interagieren", "Mit der Kamera abbauen/benutzen erlauben (sonst gesperrt)", false));
-    public final Setting seeWalls = add(Setting.bool("durchwaende", "In Wänden alles sichtbar machen (AUS lassen, wenn du Sodium/Iris nutzt – kann abstürzen)", false));
+    public final Setting seeWalls = add(Setting.bool("allessehen", "Alles sehen wie bei der Freecam-Mod, auch in und hinter Wänden (wenn das Spiel damit Probleme macht: ausschalten)", true));
+    /** "allessehen" wird erst im nächsten Tick eingeschaltet (nicht mitten im Einschalten). */
+    private boolean cullPending;
 
     public ArmorStand cam;
     /** Wie oft der eigene Spieler extra gezeichnet wurde (Selbsttest). */
@@ -89,7 +91,7 @@ public final class Freecam extends Module {
         mc.setCameraEntity(cam);
         vel = Vec3.ZERO;
         // in Wänden nicht alles schwarz/unsichtbar: Sicht-Verdeckung (Culling) aus, solange die Kamera frei ist
-        if (seeWalls.on()) { try { savedSmartCull = mc.smartCull; mc.smartCull = false; smartCullTouched = true; } catch (Throwable ignored) {} }
+        cullPending = true;
     }
 
     @Override
@@ -138,6 +140,14 @@ public final class Freecam extends Module {
         if (cam == null) { start(); return; }
         if (cam.level() != mc.level || mc.getCameraEntity() != cam) { setEnabled(false); return; }
         if (!(mc.player.input.getClass() == ClientInput.class)) { savedInput = mc.player.input; mc.player.input = new ClientInput(); }
+        // Sicht-Verdeckung aus/an (folgt der Einstellung auch während die Kamera fliegt)
+        if (cullPending || smartCullTouched != seeWalls.on()) {
+            cullPending = false;
+            try {
+                if (seeWalls.on() && !smartCullTouched) { savedSmartCull = mc.smartCull; mc.smartCull = false; smartCullTouched = true; }
+                else if (!seeWalls.on() && smartCullTouched) { mc.smartCull = savedSmartCull; smartCullTouched = false; }
+            } catch (Throwable ignored) {}
+        }
         cam.setOldPosAndRot();
         double f = (mc.options.keyUp.isDown() ? 1 : 0) - (mc.options.keyDown.isDown() ? 1 : 0);
         double s = (mc.options.keyLeft.isDown() ? 1 : 0) - (mc.options.keyRight.isDown() ? 1 : 0);

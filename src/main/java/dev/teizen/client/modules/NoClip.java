@@ -19,8 +19,10 @@ import net.minecraft.world.phys.Vec3;
  * - Modus "zuschauer" (braucht OP): echter Zuschauer-Modus, durch alles hindurch.
  */
 public final class NoClip extends Module {
-    private final Setting mode = add(Setting.choice("modus", "fliegen = frei durch Wände fliegen (Kamera, nichts abbauen), abbauen = alles im Weg wird abgebaut, zuschauer = echter Zuschauer-Modus (OP)",
-            "fliegen", "fliegen", "abbauen", "zuschauer"));
+    private final Setting mode = add(Setting.choice("modus", "auto = in deiner eigenen Welt (oder mit OP) echt durch Wände, sonst als Kamera · kamera = nur die Kamera fliegt durch Wände · abbauen = alles im Weg wird abgebaut · zuschauer = echter Zuschauer-Modus (OP)",
+            "auto", "auto", "kamera", "abbauen", "zuschauer"));
+    /** Bei "auto": beim Einschalten entschieden, ob echt (Zuschauer) oder Kamera. */
+    private boolean autoSpec;
     private final Setting speed = add(Setting.number("tempo", "Flug-Tempo (Blöcke pro Tick beim Fliegen, im Zuschauer-Modus 1 = normal)", 1, 0.1, 10));
     private final Setting interact = add(Setting.bool("interagieren", "Beim Fliegen Kisten öffnen und schlagen erlauben", true));
     private GameType previous;
@@ -32,12 +34,12 @@ public final class NoClip extends Module {
     public int dug;
 
     public NoClip() {
-        super("NoClip", Category.BEWEGUNG, "Durch Wände fliegen (wie eine bessere Freecam, nichts wird abgebaut). Andere Modi: abbauen, zuschauer (OP).");
+        super("NoClip", Category.BEWEGUNG, "Durch Wände fliegen. Eigene Welt/OP: du selbst. Auf Servern ohne OP: als Kamera oder mit Abbauen.");
     }
 
-    private boolean spectatorMode() { return mode.is("zuschauer"); }
+    private boolean spectatorMode() { return mode.is("zuschauer") || (mode.is("auto") && autoSpec); }
 
-    private boolean flyMode() { return mode.is("fliegen"); }
+    private boolean flyMode() { return mode.is("kamera") || (mode.is("auto") && !autoSpec); }
 
     private Freecam cam() { return dev.teizen.client.TeizenClient.modules().get(Freecam.class); }
 
@@ -64,6 +66,8 @@ public final class NoClip extends Module {
         flyByUs = false;
         camByUs = false;
         if (!inGame()) return;
+        // eigene Welt oder OP: du selbst gehst durch die Wände. Sonst lässt der Server das nicht zu -> Kamera.
+        autoSpec = dev.teizen.client.util.Op.available();
         if (spectatorMode()) startSpectator();
         else if (flyMode()) startFly();
         else startDig();
@@ -72,7 +76,7 @@ public final class NoClip extends Module {
     private void startSpectator() {
         previous = mc.gameMode.getPlayerMode();
         enabledTick = mc.player.tickCount;
-        if (previous != GameType.SPECTATOR) mc.player.connection.sendCommand("gamemode spectator");
+        if (previous != GameType.SPECTATOR) dev.teizen.client.util.Op.run("gamemode spectator");
     }
 
     private void startDig() {
@@ -101,7 +105,7 @@ public final class NoClip extends Module {
         if (previous != null) {
             mc.player.getAbilities().setFlyingSpeed(0.05f);
             if (previous != GameType.SPECTATOR && mc.gameMode.getPlayerMode() == GameType.SPECTATOR)
-                mc.player.connection.sendCommand("gamemode " + previous.getName());
+                dev.teizen.client.util.Op.run("gamemode " + previous.getName());
         }
         previous = null;
     }
@@ -134,7 +138,7 @@ public final class NoClip extends Module {
                 mc.player.getAbilities().setFlyingSpeed((float) (0.05 * speed.num()));
             } else if (!warned && mc.player.tickCount - enabledTick > 60) {
                 warned = true;
-                Chat.error("NoClip Zuschauer-Modus braucht OP. Ohne OP: ///set noclip modus abbauen");
+                Chat.error("NoClip Zuschauer-Modus braucht OP. Ohne OP: ///set noclip modus kamera oder abbauen");
             }
             return;
         }
@@ -181,5 +185,5 @@ public final class NoClip extends Module {
     }
 
     @Override
-    public String info() { return spectatorMode() ? "Zuschauer" : flyMode() ? "fliegt" : "gräbt"; }
+    public String info() { return spectatorMode() ? "echt" : flyMode() ? "Kamera" : "gräbt"; }
 }
