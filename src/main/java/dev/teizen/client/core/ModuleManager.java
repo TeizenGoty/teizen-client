@@ -62,6 +62,7 @@ public final class ModuleManager {
         add(new ProjectileDodge());
         add(new ElytraReset());
         add(new ElytraFly());
+        add(new Autopilot());
         add(new BoatFly());
         add(new BoatNoclip());
         add(new Spider());

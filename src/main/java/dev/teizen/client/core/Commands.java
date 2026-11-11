@@ -465,6 +465,16 @@ public final class Commands {
                 Module.playToggle(true);
                 Chat.ok("Umschalt-Sound: " + (Module.sound ? "§aan §7(" + Module.soundName + ")" : "§caus") + " §7– Auswahl: ///sound liste");
             }
+            case "autopilot", "pilot" -> {
+                var ap = TeizenClient.modules().get(dev.teizen.client.modules.Autopilot.class);
+                if (a.length >= 2 && (a[1].equalsIgnoreCase("aus") || a[1].equalsIgnoreCase("stop"))) { ap.setEnabled(false); Chat.ok("Autopilot aus."); return; }
+                ap.setEnabled(false);
+                String rest = a.length >= 2 ? String.join(" ", java.util.Arrays.copyOfRange(a, 1, a.length)) : "";
+                if (rest.matches("-?\\d+(\\.\\d+)?[ ,]+(-?\\d+(\\.\\d+)?[ ,]+)?-?\\d+(\\.\\d+)?")) { ap.setting("ziel").setText(rest); }
+                else { ap.setting("ziel").setText(""); ap.setting("wegpunkt").setText(rest); }
+                Config.save();
+                ap.setEnabled(true);
+            }
             case "klick", "klicks", "click", "menuklick" -> {
                 if (a.length >= 2) {
                     if (!dev.teizen.client.gui.Clicks.set(a[1])) { Chat.error("Klick-Geräusche: " + String.join(", ", dev.teizen.client.gui.Clicks.NAMES)); return; }

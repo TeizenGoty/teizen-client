@@ -411,6 +411,28 @@ final class Round13Tests {
                 result("Glas-Menü: offen=" + yes(open) + ", Klick-Geräusch gespielt=" + (dev.teizen.client.gui.Clicks.played - before) + "x (" + dev.teizen.client.gui.Clicks.name()
                         + "), Tippen startet keine Suche=" + yes(shown == after) + " " + ok(open && dev.teizen.client.gui.Clicks.played - before == 2 && shown == after && shown > 50));
                 mc.gui.setScreen(null);
+                next();
+            }
+            // ------------------------------------------------ Autopilot (Art fly): 40 Blöcke weit fliegen und landen
+            case 728 -> {
+                if (!after(10)) return true;
+                Autopilot ap = get(Autopilot.class);
+                ap.setting("art").setText("fly");
+                ap.setting("hoehe").setNumber(mc.player.getY() + 8);
+                ap.target(mc.player.getX() + 40, mc.player.getZ(), "Test");
+                d1 = mc.player.getX() + 40;
+                on(ap);
+                next();
+            }
+            case 729 -> {
+                Autopilot ap = get(Autopilot.class);
+                if (ap.isEnabled() && !after(400)) return true;
+                double off = Math.abs(mc.player.getX() - d1);
+                result(String.format(Locale.ROOT, "Autopilot (fly): angekommen=%s, Abstand zum Ziel %.1f, gelandet und aus=%s %s",
+                        yes(ap.arrived), off, yes(!ap.isEnabled() && mc.player.onGround()), ok(ap.arrived && off < 6 && !ap.isEnabled())));
+                off(ap);
+                off(get(Fly.class));
+                ap.setting("art").setText("elytra");
                 SelfTest.jump(730);
             }
             // ------------------------------------------------ Neues Menü: AutoMine rechts, Kategorie Abbau, Schalter per Klick

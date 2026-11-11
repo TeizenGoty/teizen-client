@@ -35,6 +35,8 @@ public final class ElytraFly extends Module {
     /** Mixin (Elytra-Physik): unsere Geschwindigkeit statt der normalen, oder null. */
     public static Vec3 velocity(LivingEntity e) {
         if (TeizenClient.modules() == null || e != mc.player) return null;
+        Vec3 auto = Autopilot.velocity(e); // der Autopilot steuert, wenn er an ist
+        if (auto != null) return auto;
         ElytraFly m = TeizenClient.modules().get(ElytraFly.class);
         if (m == null || !m.isEnabled()) return null;
         return m.wanted();
