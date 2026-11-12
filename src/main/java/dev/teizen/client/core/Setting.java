@@ -20,6 +20,8 @@ public final class Setting {
     public final List<String> choices;
     /** Anzeigename je Listen-Eintrag (z.B. "village" -> "Dorf"), sonst der Eintrag selbst. */
     private java.util.function.Function<String, String> optionLabel;
+    /** Bei CHOICE: Liste kommt live (z.B. Wegpunkte), sonst die feste Liste choices. */
+    private java.util.function.Supplier<List<String>> dynamic;
 
     private Setting(String name, String description, Type type, double number, boolean bool, String text,
                     double min, double max, List<String> choices) {
@@ -48,6 +50,20 @@ public final class Setting {
 
     public static Setting choice(String name, String desc, String value, String... options) {
         return new Setting(name, desc, Type.CHOICE, 0, false, value, 0, 0, List.of(options));
+    }
+
+    /** Auswahl, deren Einträge erst zur Laufzeit feststehen (z.B. die Wegpunkte von Xaero's Karte). */
+    public static Setting dynamicChoice(String name, String desc, String value, java.util.function.Supplier<List<String>> options) {
+        Setting s = new Setting(name, desc, Type.CHOICE, 0, false, value, 0, 0, List.of());
+        s.dynamic = options;
+        return s;
+    }
+
+    /** Die Auswahlliste – live, wenn dynamisch, sonst die feste. Immer mindestens ein Eintrag. */
+    public List<String> choiceList() {
+        if (dynamic == null) return choices;
+        List<String> live = dynamic.get();
+        return live == null || live.isEmpty() ? List.of(str() == null ? "" : str()) : live;
     }
 
     /** Knopf im Menü (z.B. "Seedmap öffnen"): kein Wert, Anklicken führt {@code run} aus. */
@@ -137,10 +153,11 @@ public final class Setting {
                 else return "Bitte an oder aus angeben";
             }
             case CHOICE -> {
-                for (String c : choices) {
+                for (String c : choiceList()) {
                     if (c.equalsIgnoreCase(v)) { setText(c); return null; }
                 }
-                return "Möglich: " + String.join(", ", choices);
+                setText(v); // bei dynamischen Listen (Wegpunkte) auch einen Namen zulassen, der gerade nicht geladen ist
+                return null;
             }
             case TEXT -> setText(v);
             case MULTI -> setText(v.replace(" ", ","));

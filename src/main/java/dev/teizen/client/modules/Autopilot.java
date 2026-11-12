@@ -23,7 +23,8 @@ import net.minecraft.world.phys.Vec3;
 public final class Autopilot extends Module {
     private final Setting art = add(Setting.choice("art", "elytra = Elytra ohne Raketen · raketen = Elytra und verbraucht Raketen · fly = fliegen mit Fly", "elytra", "elytra", "raketen", "fly"));
     private final Setting ziel = add(Setting.text("ziel", "Ziel als \"X Z\" (z.B. 1200 -340). Leer lassen = Wegpunkt von Xaero's Karte nehmen", ""));
-    private final Setting wegpunkt = add(Setting.text("wegpunkt", "Name des Xaero-Wegpunkts. Leer = der neueste (oberste) Wegpunkt", ""));
+    private final Setting wegpunkt = add(Setting.dynamicChoice("wegpunkt", "Welchen Xaero-Wegpunkt anfliegen (anklicken = nächster). \"neuester\" = der zuletzt gesetzte. Gilt nur, wenn \"ziel\" leer ist.",
+            "neuester", dev.teizen.client.util.Waypoints::names));
     private final Setting tempo = add(Setting.number("tempo", "Tempo bei elytra/fly (Blöcke pro Tick, 1 = 20 Blöcke/s). Zu schnell = der Server setzt dich zurück", 1.5, 0.3, 4));
     private final Setting hoehe = add(Setting.number("hoehe", "Flughöhe (Y)", 180, -60, 400));
     private final Setting minHalt = add(Setting.number("minhaltbarkeit", "Elytra unter so viel Prozent: tauschen oder landen", 5, 1, 50));
@@ -70,10 +71,12 @@ public final class Autopilot extends Module {
                 return false;
             }
         }
-        var w = Waypoints.find(wegpunkt.str());
+        String wp = wegpunkt.str();
+        if (wp == null || wp.equalsIgnoreCase("neuester")) wp = "";
+        var w = Waypoints.find(wp);
         if (w == null) {
-            Chat.error(wegpunkt.str().isBlank() ? "Autopilot: kein Ziel. Trag \"ziel\" ein oder erstell einen Wegpunkt auf Xaero's Karte."
-                    : "Autopilot: Wegpunkt \"" + wegpunkt.str() + "\" nicht gefunden.");
+            Chat.error(wp.isBlank() ? "Autopilot: kein Ziel. Trag \"ziel\" ein oder erstell einen Wegpunkt auf Xaero's Karte."
+                    : "Autopilot: Wegpunkt \"" + wp + "\" nicht gefunden.");
             return false;
         }
         target(w.x() + 0.5, w.z() + 0.5, w.name());

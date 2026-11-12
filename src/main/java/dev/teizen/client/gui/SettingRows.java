@@ -126,7 +126,7 @@ public final class SettingRows {
                 case NUMBER -> " (anklicken = Zahl eintippen, " + Setting.fmt(s.min) + " bis " + Setting.fmt(s.max) + ")";
                 case TEXT -> " (anklicken = Text eintippen)";
                 case MULTI -> " (anklicken = Liste auf/zu, Rechtsklick = Text eintippen)";
-                case CHOICE -> " (" + String.join(" / ", s.choices) + ")";
+                case CHOICE -> s.choiceList().size() <= 6 ? " (" + String.join(" / ", s.choiceList()) + ")" : " (" + s.choiceList().size() + " zur Auswahl – klicken)";
                 default -> "";
             };
             ClickGui.tip(g, font, MenuFont.comp(s.description + extra), mouseX, mouseY);
@@ -143,8 +143,8 @@ public final class SettingRows {
                 switch (s.type) {
                     case BOOL -> s.setBool(!s.on());
                     case CHOICE -> {
-                        List<String> c = s.choices;
-                        int i = c.indexOf(s.str());
+                        List<String> c = s.choiceList();
+                        int i = Math.max(0, c.indexOf(s.str()));
                         s.setText(c.get((i + (button == 1 ? c.size() - 1 : 1)) % c.size()));
                     }
                     case NUMBER, TEXT -> startEdit(m, s);

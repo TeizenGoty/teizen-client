@@ -56,6 +56,23 @@ public final class Waypoints {
         return out;
     }
 
+    private static List<String> nameCache = new ArrayList<>();
+    private static long nameCacheAt;
+
+    /** Namen aller Wegpunkte, "neuester" vorn – höchstens alle 2 Sekunden neu von der Platte gelesen. */
+    public static List<String> names() {
+        long now = System.currentTimeMillis();
+        if (now - nameCacheAt < 2000 && !nameCache.isEmpty()) return nameCache;
+        List<String> out = new ArrayList<>();
+        out.add("neuester");
+        java.util.LinkedHashSet<String> seen = new java.util.LinkedHashSet<>();
+        for (W w : all()) if (!w.name().isBlank()) seen.add(w.name());
+        out.addAll(seen);
+        nameCache = out;
+        nameCacheAt = now;
+        return out;
+    }
+
     /** Alle Wegpunkte (zuletzt geänderte Datei zuerst). */
     public static List<W> all() {
         List<W> out = new ArrayList<>();
