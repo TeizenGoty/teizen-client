@@ -27,7 +27,8 @@ import java.util.Map;
 /**
  * Auto-Brush: sucht wie der AutoMiner von selbst jeden Suspicious Sand / Gravel in der Nähe, läuft hin und
  * pinselt ihn mit einem Pinsel frei. Zerstört dabei nie einen Block – es wird nur gepinselt, nie gegraben.
- * Was herauskommt, würfelt der Server; das kann der Client nicht bestimmen.
+ * In der EIGENEN Welt (z.B. Hardcore) kann mit "beute" festgelegt werden, was herauskommt; auf Servern
+ * entscheidet das der Server und der Client kann es nicht ändern.
  */
 public final class AutoBrush extends Module {
     private final Setting what = add(Setting.multi("was", "Welche Blöcke freipinseln", "sand,gravel", "sand", "gravel"));
@@ -37,6 +38,8 @@ public final class AutoBrush extends Module {
     private final Setting show = add(Setting.bool("anzeigen", "Gefundene Blöcke mit Rahmen anzeigen", true));
     private final Setting human = add(Setting.bool("menschlich", "Weich drehen wie ein echter Spieler", true));
     private final Setting turnSpeed = add(Setting.number("drehtempo", "Wie schnell gedreht wird (Grad pro Sekunde)", 300, 60, 1500));
+    private final Setting loot = add(Setting.text("beute", "NUR in deiner eigenen Welt (z.B. Hardcore): was aus jedem freigepinselten Block kommt, z.B. diamond. Leer = normal. Auf Servern ohne Wirkung – da würfelt der Server.", ""));
+    private final Setting lootCount = add(Setting.number("beutemenge", "Wie viele davon herauskommen", 1, 1, 64));
 
     private final BlockScanner scanner = new BlockScanner(this::wanted, 3, 48).maxResults(4000);
     private BlockPos target;
@@ -96,6 +99,7 @@ public final class AutoBrush extends Module {
         scanner.tick();
         if (mc.player.tickCount % 10 == 0) scanner.validate();
         skip.entrySet().removeIf(e -> mc.player.tickCount - e.getValue() > 200);
+        if (!loot.str().isBlank() && mc.player.tickCount % 4 == 0) forceLoot();
 
         // Ziel prüfen / neu wählen
         if (!stillThere(target)) {
@@ -232,6 +236,58 @@ public final class AutoBrush extends Module {
         float dp = wantPitch - mc.player.getXRot();
         mc.player.setYRot(mc.player.getYRot() + Mth.clamp(dy, -max, max));
         mc.player.setXRot(Mth.clamp(mc.player.getXRot() + Mth.clamp(dp, -max, max), -90, 90));
+    }
+
+    // ------------------------------------------------------------ Beute festlegen (nur eigene Welt)
+
+    private static java.lang.reflect.Field ITEM_FIELD;
+    private int lootWarned = -1000;
+
+    /** In der eigenen Welt: den Inhalt der nahen Suspicious-Blöcke auf das gewählte Item setzen. */
+    private void forceLoot() {
+        String id = loot.str().trim();
+        net.minecraft.server.integrated.IntegratedServer server = mc.getSingleplayerServer();
+        if (server == null) {
+            if (mc.player.tickCount - lootWarned > 200) { lootWarned = mc.player.tickCount; Chat.error("AutoBrush: \"beute\" wirkt nur in deiner eigenen Welt (z.B. Hardcore), nicht auf Servern."); }
+            return;
+        }
+        var rl = net.minecraft.resources.Identifier.tryParse(id.contains(":") ? id : "minecraft:" + id);
+        if (rl == null || !net.minecraft.core.registries.BuiltInRegistries.ITEM.containsKey(rl)) {
+            if (mc.player.tickCount - lootWarned > 200) { lootWarned = mc.player.tickCount; Chat.error("AutoBrush: das Item \"" + id + "\" gibt es nicht. Beispiel: diamond, emerald, netherite_ingot."); }
+            return;
+        }
+        var item = net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(rl);
+        int count = lootCount.integer();
+        var dim = mc.level.dimension();
+        List<BlockPos> targets = new ArrayList<>(scanner.results());
+        if (targets.isEmpty()) return;
+        server.execute(() -> {
+            net.minecraft.server.level.ServerLevel sl = server.getLevel(dim);
+            if (sl == null) return;
+            java.lang.reflect.Field f = itemField();
+            if (f == null) return;
+            try {
+                for (BlockPos p : targets) {
+                    var be = sl.getBlockEntity(p);
+                    if (be instanceof net.minecraft.world.level.block.entity.BrushableBlockEntity) {
+                        f.set(be, new net.minecraft.world.item.ItemStack(item, count));
+                        be.setChanged();
+                    }
+                }
+            } catch (Throwable ignored) {}
+        });
+    }
+
+    private static java.lang.reflect.Field itemField() {
+        if (ITEM_FIELD != null) return ITEM_FIELD;
+        for (var f : net.minecraft.world.level.block.entity.BrushableBlockEntity.class.getDeclaredFields()) {
+            if (f.getType() == net.minecraft.world.item.ItemStack.class) {
+                try { f.setAccessible(true); } catch (Throwable ignored) {}
+                ITEM_FIELD = f;
+                break;
+            }
+        }
+        return ITEM_FIELD;
     }
 
     // ------------------------------------------------------------ Anzeige / Info
