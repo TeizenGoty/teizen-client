@@ -10,6 +10,11 @@ import net.minecraft.world.entity.player.Abilities;
  * Leertaste = hoch, Shift = runter, Sprinten = 8x so schnell (einstellbar).
  */
 public final class Fly extends Module {
+    private final Setting mode = add(Setting.choice("modus", "kreativ = frei fliegen wie im Kreativmodus (am stärksten, fällt aber am meisten auf) · gleiten = langsam sinken wie mit Federfall (unauffälliger) · sprung = Sprünge in der Luft (sieht aus wie Hüpfen)",
+            "kreativ", "kreativ", "gleiten", "sprung"));
+    private final Setting airSpeed = add(Setting.number("lufttempo", "Tempo bei gleiten/sprung (0.28 = wie Sprinten – schneller fällt eher auf)", 0.28, 0.1, 1.5));
+    /** Modus sprung: auf dieser Höhe wird wieder gesprungen. */
+    private double baseY = Double.NaN;
     private final Setting speed = add(Setting.number("tempo", "Flug-Tempo (1 = wie Kreativ, 0.5 = halb so schnell)", 2, 0.1, 10));
     private final Setting doubleJump = add(Setting.bool("doppelsprung", "Wie im Kreativ: 2x Leertaste zum Fliegen (aus = immer fliegen)", true));
     private final Setting sprintFactor = add(Setting.number("sprint", "Mit Sprinten so viel schneller", 8, 1, 20));
@@ -40,6 +45,8 @@ public final class Fly extends Module {
     protected void onEnable() {
         if (!inGame()) return;
         hadMayfly = mc.player.getAbilities().mayfly;
+        baseY = Double.NaN;
+        if (special()) return;
         // schon in der Luft? Dann gleich fliegen, damit man nicht runterfällt
         if (!mc.player.onGround()) mc.player.getAbilities().flying = true;
     }
@@ -62,6 +69,7 @@ public final class Fly extends Module {
     public void onTick() {
         if (!inGame()) return;
         Abilities a = mc.player.getAbilities();
+        if (special()) { tickSpecial(a); return; }
         a.mayfly = true;
         if (!doubleJump.on()) a.flying = true;
         // Minecraft verdoppelt beim Sprinten selbst -> den Rest hier dazu
@@ -89,6 +97,40 @@ public final class Fly extends Module {
         if (h > cap) { v = new net.minecraft.world.phys.Vec3(v.x * cap / h, v.y, v.z * cap / h); p.setDeltaMovement(v); }
         if (Math.abs(v.y) > cap) p.setDeltaMovement(v.x, Math.signum(v.y) * cap, v.z);
         if (antiKick.on() && floatStage == 0 && !mc.player.onGround() && ++ticks % 20 == 0) floatStage = 3;
+    }
+
+    /** Unauffälligere Modi (nicht, wenn der Autopilot mit Fly fliegt). */
+    private boolean special() {
+        if (mode.is("kreativ")) return false;
+        Autopilot ap = dev.teizen.client.TeizenClient.modules().get(Autopilot.class);
+        return ap == null || !ap.isEnabled();
+    }
+
+    /** gleiten / sprung: kein Kreativ-Flug, sondern Bewegungen, die es im Spiel auch ohne Cheat ähnlich gibt. */
+    private void tickSpecial(Abilities a) {
+        var p = mc.player;
+        if (!p.isCreative() && !p.isSpectator()) { a.flying = false; a.mayfly = hadMayfly; }
+        if (p.onGround() || p.isInWater() || p.isInLava() || p.isFallFlying()) { baseY = p.getY(); return; }
+        if (noFall.on()) p.fallDistance = 0;
+        double fw = (mc.options.keyUp.isDown() ? 1 : 0) - (mc.options.keyDown.isDown() ? 1 : 0);
+        double st = (mc.options.keyLeft.isDown() ? 1 : 0) - (mc.options.keyRight.isDown() ? 1 : 0);
+        double len = Math.hypot(fw, st), sp = airSpeed.num();
+        double yaw = Math.toRadians(p.getYRot()), vx = 0, vz = 0;
+        if (len > 0) {
+            fw /= len; st /= len;
+            vx = (st * Math.cos(yaw) - fw * Math.sin(yaw)) * sp;
+            vz = (fw * Math.cos(yaw) + st * Math.sin(yaw)) * sp;
+        }
+        boolean jump = mc.options.keyJump.isDown(), sneak = mc.options.keyShift.isDown();
+        double vy = p.getDeltaMovement().y;
+        if (mode.is("gleiten")) vy = jump ? 0.3 : sneak ? -0.6 : -0.04; // -0.04: für den Server kein "Schweben"
+        else {
+            if (Double.isNaN(baseY)) baseY = p.getY();
+            if (jump) baseY += 0.25;
+            if (sneak) baseY -= 0.4;
+            if (vy <= 0 && p.getY() <= baseY) vy = 0.42; // ein ganz normaler Sprung, nur in der Luft
+        }
+        p.setDeltaMovement(vx, vy, vz);
     }
 
     /**
@@ -293,7 +335,7 @@ public final class Fly extends Module {
     private static double restoreY = Double.NaN;
 
     @Override
-    public String info() { return Setting.fmt(speed.num()) + (mc.player != null && !mc.player.getAbilities().flying ? " §8(2x Leertaste)" : ""); }
+    public String info() { return !mode.is("kreativ") ? mode.str() : Setting.fmt(speed.num()) + (mc.player != null && !mc.player.getAbilities().flying ? " §8(2x Leertaste)" : ""); }
 
     /** Läuft jeden Tick (auch wenn Fly aus ist): Schutz nach dem Ausschalten in der Luft. */
     public void fallGuard() {
