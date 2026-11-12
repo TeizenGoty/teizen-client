@@ -246,7 +246,7 @@ public final class AutoBrush extends Module {
     /** In der eigenen Welt: den Inhalt der nahen Suspicious-Blöcke auf das gewählte Item setzen. */
     private void forceLoot() {
         String id = loot.str().trim();
-        net.minecraft.server.integrated.IntegratedServer server = mc.getSingleplayerServer();
+        net.minecraft.client.server.IntegratedServer server = mc.getSingleplayerServer();
         if (server == null) {
             if (mc.player.tickCount - lootWarned > 200) { lootWarned = mc.player.tickCount; Chat.error("AutoBrush: \"beute\" wirkt nur in deiner eigenen Welt (z.B. Hardcore), nicht auf Servern."); }
             return;
