@@ -107,6 +107,7 @@ public final class ModuleManager {
         add(new AutoReconnect());
         add(new ChestStealer());
         add(new AutoFish());
+        add(new AutoBrush());
         add(new AutoReplant());
         add(new VillagerRoller());
         add(new MoreDurability());
