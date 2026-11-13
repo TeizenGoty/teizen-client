@@ -164,6 +164,7 @@ final class Round13Tests {
 
     private Round13Tests() {}
 
+    private static BlockPos brushPos;
     private static void cmd(String c) { SelfTest.cmd2(c); }
     private static boolean after(int t) { return SelfTest.after2(t); }
     private static int local() { return SelfTest.local(); }
@@ -400,6 +401,7 @@ final class Round13Tests {
             case 727 -> {
                 if (!after(20)) return true;
                 SelfTest.shot2("94a-menue-alle");
+                SelfTest.log2("Wegpunkte: " + dev.teizen.client.util.Waypoints.all().size() + " – " + dev.teizen.client.util.Waypoints.source);
                 boolean open = mc.gui.screen() instanceof dev.teizen.client.gui.ClickGui;
                 int before = dev.teizen.client.gui.Clicks.played;
                 dev.teizen.client.gui.Clicks.cycle(1);
@@ -430,9 +432,50 @@ final class Round13Tests {
                 double off = Math.abs(mc.player.getX() - d1);
                 result(String.format(Locale.ROOT, "Autopilot (fly): angekommen=%s, Abstand zum Ziel %.1f, gelandet und aus=%s %s",
                         yes(ap.arrived), off, yes(!ap.isEnabled() && mc.player.onGround()), ok(ap.arrived && off < 6 && !ap.isEnabled())));
+                SelfTest.log2("Autopilot-Test: angekommen=" + ap.arrived + " abstand=" + off);
                 off(ap);
                 off(get(Fly.class));
                 ap.setting("art").setText("elytra");
+                SelfTest.jump(710);
+            }
+            // ------------------------------------------------ AutoBrush: hinter einer Erdwand liegt Suspicious Sand
+            case 710 -> {
+                if (!after(20)) return true;
+                BlockPos b = mc.player.blockPosition();
+                int x = b.getX(), y = b.getY(), z = b.getZ();
+                cmd("fill " + (x - 1) + " " + (y - 1) + " " + (z - 1) + " " + (x + 8) + " " + (y - 1) + " " + (z + 1) + " stone");
+                cmd("fill " + (x - 1) + " " + y + " " + (z - 2) + " " + (x + 8) + " " + (y + 3) + " " + (z + 2) + " air");
+                cmd("fill " + (x - 1) + " " + y + " " + (z - 2) + " " + (x + 8) + " " + (y + 2) + " " + (z - 2) + " stone");
+                cmd("fill " + (x - 1) + " " + y + " " + (z + 2) + " " + (x + 8) + " " + (y + 2) + " " + (z + 2) + " stone");
+                cmd("fill " + (x + 3) + " " + y + " " + (z - 1) + " " + (x + 3) + " " + (y + 2) + " " + (z + 1) + " dirt");
+                cmd("setblock " + (x + 7) + " " + y + " " + z + " minecraft:suspicious_sand");
+                cmd("item replace entity @s hotbar.4 with minecraft:brush");
+                brushPos = new BlockPos(x + 7, y, z);
+                next();
+            }
+            case 711 -> {
+                if (!after(20)) return true;
+                AutoBrush ab = get(AutoBrush.class);
+                ab.setting("beute").setText("diamond");
+                ab.setting("beutemenge").setNumber(2);
+                on(ab);
+                next();
+            }
+            case 712 -> {
+                AutoBrush ab = get(AutoBrush.class);
+                var st = mc.level.getBlockState(brushPos);
+                boolean still = st.is(net.minecraft.world.level.block.Blocks.SUSPICIOUS_SAND);
+                if (still && !after(700)) return true;
+                int dia = 0;
+                for (var e : mc.level.entitiesForRendering())
+                    if (e instanceof net.minecraft.world.entity.item.ItemEntity ie && ie.getItem().is(net.minecraft.world.item.Items.DIAMOND)) dia += ie.getItem().getCount();
+                for (int i = 0; i < 36; i++) { var it = mc.player.getInventory().getItem(i); if (it.is(net.minecraft.world.item.Items.DIAMOND)) dia += it.getCount(); }
+                boolean sand = st.is(net.minecraft.world.level.block.Blocks.SAND);
+                result("AutoBrush: Block danach=" + st.getBlock().getName().getString() + " (heil geblieben=" + yes(sand) + "), Diamanten als Beute=" + dia
+                        + ", Abstand " + String.format(Locale.ROOT, "%.1f", Math.sqrt(mc.player.blockPosition().distSqr(brushPos))) + ", Status " + ab.info() + " " + ok(sand && dia >= 2));
+                SelfTest.log2("AutoBrush-Test: sand=" + sand + " dia=" + dia + " status=" + ab.info());
+                off(ab);
+                ab.setting("beute").setText("");
                 SelfTest.jump(730);
             }
             // ------------------------------------------------ Neues Menü: AutoMine rechts, Kategorie Abbau, Schalter per Klick

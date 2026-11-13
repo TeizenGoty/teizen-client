@@ -23,7 +23,7 @@ import net.minecraft.world.phys.Vec3;
 public final class Autopilot extends Module {
     private final Setting art = add(Setting.choice("art", "elytra = Elytra ohne Raketen · raketen = Elytra und verbraucht Raketen · fly = fliegen mit Fly", "elytra", "elytra", "raketen", "fly"));
     private final Setting ziel = add(Setting.text("ziel", "Ziel als \"X Z\" (z.B. 1200 -340). Leer lassen = Wegpunkt von Xaero's Karte nehmen", ""));
-    private final Setting wegpunkt = add(Setting.dynamicChoice("wegpunkt", "Welchen Xaero-Wegpunkt anfliegen (anklicken = nächster). \"neuester\" = der zuletzt gesetzte. Gilt nur, wenn \"ziel\" leer ist.",
+    private final Setting wegpunkt = add(Setting.dynamicChoice("wegpunkt", "Welchen Xaero-Wegpunkt anfliegen: in der Liste darunter anklicken (auch temporäre). \"neuester\" = der oberste. Gilt nur, wenn \"ziel\" leer ist.",
             "neuester", dev.teizen.client.util.Waypoints::names));
     private final Setting tempo = add(Setting.number("tempo", "Tempo bei elytra/fly (Blöcke pro Tick, 1 = 20 Blöcke/s). Zu schnell = der Server setzt dich zurück", 1.5, 0.3, 4));
     private final Setting hoehe = add(Setting.number("hoehe", "Flughöhe (Y)", 180, -60, 400));
@@ -47,8 +47,8 @@ public final class Autopilot extends Module {
 
     private static void listWaypoints() {
         var l = Waypoints.all();
-        if (l.isEmpty()) { Chat.error("Keine Xaero-Wegpunkte gefunden. Erstell einen auf der Karte (Rechtsklick)."); return; }
-        Chat.info("Xaero-Wegpunkte (" + l.size() + "):");
+        if (l.isEmpty()) { Chat.error("Keine Xaero-Wegpunkte gefunden. Erstell einen auf der Karte (Rechtsklick). §8[" + Waypoints.source + "]"); return; }
+        Chat.info("Xaero-Wegpunkte (" + l.size() + ") §8[" + Waypoints.source + "]§7:");
         int n = 0;
         for (var w : l) { Chat.raw("§7- §f" + w.name() + " §7(" + w.x() + ", " + w.z() + ")"); if (++n >= 15) break; }
     }

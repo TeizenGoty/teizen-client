@@ -22,7 +22,7 @@ import java.util.Set;
  * Liste (z.B. Erze): Klick klappt auf, "alle" = alle an/aus, dann einzeln an/aus.
  */
 public final class SettingRows {
-    public enum Kind { SETTING, MULTI_ALL, MULTI_OPTION }
+    public enum Kind { SETTING, MULTI_ALL, MULTI_OPTION, CHOICE_OPTION }
 
     public record Row(Kind kind, Setting setting, String option) {}
 
@@ -33,6 +33,7 @@ public final class SettingRows {
         openMulti.add("XRay/erze");
         openMulti.add("AutoMine/erze");
         openMulti.add("StructureFinder/strukturen");
+        openMulti.add("Autopilot/wegpunkt"); // Wegpunkte gleich als Liste zeigen
     }
 
     private Setting editing;
@@ -51,6 +52,9 @@ public final class SettingRows {
                 out.add(new Row(Kind.MULTI_ALL, s, null));
                 for (String c : s.choices) out.add(new Row(Kind.MULTI_OPTION, s, c));
             }
+            // Auswahl mit Live-Liste (Wegpunkte): aufgeklappt jede Möglichkeit als eigene Zeile zum Anklicken
+            if (s.type == Setting.Type.CHOICE && s.isDynamic() && openMulti.contains(key(m, s)))
+                for (String c : s.choiceList()) out.add(new Row(Kind.CHOICE_OPTION, s, c));
         }
         return out;
     }
@@ -87,6 +91,16 @@ public final class SettingRows {
                 MenuFont.text(g, font, (on ? "§f" : "§7") + label, x + 30, ty, 0xFFFFFFFF, false);
                 return;
             }
+            case CHOICE_OPTION -> {
+                boolean on = r.option().equalsIgnoreCase(s.str());
+                ClickGui.rr(g, x, y, x + w, y + h, 3, on ? 0x508B5CF6 : (hover ? 0x2AFFFFFF : 0x10FFFFFF));
+                ClickGui.rr(g, x + 12, ty, x + 20, ty + 8, 4, on ? 0xFF8B5CF6 : 0x40FFFFFF);
+                if (on) ClickGui.rr(g, x + 14, ty + 2, x + 18, ty + 6, 2, 0xFFFFFFFF);
+                String label = s.optionLabel(r.option());
+                if (MenuFont.width(font, label) > w - 30) label = MenuFont.cut(font, label, w - 30);
+                MenuFont.text(g, font, (on ? "§f" : "§7") + label, x + 25, ty, 0xFFFFFFFF, false);
+                return;
+            }
             default -> { }
         }
         if (s.type == Setting.Type.ACTION) {
@@ -115,6 +129,7 @@ public final class SettingRows {
             String value = switch (s.type) {
                 case BOOL -> s.on() ? "§aan" : "§caus";
                 case MULTI -> "§f" + s.display() + (openMulti.contains(key(m, s)) ? " §7▾" : " §7▸");
+                case CHOICE -> "§f" + s.display() + (s.isDynamic() ? (openMulti.contains(key(m, s)) ? " §7▾" : " §7▸") : "");
                 default -> "§f" + s.display();
             };
             label = "§7" + s.name + ": " + value;
@@ -139,10 +154,15 @@ public final class SettingRows {
         switch (r.kind()) {
             case MULTI_ALL -> s.toggleAll();
             case MULTI_OPTION -> s.toggleOption(r.option());
+            case CHOICE_OPTION -> s.setText(r.option());
             case SETTING -> {
                 switch (s.type) {
                     case BOOL -> s.setBool(!s.on());
                     case CHOICE -> {
+                        if (s.isDynamic()) { // Liste auf/zu, gewählt wird in der Liste
+                            if (!openMulti.remove(key(m, s))) openMulti.add(key(m, s));
+                            break;
+                        }
                         List<String> c = s.choiceList();
                         int i = Math.max(0, c.indexOf(s.str()));
                         s.setText(c.get((i + (button == 1 ? c.size() - 1 : 1)) % c.size()));

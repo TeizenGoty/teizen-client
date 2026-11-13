@@ -93,10 +93,76 @@ public final class Waypoints {
         return out;
     }
 
-    /** Alle Wegpunkte (zuletzt geänderte Datei zuerst). */
+    /** Für Selbsttest/Fehlersuche: wie die Wegpunkte zuletzt gelesen wurden. */
+    public static String source = "noch nicht gelesen";
+
+    private static Object call(Object o, String... names) throws Exception {
+        if (o == null) return null;
+        for (String n : names) {
+            try {
+                var m = o.getClass().getMethod(n);
+                m.setAccessible(true);
+                return m.invoke(o);
+            } catch (NoSuchMethodException ignored) {}
+        }
+        throw new NoSuchMethodException(o.getClass().getName() + "." + String.join("/", names));
+    }
+
+    /**
+     * Wegpunkte direkt aus Xaero's Minimap (der gerade geladenen Welt) – damit auch die temporären, die Xaero
+     * nicht in die Datei schreibt. Klappt das nicht (andere Xaero-Version), wird null zurückgegeben.
+     */
+    private static List<W> live() {
+        try {
+            Class<?> mods = Class.forName("xaero.hud.minimap.BuiltInHudModules");
+            Object module = mods.getField("MINIMAP").get(null);
+            Object session = call(module, "getCurrentSession");
+            if (session == null) { source = "Xaero: keine Sitzung"; return null; }
+            Object world = call(call(session, "getWorldManager"), "getCurrentWorld");
+            if (world == null) { source = "Xaero: keine Welt"; return null; }
+            List<Object> sets = new ArrayList<>();
+            try {
+                Object cur = call(world, "getCurrentWaypointSet", "getCurrentSet");
+                if (cur != null) sets.add(cur); // die gewählte Liste zuerst
+            } catch (Exception ignored) {}
+            try {
+                Object it = call(world, "getIterableWaypointSets", "getWaypointSets");
+                if (it instanceof Iterable<?> i) for (Object o : i) if (o != null && !sets.contains(o)) sets.add(o);
+            } catch (Exception ignored) {}
+            List<W> out = new ArrayList<>();
+            int temp = 0;
+            for (Object set : sets) {
+                Object wps = call(set, "getWaypoints", "getList");
+                if (!(wps instanceof Iterable<?> i)) continue;
+                for (Object w : i) {
+                    if (w == null) continue;
+                    String name = String.valueOf(call(w, "getName", "getNameSafe"));
+                    int x = ((Number) call(w, "getX")).intValue(), z = ((Number) call(w, "getZ")).intValue();
+                    boolean t = false;
+                    try { t = Boolean.TRUE.equals(call(w, "isTemporary")); } catch (Exception ignored) {}
+                    if (t) temp++;
+                    out.add(new W(name, x, z));
+                }
+            }
+            source = "Xaero direkt: " + out.size() + " Wegpunkte (" + temp + " temporär) in " + sets.size() + " Listen";
+            return out;
+        } catch (ClassNotFoundException e) {
+            source = "Xaero nicht da";
+            return null;
+        } catch (Throwable t) {
+            source = "Xaero direkt ging nicht: " + t;
+            return null;
+        }
+    }
+
+    /** Alle Wegpunkte der aktuellen Welt – direkt aus Xaero (mit temporären), sonst aus Xaeros Dateien. */
     public static List<W> all() {
+        List<W> live = live();
+        if (live != null && !live.isEmpty()) return live;
+        String why = source;
         List<W> out = new ArrayList<>();
         for (Path f : files()) out.addAll(read(f));
+        source = why + " -> Dateien: " + out.size();
         return out;
     }
 

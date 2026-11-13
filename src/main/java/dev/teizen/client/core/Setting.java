@@ -59,6 +59,9 @@ public final class Setting {
         return s;
     }
 
+    /** Liste kommt live (z.B. Wegpunkte) -> im Menü als aufklappbare Liste. */
+    public boolean isDynamic() { return dynamic != null; }
+
     /** Die Auswahlliste – live, wenn dynamisch, sonst die feste. Immer mindestens ein Eintrag. */
     public List<String> choiceList() {
         if (dynamic == null) return choices;

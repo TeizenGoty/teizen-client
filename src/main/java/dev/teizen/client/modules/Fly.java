@@ -202,13 +202,16 @@ public final class Fly extends Module {
         // Fallhöhe, die der Server VOR diesem Paket schon gespeichert hat (Client rechnet genauso mit)
         double storedFall = Math.max(0, p.fallDistance - (Double.isNaN(sentY) ? 0 : sentY - p.getY()));
         MaceSwap ms = dev.teizen.client.TeizenClient.modules().get(MaceSwap.class);
-        boolean maceDive = ms != null && ms.isEnabled() && Inv.findHotbar(dev.teizen.client.util.WeaponSwap::isMace) >= 0;
+        // Streitkolben in der Hand (oder MaceSwap an + Streitkolben in der Leiste): die Fallhöhe muss beim Server
+        // ankommen, sonst macht der Fall-Schlag keinen Extra-Schaden
+        boolean maceHeld = dev.teizen.client.util.WeaponSwap.isMace(p.getMainHandItem());
+        boolean maceDive = maceHeld || (ms != null && ms.isEnabled() && Inv.findHotbar(dev.teizen.client.util.WeaponSwap::isMace) >= 0);
         // nur "am Boden" melden, solange gespeichert < 3 Blöcke (= kein Schaden). Schon mehr gespeichert (z.B. nach
         // einem Elytra-Sturz) -> nichts tun, sonst gäbe es den Fallschaden sofort MITTEN IN DER LUFT. Mace-PvP: der
         // Streitkolben braucht die Fallhöhe, der Treffer setzt sie beim Server selbst zurück.
         boolean noFallWants = nf != null && nf.isEnabled() && falling && !maceDive && storedFall < 2.9
                 && fallStartY - p.getY() >= nf.from();
-        boolean flyWants = f != null && (f.noFall.on() || dipPacket) && (f.isEnabled() || f.guardUntilGround);
+        boolean flyWants = f != null && ((f.noFall.on() && !maceDive) || dipPacket) && (f.isEnabled() || f.guardUntilGround);
         // nie beim Elytra-Gleiten ("am Boden" würde das Gleiten beim Server beenden)
         if (noFallWants && sentY - p.getY() > 2.9 && mc.level.noCollision(p, p.getBoundingBox().move(0, sentY - 2.9 - p.getY(), 0))) {
             // sehr langer Sturz (> 3 Blöcke pro Tick) -> etwas bremsen, sonst Schaden pro Paket
