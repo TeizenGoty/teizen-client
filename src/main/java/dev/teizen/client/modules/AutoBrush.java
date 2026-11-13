@@ -3,6 +3,7 @@ package dev.teizen.client.modules;
 import dev.teizen.client.core.Module;
 import dev.teizen.client.core.Setting;
 import dev.teizen.client.util.BlockScanner;
+import dev.teizen.client.util.Breaker;
 import dev.teizen.client.util.Chat;
 import dev.teizen.client.util.Draw;
 import dev.teizen.client.util.Inv;
@@ -35,6 +36,7 @@ public final class AutoBrush extends Module {
     private final Setting radius = add(Setting.number("radius", "Suchradius in Chunks", 3, 1, 8));
     private final Setting nodes = add(Setting.number("suchtiefe", "Wie weit der Weg gesucht wird", 4000, 500, 20000));
     private final Setting walk = add(Setting.bool("hinlaufen", "Von selbst zum nächsten Block laufen (aus = nur pinseln, was in Reichweite ist)", true));
+    private final Setting dig = add(Setting.bool("graben", "Blöcke im Weg wegräumen, um ranzukommen (nie einen Suspicious-Block – die bleiben heil)", true));
     private final Setting show = add(Setting.bool("anzeigen", "Gefundene Blöcke mit Rahmen anzeigen", true));
     private final Setting human = add(Setting.bool("menschlich", "Weich drehen wie ein echter Spieler", true));
     private final Setting turnSpeed = add(Setting.number("drehtempo", "Wie schnell gedreht wird (Grad pro Sekunde)", 300, 60, 1500));
@@ -81,6 +83,7 @@ public final class AutoBrush extends Module {
     @Override
     protected void onDisable() {
         releaseKeys();
+        Breaker.stop();
         scanner.clear();
         target = null;
         path = null;
@@ -117,9 +120,25 @@ public final class AutoBrush extends Module {
         double dist = mc.player.getEyePosition().distanceTo(center);
         double reach = mc.player.blockInteractionRange();
         if (dist <= reach + 0.2) {
-            releaseKeys();
-            brush(center);
-        } else if (walk.on()) {
+            BlockPos blockingPos = obstacle(target);
+            if (blockingPos == null) {
+                // frei sichtbar und in Reichweite -> pinseln
+                Breaker.stop();
+                releaseKeys();
+                brush(center);
+            } else if (dig.on() && !wantedPos(blockingPos) && Breaker.canBreak(blockingPos) && MinePath.canClear(mc.level, blockingPos)) {
+                // etwas davor -> wegräumen (nie ein Suspicious-Block)
+                releaseKeys();
+                status = "gräbt frei";
+                float[] r = Rot.to(Vec3.atCenterOf(blockingPos));
+                aim(r[0], r[1]);
+                Breaker.tick(blockingPos, true, true);
+            } else {
+                skip.put(target, mc.player.tickCount);
+                target = null;
+                releaseKeys();
+            }
+        } else if (walk.on() || dig.on()) {
             mc.options.keyUse.setDown(false);
             goTo();
         } else {
@@ -128,6 +147,13 @@ public final class AutoBrush extends Module {
             skip.put(target, mc.player.tickCount);
             target = null;
         }
+    }
+
+    /** Block, der zwischen Auge und Ziel im Weg ist (null = freie Sicht auf das Ziel). */
+    private BlockPos obstacle(BlockPos p) {
+        var hit = mc.level.clip(new net.minecraft.world.level.ClipContext(mc.player.getEyePosition(), Vec3.atCenterOf(p),
+                net.minecraft.world.level.ClipContext.Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player));
+        return hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS || hit.getBlockPos().equals(p) ? null : hit.getBlockPos();
     }
 
     /** Nächsten passenden Block wählen, den wir nicht gerade übersprungen haben. */
@@ -160,16 +186,21 @@ public final class AutoBrush extends Module {
         mc.options.keyUse.setDown(onTarget);
     }
 
-    // ------------------------------------------------------------ Hinlaufen (ohne zu graben)
+    // ------------------------------------------------------------ Hinlaufen (gräbt sich frei, aber nie einen Suspicious-Block)
 
     private void goTo() {
-        status = "läuft hin";
+        status = dig.on() ? "gräbt sich hin" : "läuft hin";
         BlockPos feet = mc.player.blockPosition();
         if (path == null || index >= path.size()) {
-            path = MinePath.find(feet, target.above(), mc.player.blockInteractionRange(), nodes.integer(), false);
+            var old = MinePath.forbid;
+            MinePath.forbid = this::wantedPos; // Suspicious-Blöcke nie zum Weg freiräumen
+            try {
+                path = MinePath.find(feet, target.above(), mc.player.blockInteractionRange(), nodes.integer(), false);
+            } finally {
+                MinePath.forbid = old;
+            }
             index = 0;
             if (path == null || path.isEmpty()) {
-                // nicht ohne Graben erreichbar -> überspringen, nichts zerstören
                 skip.put(target, mc.player.tickCount);
                 target = null;
                 releaseKeys();
@@ -179,16 +210,26 @@ public final class AutoBrush extends Module {
         follow();
     }
 
+    private boolean wantedPos(BlockPos p) { return wanted(mc.level.getBlockState(p)); }
+
     private void follow() {
         MinePath.Step step = path.get(index);
-        // Schritt bräuchte Graben oder Setzen -> nicht machen (nichts zerstören), Ziel überspringen
-        boolean needsDig = false;
-        for (BlockPos c : step.clear()) if (!MinePath.passable(mc.level, c)) { needsDig = true; break; }
-        if (needsDig || (step.place() != null && MinePath.passable(mc.level, step.place()))) {
-            skip.put(target, mc.player.tickCount);
-            target = null;
-            path = null;
+        // Blöcke im Weg freigraben – aber nie einen Suspicious-Block (den wollen wir heil pinseln)
+        for (BlockPos c : step.clear()) {
+            if (MinePath.passable(mc.level, c)) continue;
+            if (wantedPos(c) || !dig.on() || !Breaker.canBreak(c) || !MinePath.canClear(mc.level, c)) {
+                // nicht freiräumbar -> Ziel überspringen, nichts kaputt machen
+                skip.put(target, mc.player.tickCount);
+                target = null;
+                path = null;
+                releaseKeys();
+                Breaker.stop();
+                return;
+            }
             releaseKeys();
+            status = "gräbt";
+            Breaker.tick(c, true, true);
+            stuck = 0;
             return;
         }
         BlockPos dest = step.pos();

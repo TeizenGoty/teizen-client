@@ -72,6 +72,8 @@ public final class Ids {
         if (p.contains("copper")) return "Kupfer";
         if (p.contains("quartz")) return "Quarz";
         if (p.contains("debris")) return "Antiker Schrott";
+        if (p.contains("suspicious_sand")) return "Verdächt. Sand";
+        if (p.contains("suspicious_gravel")) return "Verdächt. Kies";
         return b.getName().getString();
     }
 
@@ -88,6 +90,7 @@ public final class Ids {
         if (p.contains("copper")) return 0xFFE07A3C;
         if (p.contains("quartz")) return 0xFFF2EEE6;
         if (p.contains("debris")) return 0xFFB05A3C;
+        if (p.contains("suspicious")) return 0xFFE0B050;
         return 0xFFC08CFF;
     }
 }

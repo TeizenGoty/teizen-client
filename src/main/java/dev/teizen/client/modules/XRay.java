@@ -41,9 +41,11 @@ public final class XRay extends Module {
     public final Setting lava = add(Setting.bool("lava", "Auch Lava anzeigen (dezente orange Punkte)", false));
     public final Setting water = add(Setting.bool("wasser", "Auch Wasser unter der Erde anzeigen (dezente blaue Punkte)", false));
     public final Setting caves = add(Setting.bool("hoehlen", "Auch Höhlen anzeigen (blaue Punkte)", false));
+    public final Setting brush = add(Setting.bool("brush", "Auch Suspicious Sand/Gravel anzeigen (für den Pinsel/AutoBrush)", false));
 
     private Set<Block> blocks = new HashSet<>();
     private String lastOres = "";
+    private boolean lastBrush;
     public final BlockScanner scanner = new BlockScanner(this::matches, 4, 48);
     /** Lava / Wasser (nur die Oberfläche einer Lache, Wasser nur unter der Erde). */
     public final BlockScanner fluids = new BlockScanner(this::fluidMatches, 4, 32)
@@ -84,8 +86,13 @@ public final class XRay extends Module {
     private void rebuild() {
         Set<Block> set = new HashSet<>();
         for (String part : ores.str().split(",")) set.addAll(Ids.resolve(part.trim()));
+        if (brush.on()) {
+            set.add(net.minecraft.world.level.block.Blocks.SUSPICIOUS_SAND);
+            set.add(net.minecraft.world.level.block.Blocks.SUSPICIOUS_GRAVEL);
+        }
         blocks = set;
         lastOres = ores.str();
+        lastBrush = brush.on();
         scanner.restart();
     }
 
@@ -109,7 +116,7 @@ public final class XRay extends Module {
     @Override
     public void onTick() {
         if (!inGame()) return;
-        if (!ores.str().equals(lastOres)) rebuild();
+        if (!ores.str().equals(lastOres) || brush.on() != lastBrush) rebuild();
         int r = radius.integer();
         scanner.setRadius(r);
         scanner.tick();
