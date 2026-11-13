@@ -19,6 +19,20 @@ public final class Waypoints {
 
     public record W(String name, int x, int z) {}
 
+    /** Welt-Ordner eines Wegpunkt-Pfads: der Ordner direkt unter "minimap"/"XaeroWaypoints" (eine Welt bzw. ein Server). */
+    private static String worldKey(Path p) {
+        String s = p.toString().replace('\\', '/');
+        for (String root : new String[]{"/minimap/", "/XaeroWaypoints/"}) {
+            int i = s.indexOf(root);
+            if (i < 0) continue;
+            int start = i + root.length();
+            int end = s.indexOf('/', start);
+            if (end < 0) end = s.length();
+            return s.substring(0, end); // bis einschließlich Welt-Ordnername
+        }
+        return s;
+    }
+
     private static List<Path> files() {
         List<Path> out = new ArrayList<>();
         Path game = Minecraft.getInstance().gameDirectory.toPath();
@@ -29,16 +43,22 @@ public final class Waypoints {
                 s.filter(p -> p.getFileName().toString().endsWith(".txt") && Files.isRegularFile(p)).forEach(out::add);
             } catch (Throwable ignored) {}
         }
+        if (out.isEmpty()) return out;
         out.sort(Comparator.comparingLong((Path p) -> p.toFile().lastModified()).reversed());
-        // passend zur Dimension, wenn es solche Dateien gibt
+        // Nur die AKTUELLE Welt/Server: das ist der Welt-Ordner der zuletzt benutzten (neuesten) Datei.
+        // Xaero schreibt beim Betreten der Welt in genau diesen Ordner, also ist er der neueste.
+        String world = worldKey(out.get(0));
+        List<Path> here = new ArrayList<>();
+        for (Path p : out) if (worldKey(p).equals(world)) here.add(p);
+        // innerhalb der Welt: passend zur Dimension
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null) {
             String dim = mc.level.dimension() == Level.NETHER ? "dim%-1" : mc.level.dimension() == Level.END ? "dim%1" : "dim%0";
             List<Path> match = new ArrayList<>();
-            for (Path p : out) if (p.toString().replace('\\', '/').contains("/" + dim + "/")) match.add(p);
+            for (Path p : here) if (p.toString().replace('\\', '/').contains("/" + dim + "/")) match.add(p);
             if (!match.isEmpty()) return match;
         }
-        return out;
+        return here;
     }
 
     private static List<W> read(Path f) {
