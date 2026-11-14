@@ -37,9 +37,12 @@ public final class NoClip extends Module {
         super("NoClip", Category.BEWEGUNG, "Durch Wände fliegen. Eigene Welt/OP: du selbst. Auf Servern ohne OP: als Kamera oder mit Abbauen.");
     }
 
-    private boolean spectatorMode() { return mode.is("zuschauer") || (mode.is("auto") && autoSpec); }
+    /** Alles außer den drei festen Modi zählt als "auto" (z.B. ein alter gespeicherter Wert) – nie versehentlich graben. */
+    private boolean auto() { return !mode.is("kamera") && !mode.is("abbauen") && !mode.is("zuschauer"); }
 
-    private boolean flyMode() { return mode.is("kamera") || (mode.is("auto") && !autoSpec); }
+    private boolean spectatorMode() { return mode.is("zuschauer") || (auto() && autoSpec); }
+
+    private boolean flyMode() { return mode.is("kamera") || (auto() && !autoSpec); }
 
     private Freecam cam() { return dev.teizen.client.TeizenClient.modules().get(Freecam.class); }
 
@@ -67,7 +70,9 @@ public final class NoClip extends Module {
         camByUs = false;
         if (!inGame()) return;
         // eigene Welt oder OP: du selbst gehst durch die Wände. Sonst lässt der Server das nicht zu -> Kamera.
+        if (auto() && !mode.is("auto")) mode.setText("auto"); // alter Wert aus der gespeicherten Datei
         autoSpec = dev.teizen.client.util.Op.available();
+        if (mode.is("abbauen")) Chat.info("NoClip gräbt gerade (Modus abbauen). Durch Wände: stell bei NoClip den §fmodus§7 auf §fauto§7.");
         if (spectatorMode()) startSpectator();
         else if (flyMode()) startFly();
         else startDig();

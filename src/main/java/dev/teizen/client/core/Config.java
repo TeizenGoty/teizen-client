@@ -65,6 +65,7 @@ public final class Config {
             root.addProperty("toggleSound", Module.sound);
             root.addProperty("toggleSoundName", Module.soundName);
             root.addProperty("toggleSoundV2", true);
+            root.addProperty("noclipV2", true);
             root.addProperty("menuKlick", dev.teizen.client.gui.Clicks.current);
             root.addProperty("merken", Restore.enabled);
             JsonObject ms = new JsonObject();
@@ -121,6 +122,8 @@ public final class Config {
                         if (s.type == Setting.Type.ACTION) continue;
                         // Version 3: Pfeile sind kleiner geworden – alte große Pfeil-Größe nicht übernehmen
                         if (version < 3 && e.getKey().equals("pfeilgroesse")) continue;
+                        // NoClip einmalig auf "auto" (durch Wände): alte Dateien hatten "abbauen"/"fliegen" gespeichert
+                        if (!root.has("noclipV2") && m instanceof dev.teizen.client.modules.NoClip && e.getKey().equals("modus")) continue;
                         switch (s.type) {
                             case NUMBER -> s.setNumber(set.get(e.getKey()).getAsDouble());
                             case BOOL -> s.setBool(set.get(e.getKey()).getAsBoolean());

@@ -159,8 +159,9 @@ public final class Setting {
                 for (String c : choiceList()) {
                     if (c.equalsIgnoreCase(v)) { setText(c); return null; }
                 }
-                setText(v); // bei dynamischen Listen (Wegpunkte) auch einen Namen zulassen, der gerade nicht geladen ist
-                return null;
+                // nur bei Live-Listen (Wegpunkte) einen Namen zulassen, der gerade nicht geladen ist
+                if (dynamic != null) { setText(v); return null; }
+                return "Möglich: " + String.join(", ", choices);
             }
             case TEXT -> setText(v);
             case MULTI -> setText(v.replace(" ", ","));
