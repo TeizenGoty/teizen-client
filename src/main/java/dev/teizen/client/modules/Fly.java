@@ -205,7 +205,9 @@ public final class Fly extends Module {
         // Streitkolben in der Hand (oder MaceSwap an + Streitkolben in der Leiste): die Fallhöhe muss beim Server
         // ankommen, sonst macht der Fall-Schlag keinen Extra-Schaden
         boolean maceHeld = dev.teizen.client.util.WeaponSwap.isMace(p.getMainHandItem());
-        boolean maceDive = maceHeld || (ms != null && ms.isEnabled() && Inv.findHotbar(dev.teizen.client.util.WeaponSwap::isMace) >= 0);
+        // nur wenn bei NoFall "streitkolben" an ist: dann bleibt die Fallhöhe für den Fall-Schlag erhalten (kein Schutz)
+        boolean maceDive = nf != null && nf.mace.on()
+                && (maceHeld || (ms != null && ms.isEnabled() && Inv.findHotbar(dev.teizen.client.util.WeaponSwap::isMace) >= 0));
         // nur "am Boden" melden, solange gespeichert < 3 Blöcke (= kein Schaden). Schon mehr gespeichert (z.B. nach
         // einem Elytra-Sturz) -> nichts tun, sonst gäbe es den Fallschaden sofort MITTEN IN DER LUFT. Mace-PvP: der
         // Streitkolben braucht die Fallhöhe, der Treffer setzt sie beim Server selbst zurück.

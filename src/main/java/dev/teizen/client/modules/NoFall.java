@@ -12,6 +12,7 @@ import dev.teizen.client.core.Setting;
  */
 public final class NoFall extends Module {
     private final Setting from = add(Setting.number("ab", "Ab welcher Fallhöhe geschützt wird (Blöcke, höchstens 3 = kein Schaden)", 1, 0, 3));
+    public final Setting mace = add(Setting.bool("streitkolben", "AN = mit Streitkolben in der Hand KEIN Schutz, dafür macht der Fall-Schlag vollen Schaden. AUS = immer geschützt", false));
     /** Wie oft ein Paket als "am Boden" gemeldet wurde (Selbsttest). */
     public int saved;
 
