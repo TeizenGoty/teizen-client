@@ -211,7 +211,9 @@ public final class Fly extends Module {
         // Streitkolben braucht die Fallhöhe, der Treffer setzt sie beim Server selbst zurück.
         boolean noFallWants = nf != null && nf.isEnabled() && falling && !maceDive && storedFall < 2.9
                 && fallStartY - p.getY() >= nf.from();
-        boolean flyWants = f != null && ((f.noFall.on() && !maceDive) || dipPacket) && (f.isEnabled() || f.guardUntilGround);
+        // Beim Fliegen mit Fly immer schützen – auch mit Streitkolben (Fliegen ist kein Sturz). Der Fall-Schlag
+        // mit dem Streitkolben geht bei einem echten Sturz ohne Fly.
+        boolean flyWants = f != null && (f.noFall.on() || dipPacket) && (f.isEnabled() || f.guardUntilGround);
         // nie beim Elytra-Gleiten ("am Boden" würde das Gleiten beim Server beenden)
         if (noFallWants && sentY - p.getY() > 2.9 && mc.level.noCollision(p, p.getBoundingBox().move(0, sentY - 2.9 - p.getY(), 0))) {
             // sehr langer Sturz (> 3 Blöcke pro Tick) -> etwas bremsen, sonst Schaden pro Paket
