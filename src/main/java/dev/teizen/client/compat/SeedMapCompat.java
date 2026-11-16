@@ -115,6 +115,52 @@ public final class SeedMapCompat {
         }
     }
 
+    /** Seed Atlas: Ebene, Strukturen und ALLE Markierungen (auch Festung/Stronghold) einschalten. @return Anzahl Markierungen */
+    @SuppressWarnings({"rawtypes"})
+    public static int atlasShowAll() {
+        if (!seedAtlas()) return -1;
+        try {
+            Class<?> st = Class.forName("org.seedatlas.xaero.config.SeedAtlasClientState");
+            st.getMethod("setLayerEnabled", boolean.class).invoke(null, true);
+            st.getMethod("setStructuresEnabled", boolean.class).invoke(null, true);
+            Class mt = Class.forName("org.seedatlas.xaero.config.MarkerType");
+            Method setMarker = st.getMethod("setMarkerEnabled", String.class, boolean.class);
+            int n = 0;
+            for (Object m : mt.getEnumConstants()) {
+                setMarker.invoke(null, (String) mt.getMethod("id").invoke(m), true);
+                n++;
+            }
+            return n;
+        } catch (Throwable t) {
+            TeizenClient.LOG.warn("Seed Atlas: alle Markierungen einschalten ging nicht", t);
+            return -1;
+        }
+    }
+
+    private static String autoWorld;
+    /** Für Selbsttest/Meldung: was die automatische Übergabe zuletzt gemacht hat. */
+    public static String autoInfo = "";
+
+    /**
+     * Läuft jede Sekunde: ist der Seed dieser Welt bekannt (eigene Welt immer), bekommt Seed Atlas ihn von selbst
+     * und zeigt alle Strukturen – auch ohne dass der StructureFinder an ist.
+     */
+    public static void autoAtlas() {
+        if (!seedAtlas() || mc.player == null) return;
+        String w = dev.teizen.client.core.Seed.worldKey();
+        if (w.equals(autoWorld)) return;
+        // nur wenn der Seed ohne Nachfragen zu haben ist (eigene Welt oder schon bekannt) – kein /seed auf Servern
+        if (mc.getSingleplayerServer() == null && dev.teizen.client.core.Seed.known() == null) return;
+        autoWorld = w;
+        dev.teizen.client.core.Seed.fetch(sd -> {
+            if (sd == null) { autoWorld = null; return; }
+            if (clientCommand("seedatlas seed " + sd)) givenAtlas = sd;
+            int n = atlasShowAll();
+            autoInfo = "Seed " + sd + ", " + n + " Markierungen an";
+            TeizenClient.LOG.info("Seed Atlas automatisch: " + autoInfo);
+        });
+    }
+
     /** Sind bei Seed Atlas die Strukturen an? (Selbsttest) */
     public static boolean atlasStructuresOn() {
         try {

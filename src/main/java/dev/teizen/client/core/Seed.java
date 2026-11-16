@@ -426,6 +426,7 @@ public final class Seed {
         }
         var sfOwn = dev.teizen.client.TeizenClient.modules().get(dev.teizen.client.modules.StructureFinder.class);
         if (sfOwn != null) sfOwn.applyOwnSeed();
+        dev.teizen.client.compat.SeedMapCompat.autoAtlas();
         verifyManual();
         // Seed sicher bekannt -> SeedCrackerX pausieren; unbekannt oder eingegeben-aber-ungeprüft -> weiter knacken
         crackerRenderOff();
