@@ -190,9 +190,11 @@ public final class Fly extends Module {
         // und man stirbt beim nächsten Runterfliegen mitten in der Luft (vorher so passiert)
         // Der Server rechnet Fallschaden pro Paket: mehr als 3 Blöcke in EINEM Tick = Schaden, auch mit "am Boden".
         // Darum beim Fliegen mit Fallschutz höchstens 2.9 Blöcke pro Tick sinken.
-        if (f != null && f.isEnabled() && f.noFall.on() && !Double.isNaN(sentY) && sentY - p.getY() > 2.9 && !p.isFallFlying()) {
-            p.setPos(p.getX(), sentY - 2.9, p.getZ());
-            p.setDeltaMovement(p.getDeltaMovement().x, Math.max(p.getDeltaMovement().y, -2.9), p.getDeltaMovement().z);
+        // Der Server bekommt manchmal ZWEI Pakete in einem seiner Ticks und zählt deren Fallhöhe zusammen. Darum pro
+        // Paket höchstens MAX_DROP (zwei zusammen bleiben unter 3 Blöcken = kein Schaden).
+        if (f != null && f.isEnabled() && f.noFall.on() && !Double.isNaN(sentY) && sentY - p.getY() > MAX_DROP && !p.isFallFlying()) {
+            p.setPos(p.getX(), sentY - MAX_DROP, p.getZ());
+            p.setDeltaMovement(p.getDeltaMovement().x, Math.max(p.getDeltaMovement().y, -MAX_DROP), p.getDeltaMovement().z);
         }
         boolean falling = !p.onGround() && !Double.isNaN(sentY) && p.getY() < sentY - 0.001;
         if (!falling) fallStartY = Double.NaN;
@@ -217,10 +219,10 @@ public final class Fly extends Module {
         // mit dem Streitkolben geht bei einem echten Sturz ohne Fly.
         boolean flyWants = f != null && (f.noFall.on() || dipPacket) && (f.isEnabled() || f.guardUntilGround);
         // nie beim Elytra-Gleiten ("am Boden" würde das Gleiten beim Server beenden)
-        if (noFallWants && sentY - p.getY() > 2.9 && mc.level.noCollision(p, p.getBoundingBox().move(0, sentY - 2.9 - p.getY(), 0))) {
-            // sehr langer Sturz (> 3 Blöcke pro Tick) -> etwas bremsen, sonst Schaden pro Paket
-            p.setPos(p.getX(), sentY - 2.9, p.getZ());
-            p.setDeltaMovement(p.getDeltaMovement().x, -2.9, p.getDeltaMovement().z);
+        if (noFallWants && sentY - p.getY() > MAX_DROP && mc.level.noCollision(p, p.getBoundingBox().move(0, sentY - MAX_DROP - p.getY(), 0))) {
+            // schneller Sturz -> bremsen, sonst Schaden (zwei Pakete in einem Server-Tick zählen zusammen)
+            p.setPos(p.getX(), sentY - MAX_DROP, p.getZ());
+            p.setDeltaMovement(p.getDeltaMovement().x, -MAX_DROP, p.getDeltaMovement().z);
         }
         if ((flyWants || noFallWants) && !p.isCreative() && !p.isSpectator() && !p.isFallFlying() && falling) {
             p.setOnGround(true);
@@ -237,6 +239,8 @@ public final class Fly extends Module {
         sentY = p.getY();
     }
 
+    /** So viele Blöcke darf ein Bewegungs-Paket höchstens nach unten gehen (2 Pakete zusammen < 3 Blöcke). */
+    private static final double MAX_DROP = 1.45;
     /** Selbsttest: so viele Pakete mitloggen. */
     public static int logPackets;
     private static boolean dipPacket;
