@@ -539,6 +539,52 @@ final class Round13Tests {
                 dev.teizen.client.compat.LitematicaCompat.testOverride = null;
                 x.schem.setBool(false);
                 off(x);
+                next();
+            }
+            // ------------------------------------------------ XRay mit ECHTER Litematica-Schematic (teizentest)
+            case 716 -> {
+                if (!after(10)) return true;
+                if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica")) { result("XRay echte Schematic: Litematica fehlt"); SelfTest.jump(730); return true; }
+                dev.teizen.client.compat.LitematicaCompat.removePlacement("teizentest", null);
+                BlockPos o = mc.player.blockPosition().offset(3, 0, 3);
+                // Platz frei machen, ein Stück davon falsch füllen (Erde statt Steinziegel)
+                cmd("fill " + o.getX() + " " + o.getY() + " " + o.getZ() + " " + (o.getX() + 8) + " " + (o.getY() + 6) + " " + (o.getZ() + 8) + " air");
+                String err = dev.teizen.client.compat.LitematicaCompat.loadAndPlace("teizentest", o);
+                SelfTest.log2("XRay-Echt: laden=" + (err == null ? "ok" : err) + " platzierungen=" + dev.teizen.client.compat.LitematicaCompat.placementCount()
+                        + " boxen=" + dev.teizen.client.compat.LitematicaCompat.regionBoxes().size());
+                brushPos = o;
+                XRay x = get(XRay.class);
+                x.schem.setBool(true);
+                x.schemWhat.setText("falsch,fehlt");
+                x.schemBlocks.setText("");
+                on(x);
+                next();
+            }
+            case 717 -> {
+                if (!after(80)) return true;
+                XRay x = get(XRay.class);
+                int fehlt = 0, falsch = 0;
+                for (var k : x.schemCheck.results().values()) { if (k == dev.teizen.client.util.SchematicCheck.Kind.FEHLT) fehlt++; else if (k == dev.teizen.client.util.SchematicCheck.Kind.FALSCH) falsch++; }
+                int sample = 0, nonAir = 0;
+                for (BlockPos p : BlockPos.betweenClosed(brushPos, brushPos.offset(8, 6, 8))) {
+                    var st = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+                    sample++;
+                    if (st != null && !st.isAir()) nonAir++;
+                }
+                mc.player.setXRot(30);
+                mc.player.setYRot(-45);
+                SelfTest.shot2("95c-xray-echte-schematic");
+                SelfTest.log2("XRay-Echt: fehlt=" + fehlt + " falsch=" + falsch + " gezeichnet=" + x.schemDrawn + " hologramm=" + nonAir + "/" + sample
+                        + " boxen=" + dev.teizen.client.compat.LitematicaCompat.regionBoxes().stream().map(java.util.Arrays::toString).toList() + " ich=" + mc.player.blockPosition().toShortString());
+                result("XRay echte Schematic: fehlt=" + fehlt + ", gezeichnet=" + x.schemDrawn + " " + ok(fehlt > 0 && x.schemDrawn > 0));
+                next();
+            }
+            case 718 -> {
+                if (!after(5)) return true;
+                dev.teizen.client.compat.LitematicaCompat.removePlacement("teizentest", null);
+                XRay x = get(XRay.class);
+                x.schem.setBool(false);
+                off(x);
                 SelfTest.jump(730);
             }
             // ------------------------------------------------ Neues Menü: AutoMine rechts, Kategorie Abbau, Schalter per Klick
