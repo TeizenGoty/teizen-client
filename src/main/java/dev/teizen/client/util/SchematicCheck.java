@@ -22,9 +22,11 @@ public final class SchematicCheck {
 
     private static final Minecraft mc = Minecraft.getInstance();
     /** So viele Blöcke pro Tick prüfen. */
-    private static final int BUDGET = 6000;
-    /** Höchstens so viele Fehler merken. */
+    private static final int BUDGET = 15000;
+    /** Höchstens so viele FEHLENDE Blöcke merken (bei einem leeren Bau ist fast alles "fehlt"). Falsche immer. */
     private static final int MAX = 20000;
+    /** Erst dieser Umkreis um dich (damit das Nahe sofort da ist), dann der ganze. */
+    private static final int NEAR = 16;
     /** So viele der nächsten Fehler pro Tick neu prüfen (richtig gesetzt -> sofort weg). */
     private static final int RECHECK = 400;
 
@@ -36,6 +38,7 @@ public final class SchematicCheck {
     private int boxIdx;
     private int x, y, z;
     private boolean started;
+    private int fehlt;
 
     public static boolean available() {
         return FabricLoader.getInstance().isModLoaded("litematica");
@@ -64,11 +67,15 @@ public final class SchematicCheck {
         boxes = new ArrayList<>();
         BlockPos me = mc.player.blockPosition();
         int minY = mc.level.getMinY(), maxY = mc.level.getMinY() + mc.level.getHeight() - 1;
-        for (int[] b : LitematicaCompat.regionBoxes()) {
-            int[] c = {Math.max(b[0], me.getX() - radius), Math.max(Math.max(b[1], minY), me.getY() - radius), Math.max(b[2], me.getZ() - radius),
-                    Math.min(b[3], me.getX() + radius), Math.min(Math.min(b[4], maxY), me.getY() + radius), Math.min(b[5], me.getZ() + radius)};
-            if (c[0] <= c[3] && c[1] <= c[4] && c[2] <= c[5]) boxes.add(c);
+        List<int[]> regions = LitematicaCompat.regionBoxes();
+        for (int r : radius > NEAR ? new int[]{NEAR, radius} : new int[]{radius}) {
+            for (int[] b : regions) {
+                int[] c = {Math.max(b[0], me.getX() - r), Math.max(Math.max(b[1], minY), me.getY() - r), Math.max(b[2], me.getZ() - r),
+                        Math.min(b[3], me.getX() + r), Math.min(Math.min(b[4], maxY), me.getY() + r), Math.min(b[5], me.getZ() + r)};
+                if (c[0] <= c[3] && c[1] <= c[4] && c[2] <= c[5]) boxes.add(c);
+            }
         }
+        fehlt = 0;
         boxIdx = 0;
         if (!boxes.isEmpty()) { int[] c = boxes.get(0); x = c[0]; y = c[1]; z = c[2]; }
         building = new HashMap<>();
@@ -96,12 +103,12 @@ public final class SchematicCheck {
         while (budget-- > 0 && boxIdx < boxes.size()) {
             int[] c = boxes.get(boxIdx);
             m.set(x, y, z);
-            if (building.size() < MAX && mc.level.isLoaded(m)) {
+            if (mc.level.isLoaded(m)) {
                 Kind k = check(m);
-                if (k != null) {
+                if (k != null && (k != Kind.FEHLT || fehlt < MAX) && building.size() < MAX * 3) {
                     BlockPos p = m.immutable();
-                    building.put(p, k);
-                    if (shown.size() < MAX) shown.putIfAbsent(p, k);
+                    if (building.put(p, k) == null && k == Kind.FEHLT) fehlt++;
+                    shown.putIfAbsent(p, k);
                 }
             }
             if (++x > c[3]) {

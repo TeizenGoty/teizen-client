@@ -164,7 +164,7 @@ final class Round13Tests {
 
     private Round13Tests() {}
 
-    private static BlockPos brushPos;
+    private static BlockPos brushPos, wrongTop;
     private static void cmd(String c) { SelfTest.cmd2(c); }
     private static boolean after(int t) { return SelfTest.after2(t); }
     private static int local() { return SelfTest.local(); }
@@ -489,6 +489,15 @@ final class Round13Tests {
                 ov.put(b, net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState());                 // falsch
                 ov.put(b.east(2), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());        // fehlt
                 ov.put(b.east(4), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());        // passt
+                // großer, fast leerer Bau darüber (über 20.000 fehlende Blöcke) mit einem falschen Block ganz oben:
+                // der falsche muss trotzdem gefunden werden (vorher war die Liste schon mit "fehlt" voll)
+                BlockPos me0 = mc.player.blockPosition();
+                for (int dy = 4; dy <= 20; dy++)
+                    for (int dx = -20; dx <= 20; dx++)
+                        for (int dz = -20; dz <= 20; dz++)
+                            ov.put(me0.offset(dx, dy, dz), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+                wrongTop = me0.offset(5, 18, 5);
+                cmd("setblock " + wrongTop.getX() + " " + wrongTop.getY() + " " + wrongTop.getZ() + " dirt");
                 dev.teizen.client.compat.LitematicaCompat.testOverride = ov;
                 brushPos = b;
                 XRay x = get(XRay.class);
@@ -498,7 +507,7 @@ final class Round13Tests {
                 next();
             }
             case 714 -> {
-                if (!after(60)) return true;
+                if (!after(120)) return true;
                 XRay x = get(XRay.class);
                 var r = x.schemCheck.results();
                 var k1 = r.get(brushPos); var k2 = r.get(brushPos.east(2)); var k3 = r.get(brushPos.east(4));
@@ -506,6 +515,7 @@ final class Round13Tests {
                 result("XRay Schematic: falsch=" + k1 + " fehlt=" + k2 + " passt=" + k3 + " gezeichnet=" + x.schemDrawn + " "
                         + ok(k1 == dev.teizen.client.util.SchematicCheck.Kind.FALSCH && k2 == dev.teizen.client.util.SchematicCheck.Kind.FEHLT && k3 == null));
                 SelfTest.log2("XRay-Schematic-Test: " + k1 + " " + k2 + " " + k3 + " drawn=" + x.schemDrawn);
+                SelfTest.log2("XRay-Schematic-Gross: falschOben=" + r.get(wrongTop) + " fehler=" + r.size());
                 // Block-Liste: "stone" (fehlt) einzeln ausschalten -> nur noch 1 gezeichnet, "dirt" bleibt an
                 var bl = x.schemBlocks.choiceList();
                 int before = x.schemDrawn;
@@ -525,6 +535,7 @@ final class Round13Tests {
                 boolean gone = x.schemCheck.results().get(brushPos) == null;
                 result("XRay Schematic: richtig gesetzter Block verschwindet=" + yes(gone) + " " + ok(gone));
                 SelfTest.log2("XRay-Schematic-Fix: gone=" + gone);
+                cmd("setblock " + wrongTop.getX() + " " + wrongTop.getY() + " " + wrongTop.getZ() + " air");
                 dev.teizen.client.compat.LitematicaCompat.testOverride = null;
                 x.schem.setBool(false);
                 off(x);
