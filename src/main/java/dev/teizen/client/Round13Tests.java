@@ -498,7 +498,7 @@ final class Round13Tests {
                 next();
             }
             case 714 -> {
-                if (!after(40)) return true;
+                if (!after(60)) return true;
                 XRay x = get(XRay.class);
                 var r = x.schemCheck.results();
                 var k1 = r.get(brushPos); var k2 = r.get(brushPos.east(2)); var k3 = r.get(brushPos.east(4));

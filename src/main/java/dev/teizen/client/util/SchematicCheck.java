@@ -7,23 +7,31 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Vergleicht die Welt mit dem Litematica-Hologramm und merkt sich die Fehler (für XRay, durch Wände sichtbar).
- * Arbeitet in Häppchen über mehrere Ticks, damit es auch bei großen Bauten nicht ruckelt.
+ * Sparsam: prüft pro Tick nur ein kleines Stück, merkt sich höchstens MAX Fehler und sortiert nur alle halbe
+ * Sekunde – sonst laggt es bei einem großen, fast leeren Bau (da ist fast jeder Block "fehlt").
  */
 public final class SchematicCheck {
     public enum Kind { FALSCH, FEHLT, ZUSTAND, ZUVIEL }
 
     private static final Minecraft mc = Minecraft.getInstance();
     /** So viele Blöcke pro Tick prüfen. */
-    private static final int BUDGET = 40000;
+    private static final int BUDGET = 6000;
+    /** Höchstens so viele Fehler merken. */
+    private static final int MAX = 20000;
+    /** So viele der nächsten Fehler pro Tick neu prüfen (richtig gesetzt -> sofort weg). */
+    private static final int RECHECK = 400;
 
     private Map<BlockPos, Kind> shown = new HashMap<>();
     private Map<BlockPos, Kind> building = new HashMap<>();
+    private List<BlockPos> nearest = new ArrayList<>();
+    private int sortIn;
     private List<int[]> boxes = new ArrayList<>();
     private int boxIdx;
     private int x, y, z;
@@ -36,6 +44,7 @@ public final class SchematicCheck {
     public void clear() {
         shown = new HashMap<>();
         building = new HashMap<>();
+        nearest = new ArrayList<>();
         started = false;
     }
 
@@ -44,9 +53,8 @@ public final class SchematicCheck {
         BlockState want = LitematicaCompat.schematicState(p);
         if (want == null) return null;
         BlockState have = mc.level.getBlockState(p);
-        boolean wantAir = want.isAir(), haveAir = have.isAir() || have.canBeReplaced();
-        if (wantAir) return have.isAir() ? null : (have.canBeReplaced() ? null : Kind.ZUVIEL);
-        if (haveAir) return have.getBlock() == want.getBlock() ? null : Kind.FEHLT;
+        if (want.isAir()) return have.isAir() || have.canBeReplaced() ? null : Kind.ZUVIEL;
+        if (have.isAir() || have.canBeReplaced()) return have.getBlock() == want.getBlock() ? null : Kind.FEHLT;
         if (have.getBlock() != want.getBlock()) return Kind.FALSCH;
         return have.equals(want) ? null : Kind.ZUSTAND;
     }
@@ -67,34 +75,33 @@ public final class SchematicCheck {
         started = true;
     }
 
-    /** Einen Teil prüfen. Gefundene Fehler, die inzwischen richtig sind, verschwinden sofort. */
     public void tick(int radius) {
         if (mc.level == null || mc.player == null || !available()) return;
-        // schon gezeigte Fehler sofort neu prüfen (richtig gesetzt -> weg, ohne auf den Durchlauf zu warten)
-        if (!shown.isEmpty()) {
-            Map<BlockPos, Kind> next = new HashMap<>();
-            for (BlockPos p : shown.keySet()) {
-                Kind k = check(p);
-                if (k != null) next.put(p, k);
-            }
-            shown = next;
+        // die nächsten gezeigten Fehler neu prüfen: richtig gesetzt -> sofort weg
+        int n = Math.min(RECHECK, nearest.size());
+        for (int i = 0; i < n; i++) {
+            BlockPos p = nearest.get(i);
+            if (!shown.containsKey(p)) continue;
+            Kind k = check(p);
+            if (k == null) { shown.remove(p); building.remove(p); }
+            else shown.put(p, k);
         }
         if (!started || boxIdx >= boxes.size()) {
-            if (started) shown = building; // Durchlauf fertig -> neue Liste zeigen
+            if (started) { shown = building; sortIn = 0; } // Durchlauf fertig -> neue Liste zeigen
             restart(radius);
-            if (boxes.isEmpty()) { shown = new HashMap<>(); return; }
+            if (boxes.isEmpty()) { shown = new HashMap<>(); nearest = new ArrayList<>(); return; }
         }
         int budget = BUDGET;
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
         while (budget-- > 0 && boxIdx < boxes.size()) {
             int[] c = boxes.get(boxIdx);
             m.set(x, y, z);
-            if (mc.level.isLoaded(m)) {
+            if (building.size() < MAX && mc.level.isLoaded(m)) {
                 Kind k = check(m);
                 if (k != null) {
                     BlockPos p = m.immutable();
                     building.put(p, k);
-                    shown.putIfAbsent(p, k);
+                    if (shown.size() < MAX) shown.putIfAbsent(p, k);
                 }
             }
             if (++x > c[3]) {
@@ -102,12 +109,23 @@ public final class SchematicCheck {
                 if (++z > c[5]) {
                     z = c[2];
                     if (++y > c[4]) {
-                        if (++boxIdx < boxes.size()) { int[] n = boxes.get(boxIdx); x = n[0]; y = n[1]; z = n[2]; }
+                        if (++boxIdx < boxes.size()) { int[] nx = boxes.get(boxIdx); x = nx[0]; y = nx[1]; z = nx[2]; }
                     }
                 }
             }
         }
+        // nur alle 10 Ticks nach Entfernung sortieren (nicht jedes Bild)
+        if (--sortIn <= 0) {
+            sortIn = 10;
+            BlockPos me = mc.player.blockPosition();
+            List<BlockPos> l = new ArrayList<>(shown.keySet());
+            l.sort(Comparator.comparingDouble(p -> p.distSqr(me)));
+            nearest = l;
+        }
     }
 
     public Map<BlockPos, Kind> results() { return shown; }
+
+    /** Fehler nach Entfernung sortiert (nächste zuerst, alle halbe Sekunde neu). */
+    public List<BlockPos> nearest() { return nearest; }
 }

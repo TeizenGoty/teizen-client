@@ -49,6 +49,7 @@ public final class XRay extends Module {
     public final Setting schemBlocks = add(Setting.dynamicMulti("schematicbloecke",
             "Welche Blöcke markiert werden – einzeln an/aus. In der Liste stehen die Blöcke, die in deinem Bau gerade falsch sind oder fehlen",
             this::schemBlockList).labels(XRay::blockName));
+    private final Setting schemMax = add(Setting.number("schematicanzahl", "Höchstens so viele Bau-Fehler gleichzeitig zeigen (die nächsten). Weniger = weniger Lag", 150, 20, 1000));
     private final Setting schemRadius = add(Setting.number("schematicradius", "Wie weit um dich herum der Bau geprüft wird (Blöcke)", 48, 8, 160));
     public final dev.teizen.client.util.SchematicCheck schemCheck = new dev.teizen.client.util.SchematicCheck();
 
@@ -271,11 +272,17 @@ public final class XRay extends Module {
     /** Blöcke, die gerade als Fehler gefunden sind (häufigste zuerst) – für die Abhak-Liste. */
     private List<String> schemBlockList() {
         if (!inGame() || !dev.teizen.client.util.SchematicCheck.available()) return schemListCache;
-        if (mc.player.tickCount - schemListTick < 20 && mc.player.tickCount >= schemListTick) return schemListCache;
+        if (mc.player.tickCount - schemListTick < 40 && mc.player.tickCount >= schemListTick) return schemListCache;
         schemListTick = mc.player.tickCount;
         java.util.Map<String, Integer> count = new java.util.HashMap<>();
-        for (var e : schemCheck.results().entrySet())
-            if (schemShown(e.getValue())) count.merge(blockId(schemBlock(e.getKey(), e.getValue())), 1, Integer::sum);
+        var res = schemCheck.results();
+        int seen = 0;
+        for (BlockPos p : schemCheck.nearest()) { // nur die nächsten 3000 ansehen (reicht für die Liste)
+            var k = res.get(p);
+            if (k == null || !schemShown(k)) continue;
+            count.merge(blockId(schemBlock(p, k)), 1, Integer::sum);
+            if (++seen >= 3000) break;
+        }
         // ausgeschaltete Blöcke bleiben in der Liste (sonst kann man sie nicht wieder anmachen)
         for (String off : schemBlocks.selected()) count.putIfAbsent(off, 0);
         List<String> out = new ArrayList<>(count.keySet());
@@ -301,16 +308,20 @@ public final class XRay extends Module {
     /** Fehler im Litematica-Bau: Kästen durch Wände, die nächsten zuletzt (liegen oben). */
     private void drawSchematic(GuiGraphicsExtractor g) {
         if (!dev.teizen.client.util.SchematicCheck.available()) return;
+        // schon sortierte Liste nehmen (nicht jedes Bild alles sortieren) und nur die nächsten zeichnen
         List<BlockPos> list = new ArrayList<>();
-        for (var e : schemCheck.results().entrySet())
-            if (schemShown(e.getValue()) && schemBlockOk(e.getKey(), e.getValue())) list.add(e.getKey());
-        BlockPos me = mc.player.blockPosition();
-        list.sort(Comparator.comparingDouble(p -> p.distSqr(me)));
-        int max = Math.min(list.size(), maxShown.integer() * 3);
-        schemDrawn = max;
-        for (int i = max - 1; i >= 0; i--) {
+        int max = schemMax.integer();
+        var res = schemCheck.results();
+        for (BlockPos p : schemCheck.nearest()) {
+            var k = res.get(p);
+            if (k == null || !schemShown(k) || !schemBlockOk(p, k)) continue;
+            list.add(p);
+            if (list.size() >= max) break;
+        }
+        schemDrawn = list.size();
+        for (int i = list.size() - 1; i >= 0; i--) {
             BlockPos p = list.get(i);
-            var k = schemCheck.results().get(p);
+            var k = res.get(p);
             if (k == null) continue;
             AABB box = k == dev.teizen.client.util.SchematicCheck.Kind.FEHLT ? new AABB(p).deflate(0.15) : new AABB(p);
             Draw.worldBox(g, box, schemColor(k), true);
@@ -327,7 +338,7 @@ public final class XRay extends Module {
     public String info() {
         String o = ores.str().equals(DEFAULT_ORES) ? "" : ores.str() + " ";
         if (schem.on() && dev.teizen.client.util.SchematicCheck.available() && !schemCheck.results().isEmpty())
-            return o + scanner.results().size() + " · Bau " + schemCheck.results().size();
+            return o + scanner.results().size() + " · Bau " + (schemCheck.results().size() >= 20000 ? "20000+" : schemCheck.results().size());
         return o + scanner.results().size();
     }
 }
