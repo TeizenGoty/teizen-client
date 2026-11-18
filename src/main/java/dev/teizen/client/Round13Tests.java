@@ -485,11 +485,11 @@ final class Round13Tests {
                 cmd("setblock " + b.getX() + " " + b.getY() + " " + b.getZ() + " stone");
                 cmd("setblock " + (b.getX() + 2) + " " + b.getY() + " " + b.getZ() + " air");
                 cmd("setblock " + (b.getX() + 4) + " " + b.getY() + " " + b.getZ() + " stone");
-                var o = new java.util.HashMap<BlockPos, net.minecraft.world.level.block.state.BlockState>();
-                o.put(b, net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState());                 // falsch
-                o.put(b.east(2), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());        // fehlt
-                o.put(b.east(4), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());        // passt
-                dev.teizen.client.compat.LitematicaCompat.testOverride = o;
+                var ov = new java.util.HashMap<BlockPos, net.minecraft.world.level.block.state.BlockState>();
+                ov.put(b, net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState());                 // falsch
+                ov.put(b.east(2), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());        // fehlt
+                ov.put(b.east(4), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());        // passt
+                dev.teizen.client.compat.LitematicaCompat.testOverride = ov;
                 brushPos = b;
                 XRay x = get(XRay.class);
                 x.schem.setBool(true);
