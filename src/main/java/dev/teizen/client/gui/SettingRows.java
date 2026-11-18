@@ -34,6 +34,7 @@ public final class SettingRows {
         openMulti.add("AutoMine/erze");
         openMulti.add("StructureFinder/strukturen");
         openMulti.add("Autopilot/wegpunkt"); // Wegpunkte gleich als Liste zeigen
+        openMulti.add("XRay/schematicfehler"); // Fehler-Arten gleich zum Anhaken zeigen
     }
 
     private Setting editing;

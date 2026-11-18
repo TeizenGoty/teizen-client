@@ -45,6 +45,7 @@ public final class XRay extends Module {
     public final Setting schem = add(Setting.bool("schematic", "Litematica: Fehler im Bau durch Wände zeigen (lila = falscher Block, rot = da fehlt ein Block)", false));
     public final Setting schemWhat = add(Setting.multi("schematicfehler", "Welche Fehler: falsch (lila) · fehlt (rot) · richtung (gelb, falsche Richtung/Zustand) · zuviel (orange, Block wo Luft sein soll)",
             "falsch,fehlt", "falsch", "fehlt", "richtung", "zuviel"));
+    public final Setting schemBlocks = add(Setting.text("schematicbloecke", "Nur diese Blöcke markieren, mit Komma getrennt (z.B. stone,glass,oak_planks). Leer = alle Blöcke", ""));
     private final Setting schemRadius = add(Setting.number("schematicradius", "Wie weit um dich herum der Bau geprüft wird (Blöcke)", 48, 8, 160));
     public final dev.teizen.client.util.SchematicCheck schemCheck = new dev.teizen.client.util.SchematicCheck();
 
@@ -244,6 +245,29 @@ public final class XRay extends Module {
         };
     }
 
+    private String lastSchemBlocks;
+    private Set<Block> schemBlockSet = new HashSet<>();
+
+    /** Gehört der Block an dieser Stelle zur Auswahl in "schematicbloecke"? (leer = alle) */
+    private boolean schemBlockOk(BlockPos p, dev.teizen.client.util.SchematicCheck.Kind k) {
+        String t = schemBlocks.str() == null ? "" : schemBlocks.str().trim();
+        if (t.isEmpty()) return true;
+        if (!t.equals(lastSchemBlocks)) {
+            lastSchemBlocks = t;
+            Set<Block> set = new HashSet<>();
+            for (String part : t.split(",")) if (!part.isBlank()) set.addAll(Ids.resolve(part.trim()));
+            schemBlockSet = set;
+        }
+        // "zuviel": der Block, der da steht; sonst der Block, der laut Bauplan hin soll
+        Block b;
+        if (k == dev.teizen.client.util.SchematicCheck.Kind.ZUVIEL) b = mc.level.getBlockState(p).getBlock();
+        else {
+            var want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+            b = want == null ? mc.level.getBlockState(p).getBlock() : want.getBlock();
+        }
+        return schemBlockSet.contains(b);
+    }
+
     private boolean schemShown(dev.teizen.client.util.SchematicCheck.Kind k) {
         return switch (k) {
             case FALSCH -> schemWhat.isSelected("falsch");
@@ -257,7 +281,8 @@ public final class XRay extends Module {
     private void drawSchematic(GuiGraphicsExtractor g) {
         if (!dev.teizen.client.util.SchematicCheck.available()) return;
         List<BlockPos> list = new ArrayList<>();
-        for (var e : schemCheck.results().entrySet()) if (schemShown(e.getValue())) list.add(e.getKey());
+        for (var e : schemCheck.results().entrySet())
+            if (schemShown(e.getValue()) && schemBlockOk(e.getKey(), e.getValue())) list.add(e.getKey());
         BlockPos me = mc.player.blockPosition();
         list.sort(Comparator.comparingDouble(p -> p.distSqr(me)));
         int max = Math.min(list.size(), maxShown.integer() * 3);
