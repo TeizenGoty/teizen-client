@@ -42,6 +42,11 @@ public final class XRay extends Module {
     public final Setting water = add(Setting.bool("wasser", "Auch Wasser unter der Erde anzeigen (dezente blaue Punkte)", false));
     public final Setting caves = add(Setting.bool("hoehlen", "Auch Höhlen anzeigen (blaue Punkte)", false));
     public final Setting brush = add(Setting.bool("brush", "Auch Suspicious Sand/Gravel anzeigen (für den Pinsel/AutoBrush)", false));
+    public final Setting schem = add(Setting.bool("schematic", "Litematica: Fehler im Bau durch Wände zeigen (lila = falscher Block, rot = da fehlt ein Block)", false));
+    public final Setting schemWhat = add(Setting.multi("schematicfehler", "Welche Fehler: falsch (lila) · fehlt (rot) · richtung (gelb, falsche Richtung/Zustand) · zuviel (orange, Block wo Luft sein soll)",
+            "falsch,fehlt", "falsch", "fehlt", "richtung", "zuviel"));
+    private final Setting schemRadius = add(Setting.number("schematicradius", "Wie weit um dich herum der Bau geprüft wird (Blöcke)", 48, 8, 160));
+    public final dev.teizen.client.util.SchematicCheck schemCheck = new dev.teizen.client.util.SchematicCheck();
 
     private Set<Block> blocks = new HashSet<>();
     private String lastOres = "";
@@ -135,6 +140,8 @@ public final class XRay extends Module {
             scanner.validate();
             if (lava.on() || water.on()) fluids.validate();
         }
+        if (schem.on() && dev.teizen.client.util.SchematicCheck.available()) schemCheck.tick(schemRadius.integer());
+        else if (!schemCheck.results().isEmpty()) schemCheck.clear();
         if (bright.on()) {
             var cur = mc.player.getEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);
             if (cur == null || cur.getDuration() < 220)
@@ -194,6 +201,7 @@ public final class XRay extends Module {
                 g.fill((int) s[0] - 1, (int) s[1] - 1, (int) s[0] + 1, (int) s[1] + 1, c);
             }
         }
+        if (schem.on()) drawSchematic(g);
         List<BlockPos> list = nearest(max);
         // weit weg zuerst zeichnen, nah zuletzt (liegt dann oben)
         for (int i = list.size() - 1; i >= 0; i--) {
@@ -227,12 +235,53 @@ public final class XRay extends Module {
         }
     }
 
+    public static int schemColor(dev.teizen.client.util.SchematicCheck.Kind k) {
+        return switch (k) {
+            case FALSCH -> 0xFFB040FF;  // lila: falscher Block
+            case FEHLT -> 0xFFFF3030;   // rot: hier muss noch ein Block hin
+            case ZUSTAND -> 0xFFFFD020; // gelb: richtiger Block, falsche Richtung
+            case ZUVIEL -> 0xFFFF8A20;  // orange: Block, wo Luft sein soll
+        };
+    }
+
+    private boolean schemShown(dev.teizen.client.util.SchematicCheck.Kind k) {
+        return switch (k) {
+            case FALSCH -> schemWhat.isSelected("falsch");
+            case FEHLT -> schemWhat.isSelected("fehlt");
+            case ZUSTAND -> schemWhat.isSelected("richtung");
+            case ZUVIEL -> schemWhat.isSelected("zuviel");
+        };
+    }
+
+    /** Fehler im Litematica-Bau: Kästen durch Wände, die nächsten zuletzt (liegen oben). */
+    private void drawSchematic(GuiGraphicsExtractor g) {
+        if (!dev.teizen.client.util.SchematicCheck.available()) return;
+        List<BlockPos> list = new ArrayList<>();
+        for (var e : schemCheck.results().entrySet()) if (schemShown(e.getValue())) list.add(e.getKey());
+        BlockPos me = mc.player.blockPosition();
+        list.sort(Comparator.comparingDouble(p -> p.distSqr(me)));
+        int max = Math.min(list.size(), maxShown.integer() * 3);
+        schemDrawn = max;
+        for (int i = max - 1; i >= 0; i--) {
+            BlockPos p = list.get(i);
+            var k = schemCheck.results().get(p);
+            if (k == null) continue;
+            AABB box = k == dev.teizen.client.util.SchematicCheck.Kind.FEHLT ? new AABB(p).deflate(0.15) : new AABB(p);
+            Draw.worldBox(g, box, schemColor(k), true);
+        }
+    }
+
+    /** Wie viele Bau-Fehler gerade gezeichnet werden (Selbsttest). */
+    public int schemDrawn;
+
     /** Wie viele Pfeile gerade gezeigt werden (Selbsttest). */
     public int arrowCount;
 
     @Override
     public String info() {
         String o = ores.str().equals(DEFAULT_ORES) ? "" : ores.str() + " ";
+        if (schem.on() && dev.teizen.client.util.SchematicCheck.available() && !schemCheck.results().isEmpty())
+            return o + scanner.results().size() + " · Bau " + schemCheck.results().size();
         return o + scanner.results().size();
     }
 }

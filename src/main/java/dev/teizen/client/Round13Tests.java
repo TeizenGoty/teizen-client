@@ -476,6 +476,49 @@ final class Round13Tests {
                 SelfTest.log2("AutoBrush-Test: sand=" + sand + " dia=" + dia + " status=" + ab.info());
                 off(ab);
                 ab.setting("beute").setText("");
+                next();
+            }
+            // ------------------------------------------------ XRay: Litematica-Fehler (falsch = lila, fehlt = rot)
+            case 713 -> {
+                if (!after(10)) return true;
+                BlockPos b = mc.player.blockPosition().above(3);
+                cmd("setblock " + b.getX() + " " + b.getY() + " " + b.getZ() + " stone");
+                cmd("setblock " + (b.getX() + 2) + " " + b.getY() + " " + b.getZ() + " air");
+                cmd("setblock " + (b.getX() + 4) + " " + b.getY() + " " + b.getZ() + " stone");
+                var o = new java.util.HashMap<BlockPos, net.minecraft.world.level.block.state.BlockState>();
+                o.put(b, net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState());                 // falsch
+                o.put(b.east(2), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());        // fehlt
+                o.put(b.east(4), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());        // passt
+                dev.teizen.client.compat.LitematicaCompat.testOverride = o;
+                brushPos = b;
+                XRay x = get(XRay.class);
+                x.schem.setBool(true);
+                x.schemWhat.setText("falsch,fehlt");
+                on(x);
+                next();
+            }
+            case 714 -> {
+                if (!after(40)) return true;
+                XRay x = get(XRay.class);
+                var r = x.schemCheck.results();
+                var k1 = r.get(brushPos); var k2 = r.get(brushPos.east(2)); var k3 = r.get(brushPos.east(4));
+                SelfTest.shot2("95-xray-schematic");
+                result("XRay Schematic: falsch=" + k1 + " fehlt=" + k2 + " passt=" + k3 + " gezeichnet=" + x.schemDrawn + " "
+                        + ok(k1 == dev.teizen.client.util.SchematicCheck.Kind.FALSCH && k2 == dev.teizen.client.util.SchematicCheck.Kind.FEHLT && k3 == null));
+                SelfTest.log2("XRay-Schematic-Test: " + k1 + " " + k2 + " " + k3 + " drawn=" + x.schemDrawn);
+                // richtig setzen -> Fehler muss sofort verschwinden
+                cmd("setblock " + brushPos.getX() + " " + brushPos.getY() + " " + brushPos.getZ() + " dirt");
+                next();
+            }
+            case 715 -> {
+                if (!after(10)) return true;
+                XRay x = get(XRay.class);
+                boolean gone = x.schemCheck.results().get(brushPos) == null;
+                result("XRay Schematic: richtig gesetzter Block verschwindet=" + yes(gone) + " " + ok(gone));
+                SelfTest.log2("XRay-Schematic-Fix: gone=" + gone);
+                dev.teizen.client.compat.LitematicaCompat.testOverride = null;
+                x.schem.setBool(false);
+                off(x);
                 SelfTest.jump(730);
             }
             // ------------------------------------------------ Neues Menü: AutoMine rechts, Kategorie Abbau, Schalter per Klick
