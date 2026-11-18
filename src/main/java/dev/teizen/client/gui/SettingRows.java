@@ -35,6 +35,7 @@ public final class SettingRows {
         openMulti.add("StructureFinder/strukturen");
         openMulti.add("Autopilot/wegpunkt"); // Wegpunkte gleich als Liste zeigen
         openMulti.add("XRay/schematicfehler"); // Fehler-Arten gleich zum Anhaken zeigen
+        openMulti.add("XRay/schematicbloecke"); // Blöcke gleich zum Anhaken zeigen
     }
 
     private Setting editing;
@@ -51,7 +52,7 @@ public final class SettingRows {
             out.add(new Row(Kind.SETTING, s, null));
             if (s.type == Setting.Type.MULTI && openMulti.contains(key(m, s))) {
                 out.add(new Row(Kind.MULTI_ALL, s, null));
-                for (String c : s.choices) out.add(new Row(Kind.MULTI_OPTION, s, c));
+                for (String c : s.choiceList()) out.add(new Row(Kind.MULTI_OPTION, s, c));
             }
             // Auswahl mit Live-Liste (Wegpunkte): aufgeklappt jede Möglichkeit als eigene Zeile zum Anklicken
             if (s.type == Setting.Type.CHOICE && s.isDynamic() && openMulti.contains(key(m, s)))
@@ -85,7 +86,7 @@ public final class SettingRows {
             }
             case MULTI_OPTION -> {
                 ClickGui.rr(g, x, y, x + w, y + h, 3, hover ? 0x2AFFFFFF : 0x10FFFFFF);
-                boolean on = s.isSelected(r.option());
+                boolean on = s.isOn(r.option());
                 checkbox(g, x + 18, ty, on);
                 String label = s.optionLabel(r.option());
                 if (MenuFont.width(font, label) > w - 34) label = MenuFont.cut(font, label, w - 34);

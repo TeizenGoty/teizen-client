@@ -66,8 +66,26 @@ public final class Setting {
     public List<String> choiceList() {
         if (dynamic == null) return choices;
         List<String> live = dynamic.get();
+        if (type == Type.MULTI) return live == null ? List.of() : live;
         return live == null || live.isEmpty() ? List.of(str() == null ? "" : str()) : live;
     }
+
+    /**
+     * Liste zum Abhaken mit Live-Einträgen. Der Text speichert die AUSGESCHALTETEN Einträge (neue Einträge sind
+     * also von selbst an). Häkchen = an.
+     */
+    public static Setting dynamicMulti(String name, String desc, java.util.function.Supplier<List<String>> options) {
+        Setting s = new Setting(name, desc, Type.MULTI, 0, false, "", 0, 0, List.of());
+        s.dynamic = options;
+        s.inverted = true;
+        return s;
+    }
+
+    /** Text = ausgeschaltete Einträge (dynamicMulti). */
+    public boolean inverted;
+
+    /** Hat dieser Eintrag ein Häkchen? */
+    public boolean isOn(String option) { return inverted != isSelected(option); }
 
     /** Knopf im Menü (z.B. "Seedmap öffnen"): kein Wert, Anklicken führt {@code run} aus. */
     public static Setting action(String name, String desc, String label, Runnable run) {
@@ -105,6 +123,7 @@ public final class Setting {
 
     /** Eintrag an/aus (MULTI). */
     public void toggleOption(String option) {
+        // gleiche Wirkung bei beiden Arten: Häkchen umdrehen
         List<String> sel = selected();
         String o = option.toLowerCase(Locale.ROOT);
         if (!sel.remove(o)) sel.add(o);
@@ -112,16 +131,20 @@ public final class Setting {
     }
 
     public boolean allSelected() {
-        List<String> sel = selected();
-        for (String c : choices) if (!sel.contains(c)) return false;
+        for (String c : choiceList()) if (!isOn(c)) return false;
         return true;
     }
 
     /** Alle an – oder, wenn schon alle an sind, alle aus. */
     public void toggleAll() {
         List<String> sel = selected();
-        if (allSelected()) sel.removeAll(choices);
-        else for (String c : choices) if (!sel.contains(c)) sel.add(c);
+        List<String> all = new java.util.ArrayList<>();
+        for (String c : choiceList()) all.add(c.toLowerCase(Locale.ROOT));
+        boolean turnOff = allSelected();
+        // normal: Text = angehakte; inverted: Text = ausgeschaltete
+        boolean add = inverted == turnOff;
+        if (add) { for (String c : all) if (!sel.contains(c)) sel.add(c); }
+        else sel.removeAll(all);
         text = String.join(",", sel);
     }
 
@@ -176,9 +199,12 @@ public final class Setting {
             case BOOL -> bool ? "an" : "aus";
             case TEXT, CHOICE, ACTION -> text;
             case MULTI -> {
-                List<String> sel = selected();
-                if (allSelected() && sel.size() == choices.size()) yield "alle";
-                yield sel.isEmpty() ? "keine" : sel.size() + " von " + choices.size();
+                List<String> list = choiceList();
+                int on = 0;
+                for (String c : list) if (isOn(c)) on++;
+                if (list.isEmpty()) yield inverted ? "alle" : "keine";
+                if (on == list.size()) yield "alle";
+                yield on == 0 ? "keine" : on + " von " + list.size();
             }
         };
     }

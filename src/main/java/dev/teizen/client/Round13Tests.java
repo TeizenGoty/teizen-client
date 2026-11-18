@@ -506,6 +506,12 @@ final class Round13Tests {
                 result("XRay Schematic: falsch=" + k1 + " fehlt=" + k2 + " passt=" + k3 + " gezeichnet=" + x.schemDrawn + " "
                         + ok(k1 == dev.teizen.client.util.SchematicCheck.Kind.FALSCH && k2 == dev.teizen.client.util.SchematicCheck.Kind.FEHLT && k3 == null));
                 SelfTest.log2("XRay-Schematic-Test: " + k1 + " " + k2 + " " + k3 + " drawn=" + x.schemDrawn);
+                // Block-Liste: "stone" (fehlt) einzeln ausschalten -> nur noch 1 gezeichnet, "dirt" bleibt an
+                var bl = x.schemBlocks.choiceList();
+                int before = x.schemDrawn;
+                x.schemBlocks.toggleOption("stone");
+                d1 = before;
+                SelfTest.log2("XRay-Schematic-Bloecke: liste=" + bl + " stoneAn=" + x.schemBlocks.isOn("stone") + " dirtAn=" + x.schemBlocks.isOn("dirt"));
                 // richtig setzen -> Fehler muss sofort verschwinden
                 cmd("setblock " + brushPos.getX() + " " + brushPos.getY() + " " + brushPos.getZ() + " dirt");
                 next();
@@ -513,6 +519,9 @@ final class Round13Tests {
             case 715 -> {
                 if (!after(10)) return true;
                 XRay x = get(XRay.class);
+                int drawnFiltered = x.schemDrawn;
+                SelfTest.log2("XRay-Schematic-Filter: vorher=" + (int) d1 + " nachher=" + drawnFiltered);
+                x.schemBlocks.setText("");
                 boolean gone = x.schemCheck.results().get(brushPos) == null;
                 result("XRay Schematic: richtig gesetzter Block verschwindet=" + yes(gone) + " " + ok(gone));
                 SelfTest.log2("XRay-Schematic-Fix: gone=" + gone);

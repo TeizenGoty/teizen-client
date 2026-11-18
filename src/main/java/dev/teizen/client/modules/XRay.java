@@ -45,7 +45,10 @@ public final class XRay extends Module {
     public final Setting schem = add(Setting.bool("schematic", "Litematica: Fehler im Bau durch Wände zeigen (lila = falscher Block, rot = da fehlt ein Block)", false));
     public final Setting schemWhat = add(Setting.multi("schematicfehler", "Welche Fehler: falsch (lila) · fehlt (rot) · richtung (gelb, falsche Richtung/Zustand) · zuviel (orange, Block wo Luft sein soll)",
             "falsch,fehlt", "falsch", "fehlt", "richtung", "zuviel"));
-    public final Setting schemBlocks = add(Setting.text("schematicbloecke", "Nur diese Blöcke markieren, mit Komma getrennt (z.B. stone,glass,oak_planks). Leer = alle Blöcke", ""));
+    /** Welche Blöcke markiert werden: Liste der Blöcke, die im Bau gerade falsch sind/fehlen – einzeln abhaken. */
+    public final Setting schemBlocks = add(Setting.dynamicMulti("schematicbloecke",
+            "Welche Blöcke markiert werden – einzeln an/aus. In der Liste stehen die Blöcke, die in deinem Bau gerade falsch sind oder fehlen",
+            this::schemBlockList).labels(XRay::blockName));
     private final Setting schemRadius = add(Setting.number("schematicradius", "Wie weit um dich herum der Bau geprüft wird (Blöcke)", 48, 8, 160));
     public final dev.teizen.client.util.SchematicCheck schemCheck = new dev.teizen.client.util.SchematicCheck();
 
@@ -245,27 +248,45 @@ public final class XRay extends Module {
         };
     }
 
-    private String lastSchemBlocks;
-    private Set<Block> schemBlockSet = new HashSet<>();
+    /** Block, um den es bei diesem Fehler geht: bei "zuviel" der, der da steht, sonst der, der hin soll. */
+    private Block schemBlock(BlockPos p, dev.teizen.client.util.SchematicCheck.Kind k) {
+        if (k == dev.teizen.client.util.SchematicCheck.Kind.ZUVIEL) return mc.level.getBlockState(p).getBlock();
+        var want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
+        return want == null ? mc.level.getBlockState(p).getBlock() : want.getBlock();
+    }
 
-    /** Gehört der Block an dieser Stelle zur Auswahl in "schematicbloecke"? (leer = alle) */
+    private static String blockId(Block b) {
+        return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(b).getPath();
+    }
+
+    private static String blockName(String id) {
+        var rl = net.minecraft.resources.Identifier.tryParse("minecraft:" + id);
+        if (rl == null || !net.minecraft.core.registries.BuiltInRegistries.BLOCK.containsKey(rl)) return id;
+        return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getValue(rl).getName().getString();
+    }
+
+    private List<String> schemListCache = new ArrayList<>();
+    private int schemListTick = -100;
+
+    /** Blöcke, die gerade als Fehler gefunden sind (häufigste zuerst) – für die Abhak-Liste. */
+    private List<String> schemBlockList() {
+        if (!inGame() || !dev.teizen.client.util.SchematicCheck.available()) return schemListCache;
+        if (mc.player.tickCount - schemListTick < 20 && mc.player.tickCount >= schemListTick) return schemListCache;
+        schemListTick = mc.player.tickCount;
+        java.util.Map<String, Integer> count = new java.util.HashMap<>();
+        for (var e : schemCheck.results().entrySet())
+            if (schemShown(e.getValue())) count.merge(blockId(schemBlock(e.getKey(), e.getValue())), 1, Integer::sum);
+        // ausgeschaltete Blöcke bleiben in der Liste (sonst kann man sie nicht wieder anmachen)
+        for (String off : schemBlocks.selected()) count.putIfAbsent(off, 0);
+        List<String> out = new ArrayList<>(count.keySet());
+        out.sort((a, b) -> count.get(b) - count.get(a) != 0 ? count.get(b) - count.get(a) : a.compareTo(b));
+        schemListCache = out;
+        return out;
+    }
+
+    /** Ist der Block dieses Fehlers in "schematicbloecke" angehakt? */
     private boolean schemBlockOk(BlockPos p, dev.teizen.client.util.SchematicCheck.Kind k) {
-        String t = schemBlocks.str() == null ? "" : schemBlocks.str().trim();
-        if (t.isEmpty()) return true;
-        if (!t.equals(lastSchemBlocks)) {
-            lastSchemBlocks = t;
-            Set<Block> set = new HashSet<>();
-            for (String part : t.split(",")) if (!part.isBlank()) set.addAll(Ids.resolve(part.trim()));
-            schemBlockSet = set;
-        }
-        // "zuviel": der Block, der da steht; sonst der Block, der laut Bauplan hin soll
-        Block b;
-        if (k == dev.teizen.client.util.SchematicCheck.Kind.ZUVIEL) b = mc.level.getBlockState(p).getBlock();
-        else {
-            var want = dev.teizen.client.compat.LitematicaCompat.schematicState(p);
-            b = want == null ? mc.level.getBlockState(p).getBlock() : want.getBlock();
-        }
-        return schemBlockSet.contains(b);
+        return schemBlocks.isOn(blockId(schemBlock(p, k)));
     }
 
     private boolean schemShown(dev.teizen.client.util.SchematicCheck.Kind k) {
