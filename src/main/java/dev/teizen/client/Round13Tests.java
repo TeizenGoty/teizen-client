@@ -546,13 +546,12 @@ final class Round13Tests {
                 if (!after(10)) return true;
                 if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("litematica")) { result("XRay echte Schematic: Litematica fehlt"); SelfTest.jump(730); return true; }
                 dev.teizen.client.compat.LitematicaCompat.removePlacement("teizentest", null);
-                BlockPos o = mc.player.blockPosition().offset(3, 0, 3);
-                // Platz frei machen, ein Stück davon falsch füllen (Erde statt Steinziegel)
-                cmd("fill " + o.getX() + " " + o.getY() + " " + o.getZ() + " " + (o.getX() + 8) + " " + (o.getY() + 6) + " " + (o.getZ() + 8) + " air");
-                String err = dev.teizen.client.compat.LitematicaCompat.loadAndPlace("teizentest", o);
+                BlockPos so = mc.player.blockPosition().offset(3, 0, 3);
+                cmd("fill " + so.getX() + " " + so.getY() + " " + so.getZ() + " " + (so.getX() + 8) + " " + (so.getY() + 6) + " " + (so.getZ() + 8) + " air");
+                String err = dev.teizen.client.compat.LitematicaCompat.loadAndPlace("teizentest", so);
                 SelfTest.log2("XRay-Echt: laden=" + (err == null ? "ok" : err) + " platzierungen=" + dev.teizen.client.compat.LitematicaCompat.placementCount()
                         + " boxen=" + dev.teizen.client.compat.LitematicaCompat.regionBoxes().size());
-                brushPos = o;
+                brushPos = so;
                 XRay x = get(XRay.class);
                 x.schem.setBool(true);
                 x.schemWhat.setText("falsch,fehlt");
