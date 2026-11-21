@@ -243,13 +243,16 @@ public final class Autopilot extends Module {
     /** Den Block direkt vor ihm (Füße oder Kopf) abbauen. */
     private void mineAhead(net.minecraft.client.player.LocalPlayer p, double dx, double dz) {
         around = "baut ab";
-        net.minecraft.core.BlockPos feet = net.minecraft.core.BlockPos.containing(p.getX() + dx * 0.9, p.getY() + 0.2, p.getZ() + dz * 0.9);
-        for (net.minecraft.core.BlockPos b : new net.minecraft.core.BlockPos[]{feet, feet.above()}) {
-            if (dev.teizen.client.util.MinePath.passable(mc.level, b)) continue;
-            if (!dev.teizen.client.util.Breaker.canBreak(b)) { around = "steckt fest (Block nicht abbaubar)"; return; }
-            dev.teizen.client.util.Breaker.tick(b, true, true);
-            lastMine = b;
-            return;
+        // den ersten festen Block vor ihm suchen (Füße und Kopf), knapp vor der Hitbox bis gut 1 Block weiter
+        for (double d : new double[]{0.6, 0.9, 1.2, 1.5}) {
+            net.minecraft.core.BlockPos feet = net.minecraft.core.BlockPos.containing(p.getX() + dx * d, p.getY() + 0.2, p.getZ() + dz * d);
+            for (net.minecraft.core.BlockPos b : new net.minecraft.core.BlockPos[]{feet, feet.above()}) {
+                if (dev.teizen.client.util.MinePath.passable(mc.level, b)) continue;
+                if (!dev.teizen.client.util.Breaker.canBreak(b)) { around = "steckt fest (Block nicht abbaubar)"; return; }
+                dev.teizen.client.util.Breaker.tick(b, true, true);
+                lastMine = b;
+                return;
+            }
         }
     }
 
