@@ -649,6 +649,34 @@ final class Round13Tests {
                 result("Autopilot Tunnel: angekommen=" + yes(ap.arrived) + ", abgebaut=" + ap.mined + " " + ok(ap.arrived && off < 6 && ap.mined > 0));
                 SelfTest.log2("Autopilot-Tunnel: angekommen=" + ap.arrived + " abstand=" + off + " abgebaut=" + ap.mined + " umwege=" + ap.detours);
                 off(ap);
+                next();
+            }
+            // ------------------------------------------------ Autopilot: geschlossener Raum (wie beim Spawner) -> raus
+            case 779 -> {
+                if (!after(10)) return true;
+                int x = apBase.getX(), y = apBase.getY() + 8, z = apBase.getZ();
+                cmd("fill " + (x - 4) + " " + (y - 1) + " " + (z - 4) + " " + (x + 4) + " " + (y + 9) + " " + (z + 4) + " stone");
+                cmd("fill " + (x - 3) + " " + y + " " + (z - 3) + " " + (x + 3) + " " + (y + 3) + " " + (z + 3) + " air");
+                cmd("fill " + (x + 5) + " " + (y + 10) + " " + (z - 3) + " " + (x + 24) + " " + (y + 14) + " " + (z + 3) + " air");
+                tp(x + 0.5, y, z + 0.5);
+                apBase = new BlockPos(x, y, z);
+                next();
+            }
+            case 780 -> {
+                if (!after(20)) return true;
+                Autopilot ap = get(Autopilot.class);
+                ap.setting("hoehe").setNumber(apBase.getY() + 11);
+                ap.target(apBase.getX() + 20.5, apBase.getZ() + 0.5, "Raum-Test");
+                on(ap);
+                next();
+            }
+            case 781 -> {
+                Autopilot ap = get(Autopilot.class);
+                if (ap.isEnabled() && !after(1400)) return true;
+                double off = Math.hypot(mc.player.getX() - (apBase.getX() + 20.5), mc.player.getZ() - (apBase.getZ() + 0.5));
+                result("Autopilot Raum: raus und angekommen=" + yes(ap.arrived) + ", abgebaut=" + ap.mined + " " + ok(ap.arrived && off < 6));
+                SelfTest.log2("Autopilot-Raum: angekommen=" + ap.arrived + " abstand=" + off + " abgebaut=" + ap.mined + " umwege=" + ap.detours + " y=" + mc.player.getY());
+                off(ap);
                 off(get(Fly.class));
                 ap.setting("art").setText("elytra");
                 ap.setting("tempo").setNumber(1.5);

@@ -88,7 +88,7 @@ public final class Autopilot extends Module {
     @Override
     protected void onEnable() {
         landing = false; noRockets = false; tookOff = false; arrived = false; rocketCd = 0; spin = 0; vel = Vec3.ZERO; flyByUs = false;
-        detTicks = 0; backTicks = 0; stuck = 0; around = ""; mined = 0; detours = 0; backTries = 0; bestDist = Double.MAX_VALUE; side = 0; digging = false;
+        detTicks = 0; backTicks = 0; stuck = 0; around = ""; mined = 0; detours = 0; backTries = 0; bestDist = Double.MAX_VALUE; side = 0; digging = false; noProgress = 0;
         if (!inGame()) return;
         if (!has && !resolve()) { setEnabled(false); return; }
         Chat.ok("Autopilot → §f" + targetName + " §7(" + Math.round(dist()) + " Blöcke, " + art.str() + ")");
@@ -173,6 +173,8 @@ public final class Autopilot extends Module {
     private int side;
     private boolean digging;
     private net.minecraft.core.BlockPos lastMine;
+    /** Ticks ohne Fortschritt zum Ziel (zu lange -> rausgraben statt im Raum herumfliegen). */
+    private int noProgress;
 
     private static double[] rot(double dx, double dz, int deg) {
         double r = Math.toRadians(deg);
@@ -193,9 +195,24 @@ public final class Autopilot extends Module {
     private double[] steer(net.minecraft.client.player.LocalPlayer p, double dx, double dz, boolean mayMine) {
         if (lastMine != null && dev.teizen.client.util.MinePath.passable(mc.level, lastMine)) { mined++; lastMine = null; }
         double dist = Math.hypot(tx - p.getX(), tz - p.getZ());
-        if (dist < bestDist - 3) { bestDist = dist; if (!digging) { stuck = 0; backTries = 0; side = 0; } }
+        if (dist < bestDist - 3) { bestDist = dist; noProgress = 0; if (!digging) { stuck = 0; backTries = 0; side = 0; } }
+        else noProgress++;
+        // seit 6 Sekunden kein Stück näher (z.B. in einem geschlossenen Raum herumgeflogen) -> rausgraben
+        if (!digging && noProgress > 120) {
+            if (mayMine && abbauen.on()) { digging = true; detTicks = 0; backTicks = 0; }
+            else if (noProgress % 200 == 121) Chat.error("Autopilot: kommt hier nicht raus. Schalt \"abbauen\" an (und nimm fly oder elytra), dann gräbt er sich raus.");
+        }
         if (digging) {
-            if (!blockedNear(dx, dz)) { digging = false; side = 0; backTries = 0; around = ""; return new double[]{dx, dz, Double.NaN, 1}; }
+            // tief unter der Flughöhe (Höhle, Spawner-Raum): zuerst nach oben raus
+            if (p.getY() < hoehe.num() - 2) {
+                var up = p.getBoundingBox().move(0, 1, 0);
+                if (mc.level.noCollision(p, up)) { around = "steigt raus"; return new double[]{0, 0, 0.6, 0}; }
+                if (mineUp(p)) return new double[]{0, 0, 0, 0};
+            }
+            if (!blockedNear(dx, dz)) {
+                if (noProgress == 0) { digging = false; side = 0; backTries = 0; around = ""; }
+                return new double[]{dx, dz, 0, 1};
+            }
             if (blockedAt(dx, dz, 0.9)) { mineAhead(p, dx, dz); return new double[]{0, 0, 0, 0}; }
             around = "zur Wand";
             return new double[]{dx, dz, 0, 0.3}; // bis an den Block ran, dann abbauen
@@ -238,6 +255,24 @@ public final class Autopilot extends Module {
         around = "steckt fest";
         if (mc.player.tickCount - mineMsg > 200) { mineMsg = mc.player.tickCount; Chat.error("Autopilot: kein Weg vorbei. Schalt \"abbauen\" an, dann baut er den Block im Weg ab."); }
         return new double[]{0, 0, 0, 0};
+    }
+
+    /** Block über dem Kopf abbauen (nicht wenn darüber Lava/Wasser ist). @return true wenn er gräbt */
+    private boolean mineUp(net.minecraft.client.player.LocalPlayer p) {
+        var m = p.getBoundingBox().move(0, 1, 0);
+        int y = net.minecraft.util.Mth.floor(m.maxY - 1e-6);
+        for (net.minecraft.core.BlockPos b : net.minecraft.core.BlockPos.betweenClosed(
+                net.minecraft.util.Mth.floor(m.minX), y, net.minecraft.util.Mth.floor(m.minZ),
+                net.minecraft.util.Mth.floor(m.maxX - 1e-6), y, net.minecraft.util.Mth.floor(m.maxZ - 1e-6))) {
+            if (dev.teizen.client.util.MinePath.passable(mc.level, b)) continue;
+            if (!mc.level.getFluidState(b.above()).isEmpty()) return false; // nicht Lava/Wasser auf den Kopf holen
+            if (!dev.teizen.client.util.Breaker.canBreak(b)) return false;
+            around = "gräbt nach oben";
+            dev.teizen.client.util.Breaker.tick(b.immutable(), true, true);
+            lastMine = b.immutable();
+            return true;
+        }
+        return false;
     }
 
     /** Den Block direkt vor ihm (Füße oder Kopf) abbauen. */
