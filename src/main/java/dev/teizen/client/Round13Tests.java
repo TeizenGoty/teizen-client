@@ -164,7 +164,7 @@ final class Round13Tests {
 
     private Round13Tests() {}
 
-    private static BlockPos brushPos, wrongTop;
+    private static BlockPos brushPos, wrongTop, apBase;
     private static void cmd(String c) { SelfTest.cmd2(c); }
     private static boolean after(int t) { return SelfTest.after2(t); }
     private static int local() { return SelfTest.local(); }
@@ -584,6 +584,72 @@ final class Round13Tests {
                 XRay x = get(XRay.class);
                 x.schem.setBool(false);
                 off(x);
+                next();
+            }
+            // ------------------------------------------------ Autopilot: Mauer unter einer Decke -> Umweg, nichts abbauen
+            case 719 -> {
+                if (!after(10)) return true;
+                BlockPos b = mc.player.blockPosition();
+                int x = b.getX(), y = b.getY() + 20, z = b.getZ();
+                cmd("fill " + (x - 2) + " " + (y - 1) + " " + (z - 6) + " " + (x + 24) + " " + (y + 2) + " " + (z + 6) + " stone");
+                cmd("fill " + (x - 1) + " " + y + " " + (z - 5) + " " + (x + 23) + " " + (y + 1) + " " + (z + 5) + " air");
+                cmd("fill " + (x + 8) + " " + y + " " + (z - 3) + " " + (x + 8) + " " + (y + 1) + " " + (z + 3) + " stone");
+                cmd("item replace entity @s hotbar.0 with minecraft:diamond_pickaxe");
+                tp(x + 0.5, y, z + 0.5);
+                apBase = new BlockPos(x, y, z);
+                next();
+            }
+            case 720 -> {
+                if (!after(20)) return true;
+                Autopilot ap = get(Autopilot.class);
+                ap.setting("art").setText("fly");
+                ap.setting("hoehe").setNumber(apBase.getY());
+                ap.setting("tempo").setNumber(0.6);
+                ap.setting("abbauen").setBool(true);
+                ap.target(apBase.getX() + 20.5, apBase.getZ() + 0.5, "Umweg-Test");
+                on(ap);
+                next();
+            }
+            case 721 -> {
+                Autopilot ap = get(Autopilot.class);
+                if (ap.isEnabled() && !after(500)) return true;
+                double off = Math.hypot(mc.player.getX() - (apBase.getX() + 20.5), mc.player.getZ() - (apBase.getZ() + 0.5));
+                boolean wall = mc.level.getBlockState(apBase.offset(8, 0, 0)).is(net.minecraft.world.level.block.Blocks.STONE);
+                result("Autopilot Umweg: angekommen=" + yes(ap.arrived) + ", Umwege=" + ap.detours + ", abgebaut=" + ap.mined + ", Mauer heil=" + yes(wall) + " "
+                        + ok(ap.arrived && off < 6 && ap.mined == 0 && wall));
+                SelfTest.log2("Autopilot-Umweg: angekommen=" + ap.arrived + " abstand=" + off + " umwege=" + ap.detours + " abgebaut=" + ap.mined + " mauer=" + wall);
+                off(ap);
+                next();
+            }
+            // ------------------------------------------------ Autopilot: geschlossener Tunnel -> erst dann abbauen
+            case 722 -> {
+                if (!after(10)) return true;
+                int x = apBase.getX(), y = apBase.getY() + 6, z = apBase.getZ();
+                cmd("fill " + (x - 3) + " " + (y - 1) + " " + (z - 2) + " " + (x + 24) + " " + (y + 2) + " " + (z + 2) + " stone");
+                cmd("fill " + (x - 2) + " " + y + " " + z + " " + (x + 7) + " " + (y + 1) + " " + z + " air");
+                cmd("fill " + (x + 12) + " " + y + " " + z + " " + (x + 23) + " " + (y + 1) + " " + z + " air");
+                tp(x + 0.5, y, z + 0.5);
+                apBase = new BlockPos(x, y, z);
+                next();
+            }
+            case 723 -> {
+                if (!after(20)) return true;
+                Autopilot ap = get(Autopilot.class);
+                ap.setting("hoehe").setNumber(apBase.getY());
+                ap.target(apBase.getX() + 20.5, apBase.getZ() + 0.5, "Tunnel-Test");
+                on(ap);
+                next();
+            }
+            case 724 -> {
+                Autopilot ap = get(Autopilot.class);
+                if (ap.isEnabled() && !after(900)) return true;
+                double off = Math.hypot(mc.player.getX() - (apBase.getX() + 20.5), mc.player.getZ() - (apBase.getZ() + 0.5));
+                result("Autopilot Tunnel: angekommen=" + yes(ap.arrived) + ", abgebaut=" + ap.mined + " " + ok(ap.arrived && off < 6 && ap.mined > 0));
+                SelfTest.log2("Autopilot-Tunnel: angekommen=" + ap.arrived + " abstand=" + off + " abgebaut=" + ap.mined + " umwege=" + ap.detours);
+                off(ap);
+                off(get(Fly.class));
+                ap.setting("art").setText("elytra");
+                ap.setting("tempo").setNumber(1.5);
                 SelfTest.jump(730);
             }
             // ------------------------------------------------ Neues Menü: AutoMine rechts, Kategorie Abbau, Schalter per Klick

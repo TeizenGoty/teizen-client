@@ -25,7 +25,9 @@ public final class Autopilot extends Module {
     private final Setting ziel = add(Setting.text("ziel", "Ziel als \"X Z\" (z.B. 1200 -340). Leer lassen = Wegpunkt von Xaero's Karte nehmen", ""));
     private final Setting wegpunkt = add(Setting.dynamicChoice("wegpunkt", "Welchen Xaero-Wegpunkt anfliegen: in der Liste darunter anklicken (auch temporäre). \"neuester\" = der oberste. Gilt nur, wenn \"ziel\" leer ist.",
             "neuester", dev.teizen.client.util.Waypoints::names));
-    private final Setting tempo = add(Setting.number("tempo", "Tempo bei elytra/fly (Blöcke pro Tick, 1 = 20 Blöcke/s). Zu schnell = der Server setzt dich zurück", 1.5, 0.3, 4));
+    private final Setting tempo = add(Setting.number("tempo", "Geschwindigkeit in Blöcken pro Tick (1 = 20 Blöcke/s) – gilt für alle Arten, bei raketen wird nachgezündet, wenn es langsamer wird. Zu schnell = der Server setzt dich zurück", 1.5, 0.1, 6));
+    private final Setting umweg = add(Setting.number("umweg", "Wie weit er bei einem Hindernis zur Seite ausweicht (Blöcke), bevor er es wieder direkt versucht", 10, 3, 40));
+    private final Setting abbauen = add(Setting.bool("abbauen", "Nur wenn es GAR NICHT weiter geht (nicht drüber, kein Umweg, nicht zurück raus): den Block im Weg abbauen", true));
     private final Setting hoehe = add(Setting.number("hoehe", "Flughöhe (Y)", 180, -60, 400));
     private final Setting minHalt = add(Setting.number("minhaltbarkeit", "Elytra unter so viel Prozent: tauschen oder landen", 5, 1, 50));
     private final Setting landen = add(Setting.bool("landen", "Am Ziel von selbst landen", true));
@@ -86,6 +88,7 @@ public final class Autopilot extends Module {
     @Override
     protected void onEnable() {
         landing = false; noRockets = false; tookOff = false; arrived = false; rocketCd = 0; spin = 0; vel = Vec3.ZERO; flyByUs = false;
+        detTicks = 0; backTicks = 0; stuck = 0; around = ""; mined = 0; detours = 0; backTries = 0; bestDist = Double.MAX_VALUE;
         if (!inGame()) return;
         if (!has && !resolve()) { setEnabled(false); return; }
         Chat.ok("Autopilot → §f" + targetName + " §7(" + Math.round(dist()) + " Blöcke, " + art.str() + ")");
@@ -93,6 +96,7 @@ public final class Autopilot extends Module {
 
     @Override
     protected void onDisable() {
+        dev.teizen.client.util.Breaker.stop();
         has = false;
         vel = Vec3.ZERO;
         if (flyByUs && inGame()) {
@@ -132,6 +136,94 @@ public final class Autopilot extends Module {
     private void stop(String msg) {
         Chat.ok("Autopilot: " + msg);
         setEnabled(false);
+    }
+
+    // ------------------------------------------------------------ Hindernisse: drüber, Umweg, zurück, erst dann abbauen
+
+    private double detX, detZ;
+    private int detTicks, backTicks, stuck, mineMsg, backTries;
+    private double bestDist = Double.MAX_VALUE;
+    /** Was er gerade wegen eines Hindernisses macht (Anzeige). */
+    private String around = "";
+    /** Für den Selbsttest: wie oft abgebaut / ausgewichen. */
+    public int mined, detours;
+
+    /** Kurz voraus (1–3 Blöcke) etwas im Weg? */
+    private boolean blockedNear(double dx, double dz) {
+        var box = mc.player.getBoundingBox();
+        for (double d : new double[]{0.9, 2.0, 3.0})
+            if (!mc.level.noCollision(mc.player, box.move(dx * d, 0, dz * d))) return true;
+        return false;
+    }
+
+    /** Kann er nach oben über das Hindernis? (frei bis 4 Blöcke hoch und dort vorne frei) */
+    private boolean canRise(double dx, double dz) {
+        var box = mc.player.getBoundingBox();
+        for (int up = 1; up <= 4; up++) {
+            if (!mc.level.noCollision(mc.player, box.move(0, up, 0))) return false;
+            if (mc.level.noCollision(mc.player, box.move(dx * 1.5, up, dz * 1.5))) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Richtung bei Hindernissen. Reihenfolge: direkt · drüber · seitlicher Umweg · zurück raus · abbauen.
+     * @return {dx, dz, vy (NaN = normal), Tempo-Faktor}
+     */
+    private double[] steer(net.minecraft.client.player.LocalPlayer p, double dx, double dz, boolean mayMine) {
+        // Fortschritt zum Ziel? Dann ist das Hindernis geschafft -> wieder alles erlaubt
+        double dist = Math.hypot(tx - p.getX(), tz - p.getZ());
+        if (dist < bestDist - 3) { bestDist = dist; stuck = 0; backTries = 0; }
+        if (backTicks > 0) {
+            backTicks--;
+            around = "fliegt zurück raus";
+            if (!blockedNear(-dx, -dz)) return new double[]{-dx, -dz, 0.3, 0.5};
+            backTicks = 0;
+        }
+        if (detTicks > 0) {
+            detTicks--;
+            if (!blockedNear(dx, dz)) detTicks = 0; // direkt ist wieder frei
+            else if (!blockedNear(detX, detZ)) { around = "Umweg"; return new double[]{detX, detZ, Double.NaN, 0.7}; }
+            else detTicks = 0;
+        }
+        if (!blockedNear(dx, dz)) {
+            around = "";
+            return new double[]{dx, dz, Double.NaN, 1};
+        }
+        stuck++;
+        if (canRise(dx, dz)) { around = "drüber"; return new double[]{dx * 0.15, dz * 0.15, 0.8, 0.3}; }
+        for (int a : new int[]{35, -35, 70, -70, 100, -100, 135, -135}) {
+            double r = Math.toRadians(a), nx = dx * Math.cos(r) - dz * Math.sin(r), nz = dx * Math.sin(r) + dz * Math.cos(r);
+            if (!blockedNear(nx, nz)) {
+                detX = nx; detZ = nz;
+                detTicks = (int) Math.min(400, umweg.num() / Math.max(0.1, tempo.num() * 0.7));
+                detours++;
+                around = "Umweg";
+                return new double[]{nx, nz, Double.NaN, 0.7};
+            }
+        }
+        // zurück raus (höchstens 2x am selben Hindernis), vielleicht geht es von dort drüber oder vorbei
+        if (backTries < 2 && !blockedNear(-dx, -dz)) { backTries++; backTicks = 25; around = "fliegt zurück raus"; return new double[]{-dx, -dz, 0.3, 0.5}; }
+        // gar kein Weg: nur jetzt abbauen
+        if (mayMine && abbauen.on()) { mineAhead(p, dx, dz); return new double[]{0, 0, 0, 0}; }
+        around = "steckt fest";
+        if (mc.player.tickCount - mineMsg > 200) { mineMsg = mc.player.tickCount; Chat.error("Autopilot: kein Weg vorbei. Schalt \"abbauen\" an, dann baut er den Block im Weg ab."); }
+        return new double[]{0, 0, 0, 0};
+    }
+
+    /** Den Block direkt vor ihm (Füße oder Kopf) abbauen. */
+    private void mineAhead(net.minecraft.client.player.LocalPlayer p, double dx, double dz) {
+        around = "baut ab";
+        net.minecraft.core.BlockPos feet = net.minecraft.core.BlockPos.containing(p.getX() + dx * 0.9, p.getY() + 0.2, p.getZ() + dz * 0.9);
+        for (net.minecraft.core.BlockPos b : new net.minecraft.core.BlockPos[]{feet, feet.above()}) {
+            if (dev.teizen.client.util.MinePath.passable(mc.level, b)) continue;
+            if (!dev.teizen.client.util.Breaker.canBreak(b)) { around = "steckt fest (Block nicht abbaubar)"; return; }
+            boolean was = !mc.level.getBlockState(b).isAir();
+            dev.teizen.client.util.Breaker.tick(b, true, true);
+            if (was && mc.level.getBlockState(b).isAir()) mined++;
+            return;
+        }
+        stuck = 0; // vorne ist frei geworden
     }
 
     /** Ist ein Stück voraus etwas im Weg? */
@@ -193,8 +285,11 @@ public final class Autopilot extends Module {
         p.setYRot(yaw);
         double sp = Math.min(tempo.num(), dist / 8 + 0.25);
         double vy = Math.max(-0.8, Math.min(0.8, (hoehe.num() - p.getY()) * 0.15));
-        if (blocked(dx, dz)) { vy = 0.8; sp = Math.min(sp, 0.3); }
-        vel = new Vec3(dx * sp, vy, dz * sp);
+        double[] st = steer(p, dx, dz, true);
+        if (!Double.isNaN(st[2])) vy = st[2];
+        sp *= st[3];
+        if (st[0] != dx || st[1] != dz) p.setYRot((float) Math.toDegrees(Math.atan2(-st[0], st[1])));
+        vel = new Vec3(st[0] * sp, vy, st[1] * sp);
     }
 
     /** Elytra mit Raketen: echter Gleitflug, Blick steuert, Rakete wenn es zu langsam oder zu tief wird. */
@@ -207,13 +302,15 @@ public final class Autopilot extends Module {
             p.setXRot(12);
             return;
         }
-        p.setYRot(yaw);
         double y = p.getY(), h = hoehe.num();
-        boolean wall = blocked(dx, dz);
+        // bei Hindernis: drüber oder seitlich vorbei (mit Raketen wird nie abgebaut)
+        double[] st = steer(p, dx, dz, false);
+        p.setYRot(st[3] == 0 ? yaw : (float) Math.toDegrees(Math.atan2(-st[0], st[1])));
+        boolean wall = blocked(dx, dz) && around.equals("drüber");
         float pitch = wall ? -45 : y < h - 12 ? -28 : y > h + 20 ? 12 : -3;
         p.setXRot(pitch);
         double speed = p.getDeltaMovement().length();
-        boolean need = wall || y < h - 12 || speed < 1.0;
+        boolean need = wall || y < h - 12 || speed < tempo.num();
         if (need && rocketCd == 0) {
             if (fireRocket(p)) { rocketCd = 28; rockets++; }
             else if (!noRockets) { noRockets = true; Chat.error("Autopilot: keine Raketen mehr – gleite weiter, so weit es geht."); }
@@ -242,11 +339,13 @@ public final class Autopilot extends Module {
         p.getAbilities().mayfly = true;
         p.getAbilities().flying = true;
         if (landing) { p.setDeltaMovement(0, -0.5, 0); return; }
-        p.setYRot(yaw);
         double sp = Math.min(tempo.num(), dist / 8 + 0.25);
         double vy = Math.max(-1, Math.min(1, (hoehe.num() - p.getY()) * 0.15));
-        if (blocked(dx, dz)) { vy = 0.8; sp = Math.min(sp, 0.3); }
-        p.setDeltaMovement(dx * sp, vy, dz * sp);
+        double[] st = steer(p, dx, dz, true);
+        if (!Double.isNaN(st[2])) vy = st[2];
+        sp *= st[3];
+        p.setYRot(st[3] == 0 ? yaw : (float) Math.toDegrees(Math.atan2(-st[0], st[1])));
+        p.setDeltaMovement(st[0] * sp, vy, st[1] * sp);
     }
 
     /** Mixin (Elytra-Physik): unsere Geschwindigkeit, oder null = normale Physik. */
@@ -264,6 +363,7 @@ public final class Autopilot extends Module {
         ItemStack chest = mc.player.getItemBySlot(EquipmentSlot.CHEST);
         if (!art.is("fly") && chest.is(Items.ELYTRA)) t += "  ·  Elytra " + elytraPercent(chest) + " %";
         if (landing) t += "  ·  landet";
+        else if (!around.isEmpty()) t += "  ·  " + around;
         g.text(mc.font, t, g.guiWidth() / 2 - mc.font.width(t) / 2, 16, 0xFFC4B5FD, true);
     }
 
