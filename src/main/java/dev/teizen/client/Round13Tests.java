@@ -584,10 +584,10 @@ final class Round13Tests {
                 XRay x = get(XRay.class);
                 x.schem.setBool(false);
                 off(x);
-                next();
+                SelfTest.jump(773);
             }
             // ------------------------------------------------ Autopilot: Mauer unter einer Decke -> Umweg, nichts abbauen
-            case 719 -> {
+            case 773 -> {
                 if (!after(10)) return true;
                 BlockPos b = mc.player.blockPosition();
                 int x = b.getX(), y = b.getY() + 20, z = b.getZ();
@@ -599,7 +599,7 @@ final class Round13Tests {
                 apBase = new BlockPos(x, y, z);
                 next();
             }
-            case 720 -> {
+            case 774 -> {
                 if (!after(20)) return true;
                 Autopilot ap = get(Autopilot.class);
                 ap.setting("art").setText("fly");
@@ -610,7 +610,7 @@ final class Round13Tests {
                 on(ap);
                 next();
             }
-            case 721 -> {
+            case 775 -> {
                 Autopilot ap = get(Autopilot.class);
                 if (ap.isEnabled() && !after(500)) return true;
                 double off = Math.hypot(mc.player.getX() - (apBase.getX() + 20.5), mc.player.getZ() - (apBase.getZ() + 0.5));
@@ -622,7 +622,7 @@ final class Round13Tests {
                 next();
             }
             // ------------------------------------------------ Autopilot: geschlossener Tunnel -> erst dann abbauen
-            case 722 -> {
+            case 776 -> {
                 if (!after(10)) return true;
                 int x = apBase.getX(), y = apBase.getY() + 6, z = apBase.getZ();
                 cmd("fill " + (x - 3) + " " + (y - 1) + " " + (z - 2) + " " + (x + 24) + " " + (y + 2) + " " + (z + 2) + " stone");
@@ -632,7 +632,7 @@ final class Round13Tests {
                 apBase = new BlockPos(x, y, z);
                 next();
             }
-            case 723 -> {
+            case 777 -> {
                 if (!after(20)) return true;
                 Autopilot ap = get(Autopilot.class);
                 ap.setting("hoehe").setNumber(apBase.getY());
@@ -640,7 +640,7 @@ final class Round13Tests {
                 on(ap);
                 next();
             }
-            case 724 -> {
+            case 778 -> {
                 Autopilot ap = get(Autopilot.class);
                 if (ap.isEnabled() && !after(900)) return true;
                 double off = Math.hypot(mc.player.getX() - (apBase.getX() + 20.5), mc.player.getZ() - (apBase.getZ() + 0.5));
