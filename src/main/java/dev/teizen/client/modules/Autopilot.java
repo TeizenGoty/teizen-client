@@ -301,8 +301,6 @@ public final class Autopilot extends Module {
         }
         around = "sucht Block";
     }
-        }
-    }
 
     /** Ist ein Stück voraus etwas im Weg? */
     private boolean blocked(double dx, double dz) {
