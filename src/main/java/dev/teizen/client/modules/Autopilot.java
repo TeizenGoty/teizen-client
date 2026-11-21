@@ -88,7 +88,7 @@ public final class Autopilot extends Module {
     @Override
     protected void onEnable() {
         landing = false; noRockets = false; tookOff = false; arrived = false; rocketCd = 0; spin = 0; vel = Vec3.ZERO; flyByUs = false;
-        detTicks = 0; backTicks = 0; stuck = 0; around = ""; mined = 0; detours = 0; backTries = 0; bestDist = Double.MAX_VALUE;
+        detTicks = 0; backTicks = 0; stuck = 0; around = ""; mined = 0; detours = 0; backTries = 0; bestDist = Double.MAX_VALUE; side = 0; digging = false;
         if (!inGame()) return;
         if (!has && !resolve()) { setEnabled(false); return; }
         Chat.ok("Autopilot → §f" + targetName + " §7(" + Math.round(dist()) + " Blöcke, " + art.str() + ")");
@@ -150,10 +150,12 @@ public final class Autopilot extends Module {
 
     /** Kurz voraus (1–3 Blöcke) etwas im Weg? */
     private boolean blockedNear(double dx, double dz) {
-        var box = mc.player.getBoundingBox();
-        for (double d : new double[]{0.9, 2.0, 3.0})
-            if (!mc.level.noCollision(mc.player, box.move(dx * d, 0, dz * d))) return true;
+        for (double d : new double[]{0.9, 2.0, 3.0}) if (blockedAt(dx, dz, d)) return true;
         return false;
+    }
+
+    private boolean blockedAt(double dx, double dz, double d) {
+        return !mc.level.noCollision(mc.player, mc.player.getBoundingBox().move(dx * d, 0, dz * d));
     }
 
     /** Kann er nach oben über das Hindernis? (frei bis 4 Blöcke hoch und dort vorne frei) */
@@ -166,14 +168,38 @@ public final class Autopilot extends Module {
         return false;
     }
 
+    private static final int[] ANGLES = {35, 70, 100, 135};
+    /** Seite für den Umweg: 1 = links, -1 = rechts, 0 = noch nicht gewählt. */
+    private int side;
+    private boolean digging;
+    private net.minecraft.core.BlockPos lastMine;
+
+    private static double[] rot(double dx, double dz, int deg) {
+        double r = Math.toRadians(deg);
+        return new double[]{dx * Math.cos(r) - dz * Math.sin(r), dx * Math.sin(r) + dz * Math.cos(r)};
+    }
+
+    /** Kleinster freier Winkel auf dieser Seite, oder -1. */
+    private int freeAngle(double dx, double dz, int sgn) {
+        for (int a : ANGLES) { double[] d = rot(dx, dz, a * sgn); if (!blockedNear(d[0], d[1])) return a; }
+        return -1;
+    }
+
     /**
-     * Richtung bei Hindernissen. Reihenfolge: direkt · drüber · seitlicher Umweg · zurück raus · abbauen.
+     * Richtung bei Hindernissen. Reihenfolge: direkt · drüber · Umweg an der Mauer entlang (eine Seite) ·
+     * zurück raus · erst dann abbauen.
      * @return {dx, dz, vy (NaN = normal), Tempo-Faktor}
      */
     private double[] steer(net.minecraft.client.player.LocalPlayer p, double dx, double dz, boolean mayMine) {
-        // Fortschritt zum Ziel? Dann ist das Hindernis geschafft -> wieder alles erlaubt
+        if (lastMine != null && dev.teizen.client.util.MinePath.passable(mc.level, lastMine)) { mined++; lastMine = null; }
         double dist = Math.hypot(tx - p.getX(), tz - p.getZ());
-        if (dist < bestDist - 3) { bestDist = dist; stuck = 0; backTries = 0; }
+        if (dist < bestDist - 3) { bestDist = dist; if (!digging) { stuck = 0; backTries = 0; side = 0; } }
+        if (digging) {
+            if (!blockedNear(dx, dz)) { digging = false; side = 0; backTries = 0; around = ""; return new double[]{dx, dz, Double.NaN, 1}; }
+            if (blockedAt(dx, dz, 0.9)) { mineAhead(p, dx, dz); return new double[]{0, 0, 0, 0}; }
+            around = "zur Wand";
+            return new double[]{dx, dz, 0, 0.3}; // bis an den Block ran, dann abbauen
+        }
         if (backTicks > 0) {
             backTicks--;
             around = "fliegt zurück raus";
@@ -181,31 +207,34 @@ public final class Autopilot extends Module {
             backTicks = 0;
         }
         if (detTicks > 0) {
-            detTicks--;
             if (!blockedNear(dx, dz)) detTicks = 0; // direkt ist wieder frei
-            else if (!blockedNear(detX, detZ)) { around = "Umweg"; return new double[]{detX, detZ, Double.NaN, 0.7}; }
+            else if (!blockedNear(detX, detZ)) { detTicks--; around = "Umweg"; return new double[]{detX, detZ, Double.NaN, 0.7}; }
             else detTicks = 0;
         }
-        if (!blockedNear(dx, dz)) {
-            around = "";
-            return new double[]{dx, dz, Double.NaN, 1};
-        }
+        if (!blockedNear(dx, dz)) { around = ""; return new double[]{dx, dz, Double.NaN, 1}; }
         stuck++;
         if (canRise(dx, dz)) { around = "drüber"; return new double[]{dx * 0.15, dz * 0.15, 0.8, 0.3}; }
-        for (int a : new int[]{35, -35, 70, -70, 100, -100, 135, -135}) {
-            double r = Math.toRadians(a), nx = dx * Math.cos(r) - dz * Math.sin(r), nz = dx * Math.sin(r) + dz * Math.cos(r);
-            if (!blockedNear(nx, nz)) {
-                detX = nx; detZ = nz;
+        // Umweg: einmal eine Seite wählen und an der Mauer entlang, bis es direkt wieder frei ist
+        if (side == 0) {
+            int l = freeAngle(dx, dz, 1), r = freeAngle(dx, dz, -1);
+            side = l < 0 && r < 0 ? 0 : (r >= 0 && (l < 0 || r < l)) ? -1 : 1;
+        }
+        if (side != 0) {
+            int a = freeAngle(dx, dz, side);
+            if (a < 0) { side = -side; a = freeAngle(dx, dz, side); }
+            if (a >= 0) {
+                double[] d = rot(dx, dz, a * side);
+                detX = d[0]; detZ = d[1];
                 detTicks = (int) Math.min(400, umweg.num() / Math.max(0.1, tempo.num() * 0.7));
                 detours++;
                 around = "Umweg";
-                return new double[]{nx, nz, Double.NaN, 0.7};
+                return new double[]{detX, detZ, Double.NaN, 0.7};
             }
         }
         // zurück raus (höchstens 2x am selben Hindernis), vielleicht geht es von dort drüber oder vorbei
         if (backTries < 2 && !blockedNear(-dx, -dz)) { backTries++; backTicks = 25; around = "fliegt zurück raus"; return new double[]{-dx, -dz, 0.3, 0.5}; }
-        // gar kein Weg: nur jetzt abbauen
-        if (mayMine && abbauen.on()) { mineAhead(p, dx, dz); return new double[]{0, 0, 0, 0}; }
+        // gar kein Weg: erst jetzt abbauen
+        if (mayMine && abbauen.on()) { digging = true; return steer(p, dx, dz, true); }
         around = "steckt fest";
         if (mc.player.tickCount - mineMsg > 200) { mineMsg = mc.player.tickCount; Chat.error("Autopilot: kein Weg vorbei. Schalt \"abbauen\" an, dann baut er den Block im Weg ab."); }
         return new double[]{0, 0, 0, 0};
@@ -218,12 +247,10 @@ public final class Autopilot extends Module {
         for (net.minecraft.core.BlockPos b : new net.minecraft.core.BlockPos[]{feet, feet.above()}) {
             if (dev.teizen.client.util.MinePath.passable(mc.level, b)) continue;
             if (!dev.teizen.client.util.Breaker.canBreak(b)) { around = "steckt fest (Block nicht abbaubar)"; return; }
-            boolean was = !mc.level.getBlockState(b).isAir();
             dev.teizen.client.util.Breaker.tick(b, true, true);
-            if (was && mc.level.getBlockState(b).isAir()) mined++;
+            lastMine = b;
             return;
         }
-        stuck = 0; // vorne ist frei geworden
     }
 
     /** Ist ein Stück voraus etwas im Weg? */
