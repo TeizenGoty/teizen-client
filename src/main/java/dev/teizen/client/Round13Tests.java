@@ -626,8 +626,10 @@ final class Round13Tests {
                 if (!after(10)) return true;
                 int x = apBase.getX(), y = apBase.getY() + 6, z = apBase.getZ();
                 cmd("fill " + (x - 3) + " " + (y - 1) + " " + (z - 2) + " " + (x + 24) + " " + (y + 2) + " " + (z + 2) + " stone");
-                cmd("fill " + (x - 2) + " " + y + " " + z + " " + (x + 7) + " " + (y + 1) + " " + z + " air");
-                cmd("fill " + (x + 12) + " " + y + " " + z + " " + (x + 23) + " " + (y + 1) + " " + z + " air");
+                cmd("fill " + (x - 3) + " " + (y - 1) + " " + (z - 2) + " " + (x + 24) + " " + (y + 3) + " " + (z + 2) + " stone");
+                // 3 hoch, damit er zwischen zwei Blockhöhen fliegt (berührt dann 3 Schichten)
+                cmd("fill " + (x - 2) + " " + y + " " + z + " " + (x + 7) + " " + (y + 2) + " " + z + " air");
+                cmd("fill " + (x + 12) + " " + y + " " + z + " " + (x + 23) + " " + (y + 2) + " " + z + " air");
                 tp(x + 0.5, y, z + 0.5);
                 apBase = new BlockPos(x, y, z);
                 next();
@@ -635,7 +637,7 @@ final class Round13Tests {
             case 777 -> {
                 if (!after(20)) return true;
                 Autopilot ap = get(Autopilot.class);
-                ap.setting("hoehe").setNumber(apBase.getY());
+                ap.setting("hoehe").setNumber(apBase.getY() + 0.6);
                 ap.target(apBase.getX() + 20.5, apBase.getZ() + 0.5, "Tunnel-Test");
                 on(ap);
                 next();

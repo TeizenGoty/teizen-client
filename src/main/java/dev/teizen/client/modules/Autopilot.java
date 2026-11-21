@@ -243,16 +243,29 @@ public final class Autopilot extends Module {
     /** Den Block direkt vor ihm (Füße oder Kopf) abbauen. */
     private void mineAhead(net.minecraft.client.player.LocalPlayer p, double dx, double dz) {
         around = "baut ab";
-        // den ersten festen Block vor ihm suchen (Füße und Kopf), knapp vor der Hitbox bis gut 1 Block weiter
+        // alle Blöcke, die die Hitbox ein Stück weiter vorne berühren würde (Füße, Mitte, Kopf – auch zwischen
+        // zwei Blockhöhen fliegend sind das drei Schichten), den nächsten zuerst
+        var box = p.getBoundingBox();
         for (double d : new double[]{0.6, 0.9, 1.2, 1.5}) {
-            net.minecraft.core.BlockPos feet = net.minecraft.core.BlockPos.containing(p.getX() + dx * d, p.getY() + 0.2, p.getZ() + dz * d);
-            for (net.minecraft.core.BlockPos b : new net.minecraft.core.BlockPos[]{feet, feet.above()}) {
+            var m = box.move(dx * d, 0, dz * d);
+            net.minecraft.core.BlockPos best = null;
+            double bd = Double.MAX_VALUE;
+            for (net.minecraft.core.BlockPos b : net.minecraft.core.BlockPos.betweenClosed(
+                    net.minecraft.util.Mth.floor(m.minX), net.minecraft.util.Mth.floor(m.minY + 0.01), net.minecraft.util.Mth.floor(m.minZ),
+                    net.minecraft.util.Mth.floor(m.maxX - 1e-6), net.minecraft.util.Mth.floor(m.maxY - 1e-6), net.minecraft.util.Mth.floor(m.maxZ - 1e-6))) {
                 if (dev.teizen.client.util.MinePath.passable(mc.level, b)) continue;
-                if (!dev.teizen.client.util.Breaker.canBreak(b)) { around = "steckt fest (Block nicht abbaubar)"; return; }
-                dev.teizen.client.util.Breaker.tick(b, true, true);
-                lastMine = b;
-                return;
+                if (mc.level.getBlockState(b).getCollisionShape(mc.level, b).isEmpty()) continue;
+                double dd = Vec3.atCenterOf(b).distanceToSqr(p.getEyePosition());
+                if (dd < bd) { bd = dd; best = b.immutable(); }
             }
+            if (best == null) continue;
+            if (!dev.teizen.client.util.Breaker.canBreak(best)) { around = "steckt fest (Block nicht abbaubar)"; return; }
+            dev.teizen.client.util.Breaker.tick(best, true, true);
+            lastMine = best;
+            return;
+        }
+        around = "sucht Block";
+    }
         }
     }
 
