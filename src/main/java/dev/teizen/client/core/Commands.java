@@ -465,6 +465,24 @@ public final class Commands {
                 Module.playToggle(true);
                 Chat.ok("Umschalt-Sound: " + (Module.sound ? "§aan §7(" + Module.soundName + ")" : "§caus") + " §7– Auswahl: ///sound liste");
             }
+            case "gamemode", "gm", "spielmodus" -> {
+                // eigene Welt (auch Hardcore ohne Cheats) oder OP: Spielmodus wechseln, vorher aus Blöcken raus
+                if (!dev.teizen.client.util.Op.available()) { Chat.error("Geht nur in deiner eigenen Welt oder mit OP."); return; }
+                String m = a.length >= 2 ? a[1].toLowerCase(java.util.Locale.ROOT) : "survival";
+                net.minecraft.world.level.GameType t = switch (m) {
+                    case "0", "s", "survival", "ueberleben", "überleben" -> net.minecraft.world.level.GameType.SURVIVAL;
+                    case "1", "c", "creative", "kreativ" -> net.minecraft.world.level.GameType.CREATIVE;
+                    case "2", "a", "adventure", "abenteuer" -> net.minecraft.world.level.GameType.ADVENTURE;
+                    case "3", "sp", "spectator", "zuschauer" -> net.minecraft.world.level.GameType.SPECTATOR;
+                    default -> null;
+                };
+                if (t == null) { Chat.error("///gamemode survival | creative | adventure | spectator"); return; }
+                var nc = TeizenClient.modules().get(dev.teizen.client.modules.NoClip.class);
+                if (nc != null && nc.isEnabled() && t != net.minecraft.world.level.GameType.SPECTATOR) nc.setEnabled(false);
+                if (t == net.minecraft.world.level.GameType.SPECTATOR) dev.teizen.client.util.Op.run("gamemode spectator");
+                else dev.teizen.client.modules.NoClip.leaveSpectator(t);
+                Chat.ok("Spielmodus: " + t.getName());
+            }
             case "autopilot", "pilot" -> {
                 var ap = TeizenClient.modules().get(dev.teizen.client.modules.Autopilot.class);
                 if (a.length >= 2 && (a[1].equalsIgnoreCase("aus") || a[1].equalsIgnoreCase("stop"))) { ap.setEnabled(false); Chat.ok("Autopilot aus."); return; }

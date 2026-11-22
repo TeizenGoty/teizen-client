@@ -66,6 +66,7 @@ public final class Config {
             root.addProperty("toggleSoundName", Module.soundName);
             root.addProperty("toggleSoundV2", true);
             root.addProperty("noclipV2", true);
+            if (dev.teizen.client.modules.NoClip.savedPrev != null) root.addProperty("noclipPrev", dev.teizen.client.modules.NoClip.savedPrev);
             root.addProperty("menuKlick", dev.teizen.client.gui.Clicks.current);
             root.addProperty("merken", Restore.enabled);
             JsonObject ms = new JsonObject();
@@ -94,6 +95,7 @@ public final class Config {
             if (root.has("menuFont")) dev.teizen.client.gui.MenuFont.enabled = root.get("menuFont").getAsBoolean();
             if (root.has("toggleSound")) Module.sound = root.get("toggleSound").getAsBoolean();
             if (root.has("toggleSoundName")) Module.soundName = root.get("toggleSoundName").getAsString();
+            dev.teizen.client.modules.NoClip.savedPrev = root.has("noclipPrev") ? root.get("noclipPrev").getAsString() : null;
             if (root.has("menuKlick")) dev.teizen.client.gui.Clicks.current = Math.max(0, Math.min(dev.teizen.client.gui.Clicks.NAMES.length - 1, root.get("menuKlick").getAsInt()));
             // alter Standard "klick" (Minecraft-Knopf) -> einmalig auf den neuen Pop umstellen
             if (!root.has("toggleSoundV2")) { if (Module.soundName.equals("klick")) Module.soundName = "teizen"; }

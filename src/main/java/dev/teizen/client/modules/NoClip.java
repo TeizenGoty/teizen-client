@@ -26,6 +26,8 @@ public final class NoClip extends Module {
     private final Setting speed = add(Setting.number("tempo", "Flug-Tempo (Blöcke pro Tick beim Fliegen, im Zuschauer-Modus 1 = normal)", 1, 0.1, 10));
     private final Setting interact = add(Setting.bool("interagieren", "Beim Fliegen Kisten öffnen und schlagen erlauben", true));
     private GameType previous;
+    /** Spielmodus vor NoClip – wird gespeichert, damit es auch nach Neustart/Welt-Verlassen zurück geht. */
+    public static String savedPrev;
     private int enabledTick;
     private boolean warned, flyByUs, camByUs;
     private BlockPos digging;
@@ -79,9 +81,48 @@ public final class NoClip extends Module {
     }
 
     private void startSpectator() {
-        previous = mc.gameMode.getPlayerMode();
         enabledTick = mc.player.tickCount;
-        if (previous != GameType.SPECTATOR) dev.teizen.client.util.Op.run("gamemode spectator");
+        GameType cur = mc.gameMode.getPlayerMode();
+        if (cur == GameType.SPECTATOR) {
+            // schon Zuschauer (z.B. mit NoClip an die Welt verlassen): gemerkten Modus nehmen, sonst Überleben
+            previous = savedPrev != null ? GameType.byName(savedPrev, GameType.SURVIVAL) : GameType.SURVIVAL;
+            return;
+        }
+        previous = cur;
+        savedPrev = cur.getName();
+        dev.teizen.client.core.Config.save();
+        dev.teizen.client.util.Op.run("gamemode spectator");
+    }
+
+    /** Vor dem Zurückschalten: steckt man in Blöcken, erst an eine freie Stelle (sonst Ersticken). */
+    public static void safeSpot() {
+        var p = mc.player;
+        var box = p.getBoundingBox();
+        if (mc.level.noCollision(p, box)) return;
+        double fx = Math.floor(p.getX()) + 0.5, fz = Math.floor(p.getZ()) + 0.5;
+        var base = box.move(fx - p.getX(), 0, fz - p.getZ());
+        Double free = null;
+        for (int dy = 1; dy <= 80 && free == null; dy++)
+            for (int sign : new int[]{1, -1}) {
+                double y = Math.floor(p.getY()) + dy * sign;
+                var b = base.move(0, y - p.getY(), 0);
+                if (!mc.level.noCollision(p, b)) continue;
+                // am liebsten mit Boden drunter (Hardcore: nicht in die Tiefe fallen)
+                if (!mc.level.noCollision(p, b.move(0, -1, 0)) || dy > 40) { free = y; break; }
+            }
+        if (free == null) return;
+        dev.teizen.client.util.Op.run(String.format(java.util.Locale.ROOT, "tp @s %.2f %.2f %.2f", fx, free, fz));
+    }
+
+    /** Selbsttest: wie nach einem Neustart mit NoClip an (Modus im Speicher weg, Spieler schon Zuschauer). */
+    public void simulateRestart() { previous = null; startSpectator(); }
+
+    /** Aus dem Zuschauer-Modus zurück (sicher). */
+    public static void leaveSpectator(GameType to) {
+        safeSpot();
+        dev.teizen.client.util.Op.run("gamemode " + to.getName());
+        savedPrev = null;
+        dev.teizen.client.core.Config.save();
     }
 
     private void startDig() {
@@ -107,10 +148,11 @@ public final class NoClip extends Module {
             if (fly != null && fly.isEnabled()) fly.setEnabled(false);
             flyByUs = false;
         }
-        if (previous != null) {
+        if (previous != null || (savedPrev != null && mc.gameMode.getPlayerMode() == GameType.SPECTATOR)) {
+            GameType to = previous != null ? previous : GameType.byName(savedPrev, GameType.SURVIVAL);
             mc.player.getAbilities().setFlyingSpeed(0.05f);
-            if (previous != GameType.SPECTATOR && mc.gameMode.getPlayerMode() == GameType.SPECTATOR)
-                dev.teizen.client.util.Op.run("gamemode " + previous.getName());
+            if (to != GameType.SPECTATOR && mc.gameMode.getPlayerMode() == GameType.SPECTATOR) leaveSpectator(to);
+            else { savedPrev = null; dev.teizen.client.core.Config.save(); }
         }
         previous = null;
     }

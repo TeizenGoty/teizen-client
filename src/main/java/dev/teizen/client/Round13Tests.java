@@ -165,6 +165,7 @@ final class Round13Tests {
     private Round13Tests() {}
 
     private static BlockPos brushPos, wrongTop, apBase;
+    private static boolean ncWasSpec;
     private static void cmd(String c) { SelfTest.cmd2(c); }
     private static boolean after(int t) { return SelfTest.after2(t); }
     private static int local() { return SelfTest.local(); }
@@ -680,6 +681,43 @@ final class Round13Tests {
                 off(get(Fly.class));
                 ap.setting("art").setText("elytra");
                 ap.setting("tempo").setNumber(1.5);
+                next();
+            }
+            // ------------------------------------------------ NoClip: nach "Neustart" wieder raus, sicher aus der Wand
+            case 782 -> {
+                if (!after(10)) return true;
+                cmd("gamemode survival");
+                NoClip nc = get(NoClip.class);
+                nc.setting("modus").setText("auto");
+                next();
+            }
+            case 783 -> {
+                if (!after(20)) return true;
+                on(get(NoClip.class));
+                next();
+            }
+            case 784 -> {
+                if (!after(30)) return true;
+                NoClip nc = get(NoClip.class);
+                boolean spec = mc.gameMode.getPlayerMode() == net.minecraft.world.level.GameType.SPECTATOR;
+                nc.simulateRestart(); // gemerkter Modus kommt aus der Datei, nicht aus dem Speicher
+                BlockPos b = mc.player.blockPosition();
+                cmd("fill " + (b.getX() - 1) + " " + b.getY() + " " + (b.getZ() - 1) + " " + (b.getX() + 1) + " " + (b.getY() + 3) + " " + (b.getZ() + 1) + " stone");
+                ncWasSpec = spec;
+                next();
+            }
+            case 785 -> {
+                if (!after(20)) return true;
+                off(get(NoClip.class));
+                next();
+            }
+            case 786 -> {
+                if (!after(30)) return true;
+                var gm = mc.gameMode.getPlayerMode();
+                boolean free = mc.level.noCollision(mc.player, mc.player.getBoundingBox());
+                result("NoClip raus: war Zuschauer=" + yes(ncWasSpec) + ", jetzt " + gm.getName() + ", nicht in der Wand=" + yes(free) + " "
+                        + ok(ncWasSpec && gm == net.minecraft.world.level.GameType.SURVIVAL && free));
+                SelfTest.log2("NoClip-Raus: warZuschauer=" + ncWasSpec + " jetzt=" + gm.getName() + " frei=" + free + " gespeichert=" + NoClip.savedPrev);
                 SelfTest.jump(730);
             }
             // ------------------------------------------------ Neues Menü: AutoMine rechts, Kategorie Abbau, Schalter per Klick
