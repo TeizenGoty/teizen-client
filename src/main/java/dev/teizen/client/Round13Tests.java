@@ -718,6 +718,24 @@ final class Round13Tests {
                 result("NoClip raus: war Zuschauer=" + yes(ncWasSpec) + ", jetzt " + gm.getName() + ", nicht in der Wand=" + yes(free) + " "
                         + ok(ncWasSpec && gm == net.minecraft.world.level.GameType.SURVIVAL && free));
                 SelfTest.log2("NoClip-Raus: warZuschauer=" + ncWasSpec + " jetzt=" + gm.getName() + " frei=" + free + " gespeichert=" + NoClip.savedPrev);
+                next();
+            }
+            // ------------------------------------------------ Tasten bleiben gespeichert (auch Ä/Ö/Ü auf 26.3)
+            case 787 -> {
+                if (!after(5)) return true;
+                NoClip nc = get(NoClip.class);
+                int old = nc.key;
+                // eine Taste, die es im alten Format nicht gibt: 26.3 = "ä" (SDL 228), 26.2 = GLFW_KEY_WORLD_1 (161)
+                int test = dev.teizen.client.compat.K.SYSTEM.equals("sdl") ? 228 : 161;
+                nc.key = test;
+                dev.teizen.client.core.Config.save();
+                nc.key = -1;
+                dev.teizen.client.core.Config.load();
+                int back = nc.key;
+                result("Taste gespeichert (" + dev.teizen.client.compat.K.SYSTEM + "): gesetzt=" + test + ", nach Laden=" + back + " " + ok(back == test));
+                SelfTest.log2("Taste-Speichern: system=" + dev.teizen.client.compat.K.SYSTEM + " gesetzt=" + test + " geladen=" + back);
+                nc.key = old;
+                dev.teizen.client.core.Config.save();
                 SelfTest.jump(730);
             }
             // ------------------------------------------------ Neues Menü: AutoMine rechts, Kategorie Abbau, Schalter per Klick

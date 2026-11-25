@@ -49,5 +49,7 @@ public final class K {
 
     /** Für die Config: Codes werden immer als GLFW-Code gespeichert (gleiche Datei für 26.2 und 26.3). */
     public static int toGlfw(int code) { return I.toGlfw(code); }
+    /** "glfw" (26.2) oder "sdl" (26.3) – Tasten-Codes nur im selben System direkt übernehmen. */
+    public static final String SYSTEM = I.toGlfw(ESCAPE) == ESCAPE ? "glfw" : "sdl";
     public static int fromGlfw(int glfw) { return I.fromGlfw(glfw); }
 }
