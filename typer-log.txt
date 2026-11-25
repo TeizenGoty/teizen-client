@@ -1,0 +1,2 @@
+typer gestartet (DISPLAY=:99)
+xdotool version 3.20160805.1
